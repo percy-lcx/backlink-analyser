@@ -71,7 +71,7 @@ const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
 type Tab = "overview" | "links" | "domains" | "anchors" | "quality";
 
 function Dashboard() {
-  const { profiles, selected, setSelected, loading } = useProfile();
+  const { profiles, selected, setSelected, loading, error } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
 
   // Overview state
@@ -120,6 +120,7 @@ function Dashboard() {
       <div className="flex items-center justify-center h-screen text-gray-500">
         <div className="text-center">
           <p className="text-lg font-medium">No profiles found</p>
+          {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
           <p className="text-sm mt-2">Ingest some backlink data first, then restart the backend.</p>
         </div>
       </div>
