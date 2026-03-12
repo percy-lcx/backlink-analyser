@@ -1,8 +1,12 @@
+import os
 import duckdb
 import threading
 
 _conn = None
 _lock = threading.Lock()
+
+# Resolve store path relative to the project root (one level up from backend/)
+_STORE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "store")
 
 
 def get_conn() -> duckdb.DuckDBPyConnection:
@@ -28,7 +32,8 @@ def refresh_views() -> None:
     global _conn
     if _conn is None:
         raise RuntimeError("Database not initialised. Call init_db() first.")
+    parquet_pattern = os.path.join(_STORE_DIR, "*.parquet")
     _conn.execute(
         "CREATE OR REPLACE VIEW backlinks AS "
-        "SELECT * FROM read_parquet('./store/*.parquet')"
+        f"SELECT * FROM read_parquet('{parquet_pattern}')"
     )
