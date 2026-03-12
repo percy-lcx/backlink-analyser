@@ -152,12 +152,15 @@ pub fn parse_ahrefs_file(
         Delimiter::Comma => b',',
     };
 
+    // Read file content with automatic encoding conversion
+    let content = crate::parser::detector::read_file_to_string(path)?;
+
     let mut rdr = csv::ReaderBuilder::new()
         .delimiter(delim_byte)
         .has_headers(true)
         .flexible(true)
         .quoting(true)
-        .from_path(path)?;
+        .from_reader(content.as_bytes());
 
     let headers = rdr.headers()?.clone();
     let cols = AhrefsColumns::from_headers(&headers);
