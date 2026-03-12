@@ -13,6 +13,8 @@ import {
   fetchReferringDomains,
   fetchAnchors,
   fetchQualityMatrix,
+  fetchPageBreakdown,
+  triggerIngest,
   type OverviewData,
   type DrBucket,
   type VelocityPoint,
@@ -23,6 +25,15 @@ import {
   type LinksResponse,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
+
+interface PageRow {
+  target_path: string;
+  category: string;
+  link_count: number;
+  unique_referring_domains: number;
+  avg_dr: number;
+  dofollow_ratio: number;
+}
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "referring_domain", header: "Referring Domain" },
@@ -68,13 +79,32 @@ const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "quality";
+const pageColumns: ColumnDef<PageRow, unknown>[] = [
+  { accessorKey: "target_path", header: "Target URL" },
+  { accessorKey: "category", header: "Category" },
+  { accessorKey: "link_count", header: "Backlinks" },
+  { accessorKey: "unique_referring_domains", header: "Ref. Domains" },
+  {
+    accessorKey: "avg_dr",
+    header: "Avg DR",
+    cell: ({ getValue }) => (getValue() as number)?.toFixed(1) ?? "—",
+  },
+  {
+    accessorKey: "dofollow_ratio",
+    header: "Dofollow %",
+    cell: ({ getValue }) => `${((getValue() as number) * 100).toFixed(0)}%`,
+  },
+];
+
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality";
 
 function Dashboard() {
-  const { profiles, selected, setSelected, loading, error } = useProfile();
+  const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
 
-  console.log("[Dashboard] render", { loading, error, profiles, selected });
+  // Ingest state
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
 
   // Overview state
   const [overview, setOverview] = useState<OverviewData | null>(null);
@@ -90,6 +120,9 @@ function Dashboard() {
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
+
+  // Pages state
+  const [pages, setPages] = useState<PageRow[]>([]);
 
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
@@ -112,10 +145,29 @@ function Dashboard() {
         const total = items.reduce((s, a) => s + a.count, 0);
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
       }).catch(() => setAnchors([]));
+    } else if (tab === "pages") {
+      fetchPageBreakdown(selected).then((data) => {
+        const items = Array.isArray(data) ? data : (data as { pages: PageRow[] }).pages ?? [];
+        setPages(items);
+      }).catch(() => setPages([]));
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
   }, [selected, tab, linkPage]);
+
+  const handleIngest = async () => {
+    setIngesting(true);
+    setIngestMsg(null);
+    try {
+      const result = await triggerIngest();
+      setIngestMsg(result.status === "ok" ? "Ingestion complete" : `Status: ${result.status}`);
+      refresh();
+    } catch (err) {
+      setIngestMsg(`Failed: ${err}`);
+    } finally {
+      setIngesting(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
@@ -128,6 +180,14 @@ function Dashboard() {
           <p className="text-lg font-medium">No profiles found</p>
           {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
           <p className="text-sm mt-2">Ingest some backlink data first, then restart the backend.</p>
+          <button
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50"
+            onClick={handleIngest}
+            disabled={ingesting}
+          >
+            {ingesting ? "Ingesting..." : "Run Ingestion"}
+          </button>
+          {ingestMsg && <p className="text-sm mt-2 text-gray-600">{ingestMsg}</p>}
         </div>
       </div>
     );
@@ -138,6 +198,7 @@ function Dashboard() {
     { key: "links", label: "Links" },
     { key: "domains", label: "Domains" },
     { key: "anchors", label: "Anchors" },
+    { key: "pages", label: "Pages" },
     { key: "quality", label: "Quality" },
   ];
 
@@ -147,17 +208,27 @@ function Dashboard() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-xl font-bold text-gray-900">Backlink Analyser</h1>
-          <select
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-          >
-            {profiles.map((p) => (
-              <option key={p.profile_label} value={p.profile_label}>
-                {p.profile_label} ({(p.total_links ?? 0).toLocaleString()} links)
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <button
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-50"
+              onClick={handleIngest}
+              disabled={ingesting}
+            >
+              {ingesting ? "Ingesting..." : "Re-ingest"}
+            </button>
+            {ingestMsg && <span className="text-xs text-gray-500">{ingestMsg}</span>}
+            <select
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
+              {profiles.map((p) => (
+                <option key={p.profile_label} value={p.profile_label}>
+                  {p.profile_label} ({(p.total_links ?? 0).toLocaleString()} links)
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </header>
 
@@ -227,6 +298,14 @@ function Dashboard() {
           <div className="bg-white rounded-lg shadow p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">Anchor Text Distribution</h3>
             <DataTable data={anchors} columns={anchorColumns} pageSize={30} />
+          </div>
+        )}
+
+        {tab === "pages" && (
+          <div className="bg-white rounded-lg shadow p-5">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4">Backlinks by Target Page</h3>
+            <p className="text-xs text-gray-400 mb-4">Every URL on the target site and how many backlinks point to it.</p>
+            <DataTable data={pages} columns={pageColumns} pageSize={30} />
           </div>
         )}
 

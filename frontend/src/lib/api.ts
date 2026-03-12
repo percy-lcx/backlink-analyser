@@ -233,8 +233,13 @@ export function fetchVelocity(profile: string, interval?: string): Promise<Veloc
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
-export function fetchPageBreakdown(profile: string): Promise<PageGroup[]> {
-  return get<PageGroup[]>(`${BASE}/page-breakdown`, { profile });
+export interface PageBreakdownResponse {
+  pages: PageGroup[];
+  categories: Record<string, { link_count: number; unique_referring_domains: number; avg_dr: number; dofollow_ratio: number }>;
+}
+
+export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
+  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile });
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
