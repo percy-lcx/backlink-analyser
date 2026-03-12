@@ -180,15 +180,16 @@ export interface RedirectSummary {
 
 export interface LinkParams {
   page?: number;
-  page_size?: number;
+  per_page?: number;
   sort?: string;
-  order?: string;
   is_nofollow?: boolean;
   is_spam?: boolean;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
-  search?: string;
+  anchor_search?: string;
+  domain_search?: string;
+  target_path_search?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {

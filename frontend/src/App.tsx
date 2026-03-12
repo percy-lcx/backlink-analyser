@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ProfileProvider, useProfile } from "./components/ProfileContext";
+import { useProfile } from "./components/ProfileContext";
 import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
@@ -99,7 +99,7 @@ function Dashboard() {
       fetchDrDistribution(selected).then(setDrDist).catch(() => setDrDist([]));
       fetchVelocity(selected).then(setVelocity).catch(() => setVelocity([]));
     } else if (tab === "links") {
-      fetchLinks(selected, { page: linkPage + 1, page_size: 50 })
+      fetchLinks(selected, { page: linkPage + 1, per_page: 50 })
         .then(setLinksData)
         .catch(() => setLinksData(null));
     } else if (tab === "domains") {
@@ -226,7 +226,6 @@ function Dashboard() {
 
         {tab === "quality" && (
           <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Quality Matrix (DR vs Traffic)</h3>
             <ScatterPlot data={quality} />
           </div>
         )}
@@ -235,12 +234,4 @@ function Dashboard() {
   );
 }
 
-function App() {
-  return (
-    <ProfileProvider>
-      <Dashboard />
-    </ProfileProvider>
-  );
-}
-
-export default App;
+export default Dashboard;
