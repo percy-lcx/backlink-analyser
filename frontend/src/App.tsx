@@ -74,6 +74,8 @@ function Dashboard() {
   const { profiles, selected, setSelected, loading, error } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
 
+  console.log("[Dashboard] render", { loading, error, profiles, selected });
+
   // Overview state
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [drDist, setDrDist] = useState<DrBucket[]>([]);
@@ -148,7 +150,7 @@ function Dashboard() {
           >
             {profiles.map((p) => (
               <option key={p.profile_label} value={p.profile_label}>
-                {p.profile_label} ({p.total_links.toLocaleString()} links)
+                {p.profile_label} ({(p.total_links ?? 0).toLocaleString()} links)
               </option>
             ))}
           </select>
@@ -179,14 +181,14 @@ function Dashboard() {
         {tab === "overview" && overview && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SummaryCard label="Total Backlinks" value={overview.total_backlinks.toLocaleString()} />
-              <SummaryCard label="Referring Domains" value={overview.unique_referring_domains.toLocaleString()} />
-              <SummaryCard label="Dofollow" value={overview.dofollow_count.toLocaleString()} color="text-green-600" />
+              <SummaryCard label="Total Backlinks" value={(overview.total_backlinks ?? 0).toLocaleString()} />
+              <SummaryCard label="Referring Domains" value={(overview.unique_referring_domains ?? 0).toLocaleString()} />
+              <SummaryCard label="Dofollow" value={(overview.dofollow_count ?? 0).toLocaleString()} color="text-green-600" />
               <SummaryCard label="Avg DR" value={overview.avg_dr?.toFixed(1) ?? "—"} />
-              <SummaryCard label="Nofollow" value={overview.nofollow_count.toLocaleString()} />
-              <SummaryCard label="Spam Ratio" value={`${(overview.spam_ratio * 100).toFixed(1)}%`} color={overview.spam_ratio > 0.1 ? "text-red-600" : "text-green-600"} />
-              <SummaryCard label="Image Links" value={overview.image_link_count.toLocaleString()} />
-              <SummaryCard label="Total Traffic" value={overview.total_page_traffic.toLocaleString()} />
+              <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} />
+              <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} />
+              <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} />
+              <SummaryCard label="Total Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DrDistribution data={drDist} />
