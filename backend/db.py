@@ -10,11 +10,11 @@ _STORE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 
 
 def get_conn() -> duckdb.DuckDBPyConnection:
-    """Return the singleton DuckDB connection."""
+    """Return a per-request cursor safe for concurrent use."""
     global _conn
     if _conn is None:
         raise RuntimeError("Database not initialised. Call init_db() first.")
-    return _conn
+    return _conn.cursor()
 
 
 def init_db() -> duckdb.DuckDBPyConnection:
