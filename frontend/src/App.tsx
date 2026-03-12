@@ -98,7 +98,7 @@ function Dashboard() {
     if (!selected) return;
     if (tab === "overview") {
       fetchOverview(selected).then(setOverview).catch(() => setOverview(null));
-      fetchDrDistribution(selected).then(setDrDist).catch(() => setDrDist([]));
+      fetchDrDistribution(selected).then((d) => setDrDist(d.dr ?? [])).catch(() => setDrDist([]));
       fetchVelocity(selected).then(setVelocity).catch(() => setVelocity([]));
     } else if (tab === "links") {
       fetchLinks(selected, { page: linkPage + 1, per_page: 50 })

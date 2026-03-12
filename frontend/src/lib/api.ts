@@ -104,10 +104,15 @@ export interface DrBucket {
   count: number;
 }
 
+export interface DrDistributionResponse {
+  dr: DrBucket[];
+  ur: DrBucket[];
+}
+
 export interface VelocityPoint {
   period: string;
-  new_links: number;
-  lost_links: number;
+  new_count: number;
+  lost_count: number;
   net: number;
 }
 
@@ -220,8 +225,8 @@ export function fetchReferringDomains(profile: string, sort?: string): Promise<R
   return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
 }
 
-export function fetchDrDistribution(profile: string): Promise<DrBucket[]> {
-  return get<DrBucket[]>(`${BASE}/dr-distribution`, { profile });
+export function fetchDrDistribution(profile: string): Promise<DrDistributionResponse> {
+  return get<DrDistributionResponse>(`${BASE}/dr-distribution`, { profile });
 }
 
 export function fetchVelocity(profile: string, interval?: string): Promise<VelocityPoint[]> {
