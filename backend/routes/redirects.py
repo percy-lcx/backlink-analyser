@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Query
 from db import get_conn
 from analysis.redirects import parse_redirect_chain

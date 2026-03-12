@@ -1,4 +1,6 @@
+from __future__ import annotations
 import re
+from typing import Optional
 from config import get_config
 
 GENERIC_ANCHORS = {
@@ -20,8 +22,8 @@ _URL_PATTERN = re.compile(
 
 
 def categorise_anchor(
-    anchor: str | None,
-    link_type: str | None,
+    anchor: Optional[str],
+    link_type: Optional[str],
 ) -> str:
     """Return the category string for a single anchor text."""
     cfg = get_config().get("anchor_categories", {})

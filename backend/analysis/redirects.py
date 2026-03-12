@@ -1,6 +1,10 @@
+from __future__ import annotations
+from typing import Optional
+
+
 def parse_redirect_chain(
-    redirect_chain_urls: str | None,
-    redirect_chain_codes: str | None,
+    redirect_chain_urls: Optional[str],
+    redirect_chain_codes: Optional[str],
 ) -> dict:
     """Parse redirect chain fields and return structured info.
 

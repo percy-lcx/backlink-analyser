@@ -1,8 +1,9 @@
 import re
+from typing import Optional
 from config import get_config
 
 
-def categorise_page(target_path: str | None) -> str:
+def categorise_page(target_path: Optional[str]) -> str:
     """Categorise a target_path using config patterns, with fallback heuristics."""
     if not target_path:
         return "other"
