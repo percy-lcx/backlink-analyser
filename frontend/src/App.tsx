@@ -125,11 +125,17 @@ function Dashboard() {
   const [linksData, setLinksData] = useState<LinksResponse | null>(null);
   const [linkPage, setLinkPage] = useState(0);
 
-  // Drilldown state: when set, links are filtered to this target_path
+  // Link filter state
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
   const [exactMatch, setExactMatch] = useState(false);
+  const [domainInput, setDomainInput] = useState("");
+  const [domainFilter, setDomainFilter] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const domainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const urlDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Domains state
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
@@ -155,6 +161,8 @@ function Dashboard() {
         params.target_path_search = drilldownPath;
         if (exactMatch) params.target_path_exact = true;
       }
+      if (domainFilter) params.domain_search = domainFilter;
+      if (urlFilter) params.url_search = urlFilter;
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
@@ -174,12 +182,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, drilldownPath, exactMatch]);
+  }, [selected, tab, linkPage, drilldownPath, exactMatch, domainFilter, urlFilter]);
 
-  // Reset link page when drilldown changes
+  // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath]);
+  }, [drilldownPath, domainFilter, urlFilter]);
 
   // Debounce: input → drilldownPath
   useEffect(() => {
@@ -189,6 +197,24 @@ function Dashboard() {
     }, 300);
     return () => clearTimeout(debounceRef.current);
   }, [targetPathInput]);
+
+  // Debounce: domainInput → domainFilter
+  useEffect(() => {
+    clearTimeout(domainDebounceRef.current);
+    domainDebounceRef.current = setTimeout(() => {
+      setDomainFilter(domainInput || null);
+    }, 300);
+    return () => clearTimeout(domainDebounceRef.current);
+  }, [domainInput]);
+
+  // Debounce: urlInput → urlFilter
+  useEffect(() => {
+    clearTimeout(urlDebounceRef.current);
+    urlDebounceRef.current = setTimeout(() => {
+      setUrlFilter(urlInput || null);
+    }, 300);
+    return () => clearTimeout(urlDebounceRef.current);
+  }, [urlInput]);
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -217,6 +243,10 @@ function Dashboard() {
     if (t === "links") {
       setTargetPathInput("");
       setDrilldownPath(null);
+      setDomainInput("");
+      setDomainFilter(null);
+      setUrlInput("");
+      setUrlFilter(null);
     }
     setTab(t);
   };
@@ -326,9 +356,43 @@ function Dashboard() {
 
         {tab === "links" && (
           <div>
-            {/* Target URL filter */}
-            <div className="mb-4 flex items-center gap-3">
-              <div className="relative flex-1 max-w-md">
+            {/* Link filters */}
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Filter by referring domain..."
+                  value={domainInput}
+                  onChange={(e) => setDomainInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {domainInput && (
+                  <button
+                    onClick={() => { setDomainInput(""); setDomainFilter(null); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >
+                    &#x2715;
+                  </button>
+                )}
+              </div>
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Filter by referring URL..."
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {urlInput && (
+                  <button
+                    onClick={() => { setUrlInput(""); setUrlFilter(null); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >
+                    &#x2715;
+                  </button>
+                )}
+              </div>
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
                 <input
                   type="text"
                   placeholder="Filter by target URL..."

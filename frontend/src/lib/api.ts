@@ -203,6 +203,7 @@ export interface LinkParams {
   dr_max?: number;
   anchor_search?: string;
   domain_search?: string;
+  url_search?: string;
   target_path_search?: string;
   target_path_exact?: boolean;
 }

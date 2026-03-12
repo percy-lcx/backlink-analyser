@@ -29,6 +29,7 @@ def list_links(
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
+    url_search: Optional[str] = Query(None),
     target_path_search: Optional[str] = Query(None),
     target_path_exact: Optional[bool] = Query(None),
 ):
@@ -72,6 +73,11 @@ def list_links(
     if domain_search is not None:
         conditions.append(f"referring_domain ILIKE ${idx}")
         params.append(f"%{domain_search}%")
+        idx += 1
+
+    if url_search is not None:
+        conditions.append(f"referring_url ILIKE ${idx}")
+        params.append(f"%{url_search}%")
         idx += 1
 
     if target_path_search is not None:
