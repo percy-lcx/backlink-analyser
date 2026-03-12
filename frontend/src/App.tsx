@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProfile } from "./components/ProfileContext";
 import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
@@ -127,6 +127,8 @@ function Dashboard() {
 
   // Drilldown state: when set, links are filtered to this target_path
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
+  const [targetPathInput, setTargetPathInput] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Domains state
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
@@ -177,6 +179,15 @@ function Dashboard() {
     setLinkPage(0);
   }, [drilldownPath]);
 
+  // Debounce: input → drilldownPath
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDrilldownPath(targetPathInput || null);
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [targetPathInput]);
+
   const handleIngest = async () => {
     setIngesting(true);
     setIngestMsg(null);
@@ -193,6 +204,7 @@ function Dashboard() {
 
   // Click a page row → drilldown into its backlinks
   const handlePageRowClick = (row: PageRow) => {
+    setTargetPathInput(row.target_path);
     setDrilldownPath(row.target_path);
     setTab("links");
   };
@@ -200,6 +212,7 @@ function Dashboard() {
   // Clicking the Links tab directly clears any drilldown filter
   const handleTabClick = (t: Tab) => {
     if (t === "links") {
+      setTargetPathInput("");
       setDrilldownPath(null);
     }
     setTab(t);
@@ -310,30 +323,32 @@ function Dashboard() {
 
         {tab === "links" && (
           <div>
-            {/* Drilldown banner */}
-            {drilldownPath && (
-              <div className="mb-4 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2.5">
-                <span className="text-sm text-indigo-800">
-                  Showing backlinks to:{" "}
-                  <span className="font-semibold">{drilldownPath}</span>
-                </span>
-                <button
-                  onClick={() => setDrilldownPath(null)}
-                  className="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                >
-                  Clear filter
-                </button>
-              </div>
-            )}
-            <div className="bg-white rounded-lg shadow p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                {drilldownPath ? `Backlinks to ${drilldownPath}` : "All Backlinks"}
-                {linksData && (
-                  <span className="ml-2 font-normal text-gray-400">
-                    ({linksData.total.toLocaleString()} total)
-                  </span>
+            {/* Target URL filter */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Filter by target URL..."
+                  value={targetPathInput}
+                  onChange={(e) => setTargetPathInput(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {targetPathInput && (
+                  <button
+                    onClick={() => { setTargetPathInput(""); setDrilldownPath(null); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >
+                    &#x2715;
+                  </button>
                 )}
-              </h3>
+              </div>
+              {linksData && (
+                <span className="text-sm text-gray-400">
+                  {linksData.total.toLocaleString()} backlinks
+                </span>
+              )}
+            </div>
+            <div className="bg-white rounded-lg shadow p-5">
               <DataTable
                 data={linksData?.items ?? []}
                 columns={linkColumns}
