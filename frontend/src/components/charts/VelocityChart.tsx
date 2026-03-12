@@ -21,7 +21,7 @@ export default function VelocityChart({ data }: Props) {
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+          <XAxis dataKey="period" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }} />
           <Legend />

@@ -27,8 +27,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     fetchProfiles()
       .then((data) => {
         setProfiles(data);
-        if (data.length > 0 && !data.find((p) => p.name === selected)) {
-          setSelected(data[0].name);
+        if (data.length > 0 && !data.find((p) => p.profile_label === selected)) {
+          setSelected(data[0].profile_label);
         }
       })
       .catch(() => setProfiles([]))

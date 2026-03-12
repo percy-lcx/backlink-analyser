@@ -25,40 +25,43 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 /* ---- Types ---- */
 
 export interface Profile {
-  name: string;
-  link_count: number;
-  last_ingested?: string;
+  profile_label: string;
+  total_links: number;
+  unique_referring_domains: number;
+  avg_dr: number;
 }
 
 export interface OverviewData {
   total_backlinks: number;
-  unique_domains: number;
+  unique_referring_domains: number;
   dofollow_count: number;
+  nofollow_count: number;
+  ugc_count: number;
+  sponsored_count: number;
+  image_link_count: number;
+  text_link_count: number;
   avg_dr: number;
+  median_dr: number;
   spam_ratio: number;
-  total_traffic: number;
+  total_page_traffic: number;
 }
 
 export interface LinkRecord {
-  id: number;
   referring_url: string;
   referring_domain: string;
   target_url: string;
   target_path: string;
-  anchor_text: string;
-  anchor_category: string;
+  anchor: string;
   is_nofollow: boolean;
   is_ugc: boolean;
   is_sponsored: boolean;
-  is_image: boolean;
   is_spam: boolean;
   link_type: string;
   domain_rating: number;
+  url_rating: number;
   page_traffic: number;
   first_seen: string;
   last_seen: string;
-  redirect_chain?: string[];
-  redirect_status_codes?: number[];
 }
 
 export interface LinksResponse {
@@ -74,25 +77,25 @@ export interface LinkAttribute {
 }
 
 export interface AnchorRecord {
-  anchor_text: string;
+  anchor: string;
   count: number;
   category: string;
   pct: number;
 }
 
 export interface AnchorContext {
-  left: string;
+  left_context: string;
   anchor: string;
-  right: string;
+  right_context: string;
   referring_url: string;
 }
 
 export interface ReferringDomain {
-  domain: string;
+  referring_domain: string;
   link_count: number;
   max_dr: number;
-  traffic: number;
-  sitewide: boolean;
+  total_traffic: number;
+  is_sitewide: boolean;
   dominant_anchor: string;
 }
 
@@ -102,22 +105,17 @@ export interface DrBucket {
 }
 
 export interface VelocityPoint {
-  date: string;
+  period: string;
   new_links: number;
   lost_links: number;
   net: number;
 }
 
 export interface PageGroup {
-  page_type: string;
+  category: string;
   link_count: number;
-  referring_domains: number;
-  dr_distribution: DrBucket[];
-  top_anchors: AnchorRecord[];
-}
-
-export interface RedirectLink extends LinkRecord {
-  chain_length: number;
+  unique_domains: number;
+  avg_dr: number;
 }
 
 export interface QualityPoint {
@@ -135,7 +133,7 @@ export interface QualityResponse {
 }
 
 export interface SitewideDomain {
-  domain: string;
+  referring_domain: string;
   link_count: number;
   dominant_anchor: string;
   max_dr: number;
@@ -148,29 +146,37 @@ export interface SitewideMetrics {
 }
 
 export interface CompareProfile {
-  profile: string;
+  profile_label: string;
   total_backlinks: number;
   unique_domains: number;
   dofollow_ratio: number;
   avg_dr: number;
   spam_ratio: number;
-  total_traffic: number;
 }
 
 export interface LinkGapDomain {
-  domain: string;
+  referring_domain: string;
   domain_rating: number;
-  presence: Record<string, boolean>;
+  profiles: string[];
+}
+
+export interface RedirectInfo {
+  referring_url: string;
+  target_url: string;
+  chain_length: number;
+  has_302: boolean;
+  status_codes: number[];
+  urls: string[];
 }
 
 export interface RedirectSummary {
   total_with_redirects: number;
   pct_with_redirects: number;
   pct_with_302: number;
-  items: RedirectLink[];
+  items: RedirectInfo[];
 }
 
-/* ---- Endpoints ---- */
+/* ---- Endpoints (matching actual backend routes) ---- */
 
 export interface LinkParams {
   page?: number;
@@ -190,51 +196,51 @@ export function fetchProfiles(): Promise<Profile[]> {
 }
 
 export function fetchOverview(profile: string): Promise<OverviewData> {
-  return get<OverviewData>(`${BASE}/profiles/${encodeURIComponent(profile)}/overview`);
+  return get<OverviewData>(`${BASE}/overview`, { profile });
 }
 
 export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksResponse> {
-  return get<LinksResponse>(`${BASE}/profiles/${encodeURIComponent(profile)}/links`, params as Record<string, string | number | boolean | undefined>);
+  return get<LinksResponse>(`${BASE}/links`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
-  return get<LinkAttribute[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/link-attributes`);
+  return get<LinkAttribute[]>(`${BASE}/link-attributes`, { profile });
 }
 
 export function fetchAnchors(profile: string, targetPath?: string): Promise<AnchorRecord[]> {
-  return get<AnchorRecord[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/anchors`, { target_path: targetPath });
+  return get<AnchorRecord[]>(`${BASE}/anchors`, { profile, target_path: targetPath });
 }
 
 export function fetchAnchorsContext(profile: string, anchor: string): Promise<AnchorContext[]> {
-  return get<AnchorContext[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/anchors/context`, { anchor });
+  return get<AnchorContext[]>(`${BASE}/anchors-context`, { profile, anchor });
 }
 
 export function fetchReferringDomains(profile: string, sort?: string): Promise<ReferringDomain[]> {
-  return get<ReferringDomain[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/referring-domains`, { sort });
+  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
 }
 
 export function fetchDrDistribution(profile: string): Promise<DrBucket[]> {
-  return get<DrBucket[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/dr-distribution`);
+  return get<DrBucket[]>(`${BASE}/dr-distribution`, { profile });
 }
 
 export function fetchVelocity(profile: string, interval?: string): Promise<VelocityPoint[]> {
-  return get<VelocityPoint[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/velocity`, { interval });
+  return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
 export function fetchPageBreakdown(profile: string): Promise<PageGroup[]> {
-  return get<PageGroup[]>(`${BASE}/profiles/${encodeURIComponent(profile)}/page-breakdown`);
+  return get<PageGroup[]>(`${BASE}/page-breakdown`, { profile });
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
-  return get<RedirectSummary>(`${BASE}/profiles/${encodeURIComponent(profile)}/redirects`);
+  return get<RedirectSummary>(`${BASE}/redirects`, { profile });
 }
 
 export function fetchQualityMatrix(profile: string, page?: number): Promise<QualityResponse> {
-  return get<QualityResponse>(`${BASE}/profiles/${encodeURIComponent(profile)}/quality-matrix`, { page });
+  return get<QualityResponse>(`${BASE}/quality-matrix`, { profile, page });
 }
 
 export function fetchSitewide(profile: string, threshold?: number): Promise<SitewideMetrics> {
-  return get<SitewideMetrics>(`${BASE}/profiles/${encodeURIComponent(profile)}/sitewide`, { threshold });
+  return get<SitewideMetrics>(`${BASE}/sitewide`, { profile, threshold });
 }
 
 export function fetchCompare(profiles: string[]): Promise<CompareProfile[]> {
