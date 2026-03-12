@@ -30,6 +30,7 @@ def list_links(
     anchor_search: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
     target_path_search: Optional[str] = Query(None),
+    target_path_exact: Optional[bool] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -74,8 +75,12 @@ def list_links(
         idx += 1
 
     if target_path_search is not None:
-        conditions.append(f"target_path ILIKE ${idx}")
-        params.append(f"%{target_path_search}%")
+        if target_path_exact:
+            conditions.append(f"target_path = ${idx}")
+            params.append(target_path_search)
+        else:
+            conditions.append(f"target_path ILIKE ${idx}")
+            params.append(f"%{target_path_search}%")
         idx += 1
 
     where = " AND ".join(conditions)

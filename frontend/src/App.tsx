@@ -128,6 +128,7 @@ function Dashboard() {
   // Drilldown state: when set, links are filtered to this target_path
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
+  const [exactMatch, setExactMatch] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Domains state
@@ -152,6 +153,7 @@ function Dashboard() {
       const params: Record<string, unknown> = { page: linkPage + 1, per_page: 50 };
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
+        if (exactMatch) params.target_path_exact = true;
       }
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
@@ -172,7 +174,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, drilldownPath]);
+  }, [selected, tab, linkPage, drilldownPath, exactMatch]);
 
   // Reset link page when drilldown changes
   useEffect(() => {
@@ -202,10 +204,11 @@ function Dashboard() {
     }
   };
 
-  // Click a page row → drilldown into its backlinks
+  // Click a page row → drilldown into its backlinks (exact match)
   const handlePageRowClick = (row: PageRow) => {
     setTargetPathInput(row.target_path);
     setDrilldownPath(row.target_path);
+    setExactMatch(true);
     setTab("links");
   };
 
@@ -342,6 +345,17 @@ function Dashboard() {
                   </button>
                 )}
               </div>
+              <button
+                onClick={() => setExactMatch((v) => !v)}
+                className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                  exactMatch
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                }`}
+                title={exactMatch ? "Exact match enabled — click to switch to contains" : "Contains match — click to switch to exact match"}
+              >
+                {exactMatch ? "Exact" : "Contains"}
+              </button>
               {linksData && (
                 <span className="text-sm text-gray-400">
                   {linksData.total.toLocaleString()} backlinks

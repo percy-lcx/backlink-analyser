@@ -204,6 +204,7 @@ export interface LinkParams {
   anchor_search?: string;
   domain_search?: string;
   target_path_search?: string;
+  target_path_exact?: boolean;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
