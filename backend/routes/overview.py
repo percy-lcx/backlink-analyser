@@ -48,7 +48,8 @@ def overview(profile: str = Query(...)):
             CASE WHEN COUNT(*) > 0
                 THEN COUNT(*) FILTER (WHERE is_spam = true)::FLOAT / COUNT(*)
                 ELSE 0 END AS spam_ratio,
-            SUM(COALESCE(page_traffic, 0)) AS total_page_traffic
+            SUM(COALESCE(page_traffic, 0)) AS total_page_traffic,
+            MAX(first_seen) AS newest_backlink_date
         FROM backlinks
         WHERE profile_label = $1
         """,
@@ -68,5 +69,6 @@ def overview(profile: str = Query(...)):
         "median_dr",
         "spam_ratio",
         "total_page_traffic",
+        "newest_backlink_date",
     ]
     return dict(zip(cols, row)) if row else {}

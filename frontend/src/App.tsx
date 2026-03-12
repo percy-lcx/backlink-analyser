@@ -346,6 +346,7 @@ function Dashboard() {
               <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} />
               <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} />
               <SummaryCard label="Total Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
+              <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DrDistribution data={drDist} />

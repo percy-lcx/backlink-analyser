@@ -44,6 +44,7 @@ export interface OverviewData {
   median_dr: number;
   spam_ratio: number;
   total_page_traffic: number;
+  newest_backlink_date: string | null;
 }
 
 export interface LinkRecord {
