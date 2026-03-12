@@ -23,17 +23,9 @@ import {
   type AnchorRecord,
   type QualityPoint,
   type LinksResponse,
+  type PageRow,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
-
-interface PageRow {
-  target_path: string;
-  category: string;
-  link_count: number;
-  unique_referring_domains: number;
-  avg_dr: number;
-  dofollow_ratio: number;
-}
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "referring_domain", header: "Referring Domain" },
@@ -115,6 +107,9 @@ function Dashboard() {
   const [linksData, setLinksData] = useState<LinksResponse | null>(null);
   const [linkPage, setLinkPage] = useState(0);
 
+  // Drilldown state: when set, links are filtered to this target_path
+  const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
+
   // Domains state
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
 
@@ -134,7 +129,11 @@ function Dashboard() {
       fetchDrDistribution(selected).then((d) => setDrDist(d.dr ?? [])).catch(() => setDrDist([]));
       fetchVelocity(selected).then(setVelocity).catch(() => setVelocity([]));
     } else if (tab === "links") {
-      fetchLinks(selected, { page: linkPage + 1, per_page: 50 })
+      const params: Record<string, unknown> = { page: linkPage + 1, per_page: 50 };
+      if (drilldownPath) {
+        params.target_path_search = drilldownPath;
+      }
+      fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
     } else if (tab === "domains") {
@@ -153,7 +152,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage]);
+  }, [selected, tab, linkPage, drilldownPath]);
+
+  // Reset link page when drilldown changes
+  useEffect(() => {
+    setLinkPage(0);
+  }, [drilldownPath]);
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -167,6 +171,20 @@ function Dashboard() {
     } finally {
       setIngesting(false);
     }
+  };
+
+  // Click a page row → drilldown into its backlinks
+  const handlePageRowClick = (row: PageRow) => {
+    setDrilldownPath(row.target_path);
+    setTab("links");
+  };
+
+  // Clicking the Links tab directly clears any drilldown filter
+  const handleTabClick = (t: Tab) => {
+    if (t === "links") {
+      setDrilldownPath(null);
+    }
+    setTab(t);
   };
 
   if (loading) {
@@ -243,7 +261,7 @@ function Dashboard() {
                   ? "border-indigo-500 text-indigo-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => setTab(t.key)}
+              onClick={() => handleTabClick(t.key)}
             >
               {t.label}
             </button>
@@ -273,17 +291,41 @@ function Dashboard() {
         )}
 
         {tab === "links" && (
-          <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">All Backlinks</h3>
-            <DataTable
-              data={linksData?.items ?? []}
-              columns={linkColumns}
-              pageSize={50}
-              manualPagination
-              pageCount={linksData ? Math.ceil(linksData.total / 50) : 1}
-              pageIndex={linkPage}
-              onPageChange={setLinkPage}
-            />
+          <div>
+            {/* Drilldown banner */}
+            {drilldownPath && (
+              <div className="mb-4 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2.5">
+                <span className="text-sm text-indigo-800">
+                  Showing backlinks to:{" "}
+                  <span className="font-semibold">{drilldownPath}</span>
+                </span>
+                <button
+                  onClick={() => setDrilldownPath(null)}
+                  className="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
+            <div className="bg-white rounded-lg shadow p-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                {drilldownPath ? `Backlinks to ${drilldownPath}` : "All Backlinks"}
+                {linksData && (
+                  <span className="ml-2 font-normal text-gray-400">
+                    ({linksData.total.toLocaleString()} total)
+                  </span>
+                )}
+              </h3>
+              <DataTable
+                data={linksData?.items ?? []}
+                columns={linkColumns}
+                pageSize={50}
+                manualPagination
+                pageCount={linksData ? Math.ceil(linksData.total / 50) : 1}
+                pageIndex={linkPage}
+                onPageChange={setLinkPage}
+              />
+            </div>
           </div>
         )}
 
@@ -304,8 +346,13 @@ function Dashboard() {
         {tab === "pages" && (
           <div className="bg-white rounded-lg shadow p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">Backlinks by Target Page</h3>
-            <p className="text-xs text-gray-400 mb-4">Every URL on the target site and how many backlinks point to it.</p>
-            <DataTable data={pages} columns={pageColumns} pageSize={30} />
+            <p className="text-xs text-gray-400 mb-4">Click any row to see all backlinks pointing to that URL.</p>
+            <DataTable
+              data={pages}
+              columns={pageColumns}
+              pageSize={30}
+              onRowClick={handlePageRowClick}
+            />
           </div>
         )}
 

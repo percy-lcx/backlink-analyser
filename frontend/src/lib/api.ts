@@ -68,7 +68,7 @@ export interface LinksResponse {
   items: LinkRecord[];
   total: number;
   page: number;
-  page_size: number;
+  per_page: number;
 }
 
 export interface LinkAttribute {
@@ -116,11 +116,18 @@ export interface VelocityPoint {
   net: number;
 }
 
-export interface PageGroup {
+export interface PageRow {
+  target_path: string;
   category: string;
   link_count: number;
-  unique_domains: number;
+  unique_referring_domains: number;
   avg_dr: number;
+  dofollow_ratio: number;
+}
+
+export interface PageBreakdownResponse {
+  pages: PageRow[];
+  categories: Record<string, { link_count: number; unique_referring_domains: number; avg_dr: number; dofollow_ratio: number }>;
 }
 
 export interface QualityPoint {
@@ -151,12 +158,14 @@ export interface SitewideMetrics {
 }
 
 export interface CompareProfile {
+  profile: string;
   profile_label: string;
   total_backlinks: number;
   unique_domains: number;
   dofollow_ratio: number;
   avg_dr: number;
   spam_ratio: number;
+  total_traffic: number;
 }
 
 export interface LinkGapDomain {
@@ -231,11 +240,6 @@ export function fetchDrDistribution(profile: string): Promise<DrDistributionResp
 
 export function fetchVelocity(profile: string, interval?: string): Promise<VelocityPoint[]> {
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
-}
-
-export interface PageBreakdownResponse {
-  pages: PageGroup[];
-  categories: Record<string, { link_count: number; unique_referring_domains: number; avg_dr: number; dofollow_ratio: number }>;
 }
 
 export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
