@@ -1,8 +1,12 @@
 import asyncio
+import os
 import subprocess
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+
+# Resolve paths relative to project root (one level up from backend/)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db, refresh_views
@@ -57,12 +61,16 @@ app.include_router(gap.router)
 @app.post("/api/ingest")
 async def ingest():
     """Shell out to the Rust ingester binary and recreate the DuckDB view."""
-    cmd = ["./ingester/target/release/backlink-ingest", "--source", "./data/", "--output", "./store/"]
+    binary = os.path.join(_PROJECT_ROOT, "ingester", "target", "release", "backlink-ingest")
+    data_dir = os.path.join(_PROJECT_ROOT, "data")
+    store_dir = os.path.join(_PROJECT_ROOT, "store")
+    cmd = [binary, "--source", data_dir, "--output", store_dir]
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=_PROJECT_ROOT,
         )
         stdout, stderr = await proc.communicate()
 
@@ -87,5 +95,5 @@ async def ingest():
     except FileNotFoundError:
         raise HTTPException(
             status_code=500,
-            detail="Ingester binary not found at ./ingester/target/release/backlink-ingest",
+            detail=f"Ingester binary not found at {binary}",
         )
