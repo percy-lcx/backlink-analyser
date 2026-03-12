@@ -1,0 +1,62 @@
+use chrono::NaiveDateTime;
+use url::Url;
+
+#[derive(Debug, Clone)]
+pub struct BacklinkRecord {
+    pub referring_page_title: String,
+    pub referring_url: String,
+    pub referring_domain: String,
+    pub language: String,
+    pub platform: String,
+    pub http_code: u16,
+    pub domain_rating: f32,
+    pub url_rating: f32,
+    pub domain_traffic: u64,
+    pub referring_domains: u32,
+    pub linked_domains: u32,
+    pub external_links: u32,
+    pub page_traffic: u64,
+    pub keywords: u32,
+    pub target_url: String,
+    pub target_domain: String,
+    pub target_path: String,
+    pub left_context: String,
+    pub anchor: String,
+    pub right_context: String,
+    pub redirect_chain_urls: String,
+    pub redirect_chain_codes: String,
+    pub link_type: String,
+    pub is_spam: bool,
+    pub is_content: bool,
+    pub is_nofollow: bool,
+    pub is_ugc: bool,
+    pub is_sponsored: bool,
+    pub is_rendered: bool,
+    pub is_raw: bool,
+    pub lost_status: String,
+    pub drop_reason: String,
+    pub discovered_status: String,
+    pub first_seen: NaiveDateTime,
+    pub last_seen: NaiveDateTime,
+    pub lost_date: Option<NaiveDateTime>,
+    pub author: String,
+    pub page_type: String,
+    pub page_category: String,
+    pub links_in_group: u32,
+    pub source_file: String,
+    pub profile_label: String,
+}
+
+pub fn extract_domain(url_str: &str) -> String {
+    Url::parse(url_str)
+        .ok()
+        .and_then(|u| u.host_str().map(|h| h.to_string()))
+        .unwrap_or_default()
+}
+
+pub fn extract_path(url_str: &str) -> String {
+    Url::parse(url_str)
+        .ok()
+        .map(|u| u.path().to_string())
+        .unwrap_or_default()
+}

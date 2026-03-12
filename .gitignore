@@ -1,0 +1,26 @@
+# Rust
+ingester/target/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Data
+data/*.tsv
+data/*.csv
+store/*.parquet
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store

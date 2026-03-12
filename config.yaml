@@ -1,0 +1,27 @@
+page_categories:
+  homepage:
+    - "^/$"
+    - "^/index"
+  content:
+    - "^/blog/"
+    - "^/education/"
+    - "^/news/"
+    - "^/resources/"
+  money_pages:
+    - "^/trading-account"
+    - "^/demo-account"
+    - "^/cfd-trading/"
+
+anchor_categories:
+  branded_terms:
+    - "avatrade"
+    - "ava trade"
+  target_keywords:
+    - "cfd trading"
+    - "forex broker"
+    - "demo account"
+
+thresholds:
+  exact_match_warning: 0.40
+  sitewide_min_links: 10
+  toxic_supplement_min_dr: 10
