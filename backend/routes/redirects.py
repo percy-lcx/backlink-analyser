@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
-from backend.db import get_conn
-from backend.analysis.redirects import parse_redirect_chain
+from db import get_conn
+from analysis.redirects import parse_redirect_chain
 
 router = APIRouter()
 

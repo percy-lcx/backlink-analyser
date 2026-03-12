@@ -5,8 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.db import init_db, refresh_views
-from backend.routes import (
+from db import init_db, refresh_views
+from routes import (
     overview,
     links,
     anchors,

@@ -1,5 +1,5 @@
 import re
-from backend.config import get_config
+from config import get_config
 
 
 def categorise_page(target_path: str | None) -> str:

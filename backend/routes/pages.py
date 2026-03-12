@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
-from backend.db import get_conn
-from backend.analysis.categories import categorise_page
+from db import get_conn
+from analysis.categories import categorise_page
 
 router = APIRouter()
 

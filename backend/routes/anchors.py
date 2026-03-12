@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
-from backend.db import get_conn
-from backend.analysis.anchors import categorise_anchor, summarise_categories
+from db import get_conn
+from analysis.anchors import categorise_anchor, summarise_categories
 
 router = APIRouter()
 
