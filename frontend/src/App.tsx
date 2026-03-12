@@ -107,7 +107,11 @@ function Dashboard() {
     } else if (tab === "domains") {
       fetchReferringDomains(selected).then(setDomains).catch(() => setDomains([]));
     } else if (tab === "anchors") {
-      fetchAnchors(selected).then(setAnchors).catch(() => setAnchors([]));
+      fetchAnchors(selected).then((data) => {
+        const items = Array.isArray(data) ? data : (data as { items: AnchorRecord[] }).items ?? [];
+        const total = items.reduce((s, a) => s + a.count, 0);
+        setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
+      }).catch(() => setAnchors([]));
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }

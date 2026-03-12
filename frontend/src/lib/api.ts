@@ -213,8 +213,8 @@ export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
   return get<LinkAttribute[]>(`${BASE}/link-attributes`, { profile });
 }
 
-export function fetchAnchors(profile: string, targetPath?: string): Promise<AnchorRecord[]> {
-  return get<AnchorRecord[]>(`${BASE}/anchors`, { profile, target_path: targetPath });
+export function fetchAnchors(profile: string, targetPath?: string): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
+  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, target_path: targetPath });
 }
 
 export function fetchAnchorsContext(profile: string, anchor: string): Promise<AnchorContext[]> {
