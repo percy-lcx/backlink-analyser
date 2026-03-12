@@ -29,6 +29,24 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "referring_domain", header: "Referring Domain" },
+  {
+    accessorKey: "referring_url",
+    header: "Referring URL",
+    cell: ({ getValue }) => {
+      const url = getValue() as string;
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:underline truncate block max-w-[300px]"
+          title={url}
+        >
+          {url}
+        </a>
+      );
+    },
+  },
   { accessorKey: "anchor", header: "Anchor" },
   { accessorKey: "target_path", header: "Target" },
   { accessorKey: "domain_rating", header: "DR" },
