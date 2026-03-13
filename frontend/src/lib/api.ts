@@ -61,6 +61,7 @@ export interface LinkRecord {
   domain_rating: number;
   url_rating: number;
   page_traffic: number;
+  domain_traffic: number;
   first_seen: string;
   last_seen: string;
 }
