@@ -59,6 +59,13 @@ export default function DataTable<T>({
       const accessorKey = (col as { accessorKey?: string }).accessorKey;
       if (!accessorKey) continue;
 
+      // If column def specifies an explicit size, use it instead of computing from data
+      const explicitSize = (col as { size?: number }).size;
+      if (explicitSize) {
+        sizing[accessorKey] = explicitSize;
+        continue;
+      }
+
       const headerText = typeof col.header === "string" ? col.header : accessorKey;
       let maxLen = headerText.length;
 
