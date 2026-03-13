@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from fastapi import APIRouter, Query
 from db import get_conn
 
@@ -6,12 +7,25 @@ router = APIRouter()
 
 
 @router.get("/api/dr-distribution")
-def dr_distribution(profile: str = Query(...)):
-    """DR and UR histogram with buckets 0-10, 11-20, ..., 91-100."""
+def dr_distribution(
+    profile: str = Query(...),
+    target_path: Optional[str] = Query(None),
+):
+    """DR and UR histogram with buckets 0-10, 11-20, ..., 91-100.
+
+    Optional ``target_path`` narrows the distribution to backlinks
+    pointing at a specific URL path.
+    """
     conn = get_conn()
 
+    where = "WHERE profile_label = $1"
+    params: list[str] = [profile]
+    if target_path:
+        where += " AND target_path = $2"
+        params.append(target_path)
+
     dr_rows = conn.execute(
-        """
+        f"""
         SELECT
             CASE
                 WHEN domain_rating <= 10 THEN '0-10'
@@ -27,15 +41,15 @@ def dr_distribution(profile: str = Query(...)):
             END AS bucket,
             COUNT(*) AS count
         FROM backlinks
-        WHERE profile_label = $1
+        {where}
         GROUP BY bucket
         ORDER BY bucket
         """,
-        [profile],
+        params,
     ).fetchall()
 
     ur_rows = conn.execute(
-        """
+        f"""
         SELECT
             CASE
                 WHEN url_rating <= 10 THEN '0-10'
@@ -51,11 +65,11 @@ def dr_distribution(profile: str = Query(...)):
             END AS bucket,
             COUNT(*) AS count
         FROM backlinks
-        WHERE profile_label = $1
+        {where}
         GROUP BY bucket
         ORDER BY bucket
         """,
-        [profile],
+        params,
     ).fetchall()
 
     return {
