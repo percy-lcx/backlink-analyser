@@ -8,6 +8,7 @@ SORTABLE_COLUMNS = {
     "domain_rating",
     "url_rating",
     "page_traffic",
+    "domain_traffic",
     "first_seen",
     "last_seen",
     "referring_domain",

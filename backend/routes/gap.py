@@ -55,6 +55,7 @@ def link_gap(
             LIST(DISTINCT profile_label) AS profiles_linking
         FROM backlinks
         WHERE profile_label IN ({placeholders}){comp_path_clause}
+          AND COALESCE(is_spam, false) = false
           AND referring_domain NOT IN (
               SELECT DISTINCT referring_domain
               FROM backlinks
