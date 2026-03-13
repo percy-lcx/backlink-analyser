@@ -34,6 +34,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   {
     accessorKey: "referring_url",
     header: "Referring URL",
+    size: 400,
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -49,8 +50,8 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
-  { accessorKey: "anchor", header: "Anchor" },
-  { accessorKey: "target_path", header: "Target" },
+  { accessorKey: "anchor", header: "Anchor", size: 400 },
+  { accessorKey: "target_path", header: "Target", size: 400 },
   { accessorKey: "domain_rating", header: "DR" },
   { accessorKey: "page_traffic", header: "Page Traffic" },
   { accessorKey: "domain_traffic", header: "Domain Traffic" },
