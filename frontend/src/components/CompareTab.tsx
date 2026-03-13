@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProfile } from "./ProfileContext";
 import RadarCompare from "./charts/RadarCompare";
 import DrDistribution from "./charts/DrDistribution";
@@ -7,9 +7,11 @@ import {
   fetchCompare,
   fetchLinkGap,
   fetchDrDistribution,
+  fetchTargetPaths,
   type CompareProfile,
   type LinkGapDomain,
   type DrBucket,
+  type TargetPath,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -60,10 +62,91 @@ function deltaColor(row: MetricRow): string {
   return aIsBetter ? "text-green-600" : "text-red-600";
 }
 
+/* ---- Path combobox ---- */
+
+function PathCombobox({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: TargetPath[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearch(value);
+  }, [value]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = options.filter((o) =>
+    o.target_path.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white w-64"
+        placeholder={placeholder ?? "/path"}
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onChange(search);
+            setOpen(false);
+          }
+        }}
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg border border-gray-200 text-sm">
+          {filtered.slice(0, 50).map((o) => (
+            <li
+              key={o.target_path}
+              className="px-3 py-1.5 cursor-pointer hover:bg-blue-50 flex justify-between"
+              onMouseDown={() => {
+                onChange(o.target_path);
+                setSearch(o.target_path);
+                setOpen(false);
+              }}
+            >
+              <span className="truncate">{o.target_path}</span>
+              <span className="text-gray-400 ml-2 shrink-0">{o.link_count}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ---- Main component ---- */
+
 export default function CompareTab() {
   const { profiles } = useProfile();
   const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
+  const [mode, setMode] = useState<"site" | "url">("site");
+  const [pathA, setPathA] = useState("");
+  const [pathB, setPathB] = useState("");
+  const [pathOptionsA, setPathOptionsA] = useState<TargetPath[]>([]);
+  const [pathOptionsB, setPathOptionsB] = useState<TargetPath[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [compareData, setCompareData] = useState<CompareProfile[]>([]);
@@ -82,17 +165,38 @@ export default function CompareTab() {
     }
   }, [profiles, profileA, profileB]);
 
+  // Fetch target paths when profiles change
+  useEffect(() => {
+    if (profileA) fetchTargetPaths(profileA).then(setPathOptionsA).catch(() => setPathOptionsA([]));
+  }, [profileA]);
+
+  useEffect(() => {
+    if (profileB) fetchTargetPaths(profileB).then(setPathOptionsB).catch(() => setPathOptionsB([]));
+  }, [profileB]);
+
+  // Reset paths when switching to site mode
+  useEffect(() => {
+    if (mode === "site") {
+      setPathA("");
+      setPathB("");
+    }
+  }, [mode]);
+
   // Fetch data when both profiles are selected and different
   useEffect(() => {
     if (!profileA || !profileB || profileA === profileB) return;
+    if (mode === "url" && (!pathA || !pathB)) return;
     setLoading(true);
 
+    const tpA = mode === "url" ? pathA : undefined;
+    const tpB = mode === "url" ? pathB : undefined;
+
     Promise.all([
-      fetchCompare([profileA, profileB]),
-      fetchLinkGap(profileA, [profileB]),
-      fetchLinkGap(profileB, [profileA]),
-      fetchDrDistribution(profileA).then((d) => d.dr ?? []),
-      fetchDrDistribution(profileB).then((d) => d.dr ?? []),
+      fetchCompare([profileA, profileB], tpA && tpB ? [tpA, tpB] : undefined),
+      fetchLinkGap(profileA, [profileB], tpA, tpB),
+      fetchLinkGap(profileB, [profileA], tpB, tpA),
+      fetchDrDistribution(profileA, tpA).then((d) => d.dr ?? []),
+      fetchDrDistribution(profileB, tpB).then((d) => d.dr ?? []),
     ])
       .then(([compare, gapA, gapB, drA, drB]) => {
         setCompareData(compare);
@@ -109,7 +213,7 @@ export default function CompareTab() {
         setDrDistB([]);
       })
       .finally(() => setLoading(false));
-  }, [profileA, profileB]);
+  }, [profileA, profileB, mode, pathA, pathB]);
 
   if (profiles.length < 2) {
     return (
@@ -124,9 +228,12 @@ export default function CompareTab() {
   const dataB = compareData.find((d) => d.profile_label === profileB);
   const metrics = dataA && dataB ? buildMetrics(dataA, dataB) : [];
 
+  const labelA = mode === "url" && pathA ? `${profileA} ${pathA}` : profileA;
+  const labelB = mode === "url" && pathB ? `${profileB} ${pathB}` : profileB;
+
   return (
     <div className="space-y-6">
-      {/* Profile selectors */}
+      {/* Profile selectors + mode toggle */}
       <div className="flex items-center gap-4 flex-wrap">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Profile A</label>
@@ -157,7 +264,54 @@ export default function CompareTab() {
             ))}
           </select>
         </div>
+
+        {/* Mode toggle */}
+        <div className="ml-auto">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Compare by</label>
+          <div className="inline-flex rounded-md shadow-sm">
+            <button
+              type="button"
+              className={`px-3 py-1.5 text-sm font-medium rounded-l-md border ${
+                mode === "site"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+              onClick={() => setMode("site")}
+            >
+              Site
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 text-sm font-medium rounded-r-md border-t border-b border-r ${
+                mode === "url"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+              onClick={() => setMode("url")}
+            >
+              URL
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* URL path selectors */}
+      {mode === "url" && (
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{profileA} path</label>
+            <PathCombobox value={pathA} onChange={setPathA} options={pathOptionsA} placeholder="/slug" />
+          </div>
+          <span className="text-gray-400 font-medium mt-5">vs</span>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{profileB} path</label>
+            <PathCombobox value={pathB} onChange={setPathB} options={pathOptionsB} placeholder="/slug" />
+          </div>
+          {(!pathA || !pathB) && (
+            <p className="text-xs text-amber-600 mt-5">Select a target path for both profiles to compare.</p>
+          )}
+        </div>
+      )}
 
       {profileA === profileB && (
         <p className="text-sm text-amber-600">Select two different profiles to compare.</p>
@@ -178,8 +332,8 @@ export default function CompareTab() {
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-gray-500">
                     <th className="py-2 font-medium">Metric</th>
-                    <th className="py-2 font-medium">{profileA}</th>
-                    <th className="py-2 font-medium">{profileB}</th>
+                    <th className="py-2 font-medium">{labelA}</th>
+                    <th className="py-2 font-medium">{labelB}</th>
                     <th className="py-2 font-medium">Delta</th>
                   </tr>
                 </thead>
@@ -204,19 +358,19 @@ export default function CompareTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                Opportunities for {profileA}
+                Opportunities for {labelA}
               </h3>
               <p className="text-xs text-gray-400 mb-3">
-                Domains linking to {profileB} but not {profileA}
+                Domains linking to {labelB} but not {labelA}
               </p>
               <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                Opportunities for {profileB}
+                Opportunities for {labelB}
               </h3>
               <p className="text-xs text-gray-400 mb-3">
-                Domains linking to {profileA} but not {profileB}
+                Domains linking to {labelA} but not {labelB}
               </p>
               <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} />
             </div>
@@ -225,11 +379,11 @@ export default function CompareTab() {
           {/* DR distribution side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">{profileA} — DR Distribution</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA} — DR Distribution</h3>
               <DrDistribution data={drDistA} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">{profileB} — DR Distribution</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB} — DR Distribution</h3>
               <DrDistribution data={drDistB} />
             </div>
           </div>

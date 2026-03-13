@@ -175,6 +175,11 @@ export interface LinkGapDomain {
   profiles_linking: string[];
 }
 
+export interface TargetPath {
+  target_path: string;
+  link_count: number;
+}
+
 export interface RedirectInfo {
   referring_url: string;
   target_url: string;
@@ -245,8 +250,8 @@ export function fetchReferringDomains(profile: string, sort?: string): Promise<R
   return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
 }
 
-export function fetchDrDistribution(profile: string): Promise<DrDistributionResponse> {
-  return get<DrDistributionResponse>(`${BASE}/dr-distribution`, { profile });
+export function fetchDrDistribution(profile: string, targetPath?: string): Promise<DrDistributionResponse> {
+  return get<DrDistributionResponse>(`${BASE}/dr-distribution`, { profile, target_path: targetPath });
 }
 
 export function fetchVelocity(profile: string, interval?: string): Promise<VelocityPoint[]> {
@@ -269,12 +274,29 @@ export function fetchSitewide(profile: string, threshold?: number): Promise<Site
   return get<SitewideMetrics>(`${BASE}/sitewide`, { profile, threshold });
 }
 
-export function fetchCompare(profiles: string[]): Promise<CompareProfile[]> {
-  return get<CompareProfile[]>(`${BASE}/compare`, { profiles: profiles.join(",") });
+export function fetchCompare(profiles: string[], targetPaths?: string[]): Promise<CompareProfile[]> {
+  return get<CompareProfile[]>(`${BASE}/compare`, {
+    profiles: profiles.join(","),
+    target_paths: targetPaths ? targetPaths.join(",") : undefined,
+  });
 }
 
-export function fetchLinkGap(base: string, competitors: string[]): Promise<LinkGapDomain[]> {
-  return get<LinkGapDomain[]>(`${BASE}/link-gap`, { base, competitors: competitors.join(",") });
+export function fetchLinkGap(
+  base: string,
+  competitors: string[],
+  baseTargetPath?: string,
+  competitorTargetPath?: string,
+): Promise<LinkGapDomain[]> {
+  return get<LinkGapDomain[]>(`${BASE}/link-gap`, {
+    base,
+    competitors: competitors.join(","),
+    base_target_path: baseTargetPath,
+    competitor_target_path: competitorTargetPath,
+  });
+}
+
+export function fetchTargetPaths(profile: string): Promise<TargetPath[]> {
+  return get<TargetPath[]>(`${BASE}/target-paths`, { profile });
 }
 
 export function triggerIngest(): Promise<{ status: string }> {
