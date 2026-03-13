@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 
+export type { SortingState };
+
 interface Props<T> {
   data: T[];
   columns: ColumnDef<T, unknown>[];
@@ -19,6 +21,8 @@ interface Props<T> {
   onPageChange?: (page: number) => void;
   onRowClick?: (row: T) => void;
   getRowClassName?: (row: T) => string;
+  manualSorting?: boolean;
+  onSortChange?: (sorting: SortingState) => void;
 }
 
 export default function DataTable<T>({
@@ -31,8 +35,18 @@ export default function DataTable<T>({
   onPageChange,
   onRowClick,
   getRowClassName,
+  manualSorting,
+  onSortChange,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  const handleSortingChange: typeof setSorting = (updater) => {
+    setSorting((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      onSortChange?.(next);
+      return next;
+    });
+  };
 
   const table = useReactTable({
     data,
@@ -41,9 +55,9 @@ export default function DataTable<T>({
       sorting,
       ...(manualPagination ? { pagination: { pageIndex: pageIndex ?? 0, pageSize } } : {}),
     },
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    ...(manualSorting ? { manualSorting: true } : { getSortedRowModel: getSortedRowModel() }),
     ...(manualPagination
       ? { manualPagination: true, pageCount: pageCount ?? -1 }
       : { getPaginationRowModel: getPaginationRowModel() }),

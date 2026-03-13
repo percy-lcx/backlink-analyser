@@ -13,6 +13,9 @@ SORTABLE_COLUMNS = {
     "referring_domain",
     "anchor",
     "target_path",
+    "link_type",
+    "is_nofollow",
+    "is_spam",
 }
 
 
@@ -28,6 +31,11 @@ def list_links(
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
+    anchor_exclude: Optional[bool] = Query(None),
+    traffic_min: Optional[float] = Query(None),
+    traffic_max: Optional[float] = Query(None),
+    first_seen_from: Optional[str] = Query(None),
+    first_seen_to: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
     domain_exclude: Optional[bool] = Query(None),
     url_search: Optional[str] = Query(None),
@@ -69,8 +77,29 @@ def list_links(
         idx += 1
 
     if anchor_search is not None:
-        conditions.append(f"anchor ILIKE ${idx}")
+        op = "NOT ILIKE" if anchor_exclude else "ILIKE"
+        conditions.append(f"anchor {op} ${idx}")
         params.append(f"%{anchor_search}%")
+        idx += 1
+
+    if traffic_min is not None:
+        conditions.append(f"page_traffic >= ${idx}")
+        params.append(traffic_min)
+        idx += 1
+
+    if traffic_max is not None:
+        conditions.append(f"page_traffic <= ${idx}")
+        params.append(traffic_max)
+        idx += 1
+
+    if first_seen_from is not None:
+        conditions.append(f"first_seen >= ${idx}")
+        params.append(first_seen_from)
+        idx += 1
+
+    if first_seen_to is not None:
+        conditions.append(f"first_seen <= ${idx}")
+        params.append(first_seen_to)
         idx += 1
 
     if domain_search is not None:

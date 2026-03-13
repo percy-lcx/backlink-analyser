@@ -203,6 +203,11 @@ export interface LinkParams {
   dr_min?: number;
   dr_max?: number;
   anchor_search?: string;
+  anchor_exclude?: boolean;
+  traffic_min?: number;
+  traffic_max?: number;
+  first_seen_from?: string;
+  first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
   url_search?: string;

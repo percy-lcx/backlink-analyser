@@ -4,7 +4,7 @@ import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
-import DataTable from "./components/tables/DataTable";
+import DataTable, { type SortingState } from "./components/tables/DataTable";
 import {
   fetchOverview,
   fetchDrDistribution,
@@ -136,9 +136,23 @@ function Dashboard() {
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const [urlExclude, setUrlExclude] = useState(false);
+  const [anchorInput, setAnchorInput] = useState("");
+  const [anchorFilter, setAnchorFilter] = useState<string | null>(null);
+  const [anchorExclude, setAnchorExclude] = useState(false);
+  const [linkTypeFilter, setLinkTypeFilter] = useState<string>("");
+  const [nofollowFilter, setNofollowFilter] = useState<string>("");
+  const [spamFilter, setSpamFilter] = useState<string>("");
+  const [drMin, setDrMin] = useState("");
+  const [drMax, setDrMax] = useState("");
+  const [trafficMin, setTrafficMin] = useState("");
+  const [trafficMax, setTrafficMax] = useState("");
+  const [firstSeenFrom, setFirstSeenFrom] = useState("");
+  const [firstSeenTo, setFirstSeenTo] = useState("");
+  const [sortParam, setSortParam] = useState("domain_rating:desc");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const domainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const urlDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const anchorDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Domains state
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
@@ -159,7 +173,7 @@ function Dashboard() {
       fetchDrDistribution(selected).then((d) => setDrDist(d.dr ?? [])).catch(() => setDrDist([]));
       fetchVelocity(selected).then(setVelocity).catch(() => setVelocity([]));
     } else if (tab === "links") {
-      const params: Record<string, unknown> = { page: linkPage + 1, per_page: 50 };
+      const params: Record<string, unknown> = { page: linkPage + 1, per_page: 50, sort: sortParam };
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
         if (exactMatch) params.target_path_exact = true;
@@ -173,6 +187,19 @@ function Dashboard() {
         params.url_search = urlFilter;
         if (urlExclude) params.url_exclude = true;
       }
+      if (anchorFilter) {
+        params.anchor_search = anchorFilter;
+        if (anchorExclude) params.anchor_exclude = true;
+      }
+      if (linkTypeFilter) params.link_type = linkTypeFilter;
+      if (nofollowFilter) params.is_nofollow = nofollowFilter === "yes";
+      if (spamFilter) params.is_spam = spamFilter === "yes";
+      if (drMin) params.dr_min = parseFloat(drMin);
+      if (drMax) params.dr_max = parseFloat(drMax);
+      if (trafficMin) params.traffic_min = parseFloat(trafficMin);
+      if (trafficMax) params.traffic_max = parseFloat(trafficMax);
+      if (firstSeenFrom) params.first_seen_from = firstSeenFrom;
+      if (firstSeenTo) params.first_seen_to = firstSeenTo;
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
@@ -192,12 +219,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude]);
+  }, [selected, tab, linkPage, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
 
   // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath, domainFilter, urlFilter]);
+  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
 
   // Debounce: input → drilldownPath
   useEffect(() => {
@@ -225,6 +252,24 @@ function Dashboard() {
     }, 300);
     return () => clearTimeout(urlDebounceRef.current);
   }, [urlInput]);
+
+  // Debounce: anchorInput → anchorFilter
+  useEffect(() => {
+    clearTimeout(anchorDebounceRef.current);
+    anchorDebounceRef.current = setTimeout(() => {
+      setAnchorFilter(anchorInput || null);
+    }, 300);
+    return () => clearTimeout(anchorDebounceRef.current);
+  }, [anchorInput]);
+
+  // Convert TanStack sorting state to backend sort param
+  const handleSortChange = (sorting: SortingState) => {
+    if (sorting.length > 0) {
+      setSortParam(`${sorting[0].id}:${sorting[0].desc ? "desc" : "asc"}`);
+    } else {
+      setSortParam("domain_rating:desc");
+    }
+  };
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -260,6 +305,18 @@ function Dashboard() {
       setUrlInput("");
       setUrlFilter(null);
       setUrlExclude(false);
+      setAnchorInput("");
+      setAnchorFilter(null);
+      setAnchorExclude(false);
+      setLinkTypeFilter("");
+      setNofollowFilter("");
+      setSpamFilter("");
+      setDrMin("");
+      setDrMax("");
+      setTrafficMin("");
+      setTrafficMax("");
+      setFirstSeenFrom("");
+      setFirstSeenTo("");
     }
     setTab(t);
   };
@@ -456,6 +513,34 @@ function Dashboard() {
                   )}
                 </div>
               </div>
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setAnchorExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    anchorExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={anchorExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{anchorExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={anchorExclude ? "Exclude anchor..." : "Filter by anchor..."}
+                    value={anchorInput}
+                    onChange={(e) => setAnchorInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      anchorExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {anchorInput && (
+                    <button
+                      onClick={() => { setAnchorInput(""); setAnchorFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={() => setExactMatch((v) => !v)}
                 className={`px-3 py-2 text-sm rounded-md border transition-colors ${
@@ -473,12 +558,65 @@ function Dashboard() {
                 </span>
               )}
             </div>
+            {/* Row 2: dropdowns + ranges */}
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <select
+                value={linkTypeFilter}
+                onChange={(e) => setLinkTypeFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Types</option>
+                <option value="dofollow">Dofollow</option>
+                <option value="nofollow">Nofollow</option>
+                <option value="ugc">UGC</option>
+                <option value="sponsored">Sponsored</option>
+                <option value="image">Image</option>
+              </select>
+              <select
+                value={nofollowFilter}
+                onChange={(e) => setNofollowFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Nofollow: All</option>
+                <option value="yes">Nofollow: Yes</option>
+                <option value="no">Nofollow: No</option>
+              </select>
+              <select
+                value={spamFilter}
+                onChange={(e) => setSpamFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Spam: All</option>
+                <option value="yes">Spam: Yes</option>
+                <option value="no">Spam: No</option>
+              </select>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">DR</span>
+                <input type="number" placeholder="Min" value={drMin} onChange={(e) => setDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">–</span>
+                <input type="number" placeholder="Max" value={drMax} onChange={(e) => setDrMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Traffic</span>
+                <input type="number" placeholder="Min" value={trafficMin} onChange={(e) => setTrafficMin(e.target.value)} className="w-20 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">–</span>
+                <input type="number" placeholder="Max" value={trafficMax} onChange={(e) => setTrafficMax(e.target.value)} className="w-20 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">First Seen</span>
+                <input type="date" value={firstSeenFrom} onChange={(e) => setFirstSeenFrom(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">–</span>
+                <input type="date" value={firstSeenTo} onChange={(e) => setFirstSeenTo(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
             <div className="bg-white rounded-lg shadow p-5">
               <DataTable
                 data={linksData?.items ?? []}
                 columns={linkColumns}
                 pageSize={50}
                 manualPagination
+                manualSorting
+                onSortChange={handleSortChange}
                 pageCount={linksData ? Math.ceil(linksData.total / 50) : 1}
                 pageIndex={linkPage}
                 onPageChange={setLinkPage}
