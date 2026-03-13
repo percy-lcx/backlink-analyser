@@ -70,7 +70,7 @@ export default function DataTable<T>({
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-sm table-fixed">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-gray-200">
@@ -78,6 +78,7 @@ export default function DataTable<T>({
                   <th
                     key={header.id}
                     className="px-3 py-2 text-left font-semibold text-gray-600 bg-gray-50 cursor-pointer select-none whitespace-nowrap"
+                    style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <span className="flex items-center gap-1">
@@ -97,7 +98,7 @@ export default function DataTable<T>({
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                  <td key={cell.id} className="px-3 py-2 truncate" title={String(cell.getValue() ?? "")}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

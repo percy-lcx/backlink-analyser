@@ -28,10 +28,11 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain" },
+  { accessorKey: "referring_domain", header: "Referring Domain", size: 160 },
   {
     accessorKey: "referring_url",
     header: "Referring URL",
+    size: 220,
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -39,7 +40,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-600 hover:underline truncate block max-w-[300px]"
+          className="text-indigo-600 hover:underline truncate block"
           title={url}
         >
           {url}
@@ -47,22 +48,24 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
-  { accessorKey: "anchor", header: "Anchor" },
-  { accessorKey: "target_path", header: "Target" },
-  { accessorKey: "domain_rating", header: "DR" },
-  { accessorKey: "page_traffic", header: "Traffic" },
-  { accessorKey: "link_type", header: "Type" },
+  { accessorKey: "anchor", header: "Anchor", size: 140 },
+  { accessorKey: "target_path", header: "Target", size: 140 },
+  { accessorKey: "domain_rating", header: "DR", size: 55 },
+  { accessorKey: "page_traffic", header: "Traffic", size: 70 },
+  { accessorKey: "link_type", header: "Type", size: 70 },
   {
     accessorKey: "is_nofollow",
-    header: "Nofollow",
+    header: "NF",
+    size: 40,
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   {
     accessorKey: "is_spam",
     header: "Spam",
+    size: 45,
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
-  { accessorKey: "first_seen", header: "First Seen" },
+  { accessorKey: "first_seen", header: "First Seen", size: 95 },
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
