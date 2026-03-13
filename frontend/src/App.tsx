@@ -5,6 +5,7 @@ import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
+import ExportButton from "./components/tables/ExportButton";
 import {
   fetchOverview,
   fetchDrDistribution,
@@ -28,11 +29,10 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain", size: 160 },
+  { accessorKey: "referring_domain", header: "Referring Domain" },
   {
     accessorKey: "referring_url",
     header: "Referring URL",
-    size: 220,
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -40,7 +40,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-600 hover:underline truncate block"
+          className="text-indigo-600 hover:underline break-all"
           title={url}
         >
           {url}
@@ -48,24 +48,22 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
-  { accessorKey: "anchor", header: "Anchor", size: 140 },
-  { accessorKey: "target_path", header: "Target", size: 140 },
-  { accessorKey: "domain_rating", header: "DR", size: 55 },
-  { accessorKey: "page_traffic", header: "Traffic", size: 70 },
-  { accessorKey: "link_type", header: "Type", size: 70 },
+  { accessorKey: "anchor", header: "Anchor" },
+  { accessorKey: "target_path", header: "Target" },
+  { accessorKey: "domain_rating", header: "DR" },
+  { accessorKey: "page_traffic", header: "Traffic" },
+  { accessorKey: "link_type", header: "Type" },
   {
     accessorKey: "is_nofollow",
     header: "NF",
-    size: 40,
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   {
     accessorKey: "is_spam",
     header: "Spam",
-    size: 45,
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
-  { accessorKey: "first_seen", header: "First Seen", size: 95 },
+  { accessorKey: "first_seen", header: "First Seen" },
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
@@ -127,6 +125,7 @@ function Dashboard() {
   // Links state
   const [linksData, setLinksData] = useState<LinksResponse | null>(null);
   const [linkPage, setLinkPage] = useState(0);
+  const [linkPageSize, setLinkPageSize] = useState(100);
 
   // Link filter state
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
@@ -176,7 +175,7 @@ function Dashboard() {
       fetchDrDistribution(selected).then((d) => setDrDist(d.dr ?? [])).catch(() => setDrDist([]));
       fetchVelocity(selected).then(setVelocity).catch(() => setVelocity([]));
     } else if (tab === "links") {
-      const params: Record<string, unknown> = { page: linkPage + 1, per_page: 50, sort: sortParam };
+      const params: Record<string, unknown> = { page: linkPage + 1, per_page: linkPageSize, sort: sortParam };
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
         if (exactMatch) params.target_path_exact = true;
@@ -222,7 +221,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -418,7 +417,7 @@ function Dashboard() {
               <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} />
               <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} />
               <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} />
-              <SummaryCard label="Total Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
+              <SummaryCard label="Total Backlink Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
               <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -613,16 +612,20 @@ function Dashboard() {
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-5">
+              <div className="flex justify-end mb-3">
+                <ExportButton data={(linksData?.items ?? []) as unknown as Record<string, unknown>[]} filename="backlinks.csv" />
+              </div>
               <DataTable
                 data={linksData?.items ?? []}
                 columns={linkColumns}
-                pageSize={50}
+                pageSize={linkPageSize}
                 manualPagination
                 manualSorting
                 onSortChange={handleSortChange}
-                pageCount={linksData ? Math.ceil(linksData.total / 50) : 1}
+                pageCount={linksData ? Math.ceil(linksData.total / linkPageSize) : 1}
                 pageIndex={linkPage}
                 onPageChange={setLinkPage}
+                onPageSizeChange={setLinkPageSize}
               />
             </div>
           </div>
@@ -630,26 +633,36 @@ function Dashboard() {
 
         {tab === "domains" && (
           <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Referring Domains</h3>
-            <DataTable data={domains} columns={domainColumns} pageSize={30} />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Referring Domains</h3>
+              <ExportButton data={domains as unknown as Record<string, unknown>[]} filename="referring-domains.csv" />
+            </div>
+            <DataTable data={domains} columns={domainColumns} />
           </div>
         )}
 
         {tab === "anchors" && (
           <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Anchor Text Distribution</h3>
-            <DataTable data={anchors} columns={anchorColumns} pageSize={30} />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3>
+              <ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />
+            </div>
+            <DataTable data={anchors} columns={anchorColumns} />
           </div>
         )}
 
         {tab === "pages" && (
           <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Backlinks by Target Page</h3>
-            <p className="text-xs text-gray-400 mb-4">Click any row to see all backlinks pointing to that URL.</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
+                <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+              </div>
+              <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+            </div>
             <DataTable
               data={pages}
               columns={pageColumns}
-              pageSize={30}
               onRowClick={handlePageRowClick}
             />
           </div>

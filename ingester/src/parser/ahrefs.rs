@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use std::path::Path;
 
 fn parse_bool(val: &str) -> bool {
-    matches!(val.to_lowercase().trim(), "true" | "yes" | "1")
+    matches!(val.to_lowercase().trim(), "true" | "t" | "yes" | "y" | "1")
 }
 
 fn parse_u16(val: &str) -> u16 {
