@@ -129,10 +129,13 @@ function Dashboard() {
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
   const [exactMatch, setExactMatch] = useState(false);
+  const [targetPathExclude, setTargetPathExclude] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
+  const [domainExclude, setDomainExclude] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
+  const [urlExclude, setUrlExclude] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const domainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const urlDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -160,9 +163,16 @@ function Dashboard() {
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
         if (exactMatch) params.target_path_exact = true;
+        if (targetPathExclude) params.target_path_exclude = true;
       }
-      if (domainFilter) params.domain_search = domainFilter;
-      if (urlFilter) params.url_search = urlFilter;
+      if (domainFilter) {
+        params.domain_search = domainFilter;
+        if (domainExclude) params.domain_exclude = true;
+      }
+      if (urlFilter) {
+        params.url_search = urlFilter;
+        if (urlExclude) params.url_exclude = true;
+      }
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
@@ -182,7 +192,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, drilldownPath, exactMatch, domainFilter, urlFilter]);
+  }, [selected, tab, linkPage, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -243,10 +253,13 @@ function Dashboard() {
     if (t === "links") {
       setTargetPathInput("");
       setDrilldownPath(null);
+      setTargetPathExclude(false);
       setDomainInput("");
       setDomainFilter(null);
+      setDomainExclude(false);
       setUrlInput("");
       setUrlFilter(null);
+      setUrlExclude(false);
     }
     setTab(t);
   };
@@ -359,56 +372,89 @@ function Dashboard() {
           <div>
             {/* Link filters */}
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Filter by referring domain..."
-                  value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {domainInput && (
-                  <button
-                    onClick={() => { setDomainInput(""); setDomainFilter(null); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                  >
-                    &#x2715;
-                  </button>
-                )}
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setDomainExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    domainExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={domainExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{domainExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={domainExclude ? "Exclude referring domain..." : "Filter by referring domain..."}
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      domainExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {domainInput && (
+                    <button
+                      onClick={() => { setDomainInput(""); setDomainFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Filter by referring URL..."
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {urlInput && (
-                  <button
-                    onClick={() => { setUrlInput(""); setUrlFilter(null); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                  >
-                    &#x2715;
-                  </button>
-                )}
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setUrlExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    urlExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={urlExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{urlExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={urlExclude ? "Exclude referring URL..." : "Filter by referring URL..."}
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      urlExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {urlInput && (
+                    <button
+                      onClick={() => { setUrlInput(""); setUrlFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Filter by target URL..."
-                  value={targetPathInput}
-                  onChange={(e) => setTargetPathInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {targetPathInput && (
-                  <button
-                    onClick={() => { setTargetPathInput(""); setDrilldownPath(null); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                  >
-                    &#x2715;
-                  </button>
-                )}
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setTargetPathExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    targetPathExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={targetPathExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{targetPathExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={targetPathExclude ? "Exclude target URL..." : "Filter by target URL..."}
+                    value={targetPathInput}
+                    onChange={(e) => setTargetPathInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      targetPathExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {targetPathInput && (
+                    <button
+                      onClick={() => { setTargetPathInput(""); setDrilldownPath(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setExactMatch((v) => !v)}

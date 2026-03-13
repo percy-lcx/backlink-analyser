@@ -29,9 +29,12 @@ def list_links(
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
+    domain_exclude: Optional[bool] = Query(None),
     url_search: Optional[str] = Query(None),
+    url_exclude: Optional[bool] = Query(None),
     target_path_search: Optional[str] = Query(None),
     target_path_exact: Optional[bool] = Query(None),
+    target_path_exclude: Optional[bool] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -71,21 +74,25 @@ def list_links(
         idx += 1
 
     if domain_search is not None:
-        conditions.append(f"referring_domain ILIKE ${idx}")
+        op = "NOT ILIKE" if domain_exclude else "ILIKE"
+        conditions.append(f"referring_domain {op} ${idx}")
         params.append(f"%{domain_search}%")
         idx += 1
 
     if url_search is not None:
-        conditions.append(f"referring_url ILIKE ${idx}")
+        op = "NOT ILIKE" if url_exclude else "ILIKE"
+        conditions.append(f"referring_url {op} ${idx}")
         params.append(f"%{url_search}%")
         idx += 1
 
     if target_path_search is not None:
         if target_path_exact:
-            conditions.append(f"target_path = ${idx}")
+            op = "!=" if target_path_exclude else "="
+            conditions.append(f"target_path {op} ${idx}")
             params.append(target_path_search)
         else:
-            conditions.append(f"target_path ILIKE ${idx}")
+            op = "NOT ILIKE" if target_path_exclude else "ILIKE"
+            conditions.append(f"target_path {op} ${idx}")
             params.append(f"%{target_path_search}%")
         idx += 1
 

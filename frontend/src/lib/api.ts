@@ -204,9 +204,12 @@ export interface LinkParams {
   dr_max?: number;
   anchor_search?: string;
   domain_search?: string;
+  domain_exclude?: boolean;
   url_search?: string;
+  url_exclude?: boolean;
   target_path_search?: string;
   target_path_exact?: boolean;
+  target_path_exclude?: boolean;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
