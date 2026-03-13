@@ -5,7 +5,9 @@ use chrono::NaiveDateTime;
 use std::path::Path;
 
 fn parse_bool(val: &str) -> bool {
-    matches!(val.to_lowercase().trim(), "true" | "t" | "yes" | "y" | "1")
+    let v = val.to_lowercase();
+    let v = v.trim();
+    !v.is_empty() && !matches!(v, "false" | "f" | "no" | "n" | "0")
 }
 
 fn parse_u16(val: &str) -> u16 {
@@ -117,13 +119,13 @@ impl AhrefsColumns {
             redirect_chain_codes: find("Redirect chain status codes")
                 .or_else(|| find("Redirect chain codes")),
             link_type: find("Type").or_else(|| find("Link type")),
-            is_spam: find("Spam"),
-            is_content: find("Content"),
-            is_nofollow: find("Nofollow"),
-            is_ugc: find("UGC"),
-            is_sponsored: find("Sponsored"),
-            is_rendered: find("Rendered"),
-            is_raw: find("Raw"),
+            is_spam: find("Spam").or_else(|| find("Is spam")),
+            is_content: find("Content").or_else(|| find("Is content")),
+            is_nofollow: find("Nofollow").or_else(|| find("Is nofollow")),
+            is_ugc: find("UGC").or_else(|| find("Is ugc")),
+            is_sponsored: find("Sponsored").or_else(|| find("Is sponsored")),
+            is_rendered: find("Rendered").or_else(|| find("Is rendered")),
+            is_raw: find("Raw").or_else(|| find("Is raw")),
             lost_status: find("Lost status"),
             drop_reason: find("Drop reason"),
             discovered_status: find("Discovered status"),
