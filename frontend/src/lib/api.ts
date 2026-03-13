@@ -159,20 +159,20 @@ export interface SitewideMetrics {
 }
 
 export interface CompareProfile {
-  profile: string;
   profile_label: string;
-  total_backlinks: number;
-  unique_domains: number;
-  dofollow_ratio: number;
+  total_links: number;
+  referring_domains: number;
   avg_dr: number;
+  dofollow_ratio: number;
   spam_ratio: number;
-  total_traffic: number;
+  anchor_diversity: number;
 }
 
 export interface LinkGapDomain {
   referring_domain: string;
-  domain_rating: number;
-  profiles: string[];
+  max_dr: number;
+  total_links: number;
+  profiles_linking: string[];
 }
 
 export interface RedirectInfo {

@@ -17,11 +17,11 @@ interface Props {
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
 
 const METRICS: { key: keyof CompareProfile; label: string }[] = [
-  { key: "total_backlinks", label: "Backlinks" },
-  { key: "unique_domains", label: "Domains" },
+  { key: "total_links", label: "Backlinks" },
+  { key: "referring_domains", label: "Domains" },
   { key: "dofollow_ratio", label: "Dofollow %" },
   { key: "avg_dr", label: "Avg DR" },
-  { key: "total_traffic", label: "Traffic" },
+  { key: "anchor_diversity", label: "Anchor Diversity" },
 ];
 
 function normalize(values: number[]): number[] {
@@ -38,7 +38,7 @@ export default function RadarCompare({ data }: Props) {
     const norm = normalize(raw);
     const entry: Record<string, string | number> = { metric: m.label };
     data.forEach((d, i) => {
-      entry[d.profile] = norm[i];
+      entry[d.profile_label] = norm[i];
     });
     return entry;
   });
@@ -54,9 +54,9 @@ export default function RadarCompare({ data }: Props) {
           <Tooltip />
           {data.map((d, i) => (
             <Radar
-              key={d.profile}
-              name={d.profile}
-              dataKey={d.profile}
+              key={d.profile_label}
+              name={d.profile_label}
+              dataKey={d.profile_label}
               stroke={COLORS[i % COLORS.length]}
               fill={COLORS[i % COLORS.length]}
               fillOpacity={0.15}

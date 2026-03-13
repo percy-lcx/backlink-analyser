@@ -4,6 +4,7 @@ import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
+import CompareTab from "./components/CompareTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
 import {
@@ -107,7 +108,7 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -354,6 +355,7 @@ function Dashboard() {
     { key: "anchors", label: "Anchors" },
     { key: "pages", label: "Pages" },
     { key: "quality", label: "Quality" },
+    { key: "compare", label: "Compare" },
   ];
 
   return (
@@ -673,6 +675,8 @@ function Dashboard() {
             <ScatterPlot data={quality} />
           </div>
         )}
+
+        {tab === "compare" && <CompareTab />}
       </main>
     </div>
   );
