@@ -4,7 +4,7 @@ mod writer;
 
 use anyhow::Result;
 use clap::Parser as ClapParser;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 #[derive(ClapParser)]
@@ -24,20 +24,18 @@ fn derive_profile_label(path: &Path) -> String {
 }
 
 fn collect_input_files(source: &Path) -> Vec<PathBuf> {
+    let mut seen = HashSet::new();
     let mut files = Vec::new();
     for ext in &["csv", "tsv", "CSV", "TSV"] {
-        let pattern = format!("{}/**/*.{}", source.display(), ext);
-        if let Ok(paths) = glob::glob(&pattern) {
-            for entry in paths.flatten() {
-                files.push(entry);
-            }
-        }
-        // Also check flat directory
-        let pattern = format!("{}/*.{}", source.display(), ext);
-        if let Ok(paths) = glob::glob(&pattern) {
-            for entry in paths.flatten() {
-                if !files.contains(&entry) {
-                    files.push(entry);
+        for pattern_str in &[
+            format!("{}/**/*.{}", source.display(), ext),
+            format!("{}/*.{}", source.display(), ext),
+        ] {
+            if let Ok(paths) = glob::glob(pattern_str) {
+                for entry in paths.flatten() {
+                    if seen.insert(entry.clone()) {
+                        files.push(entry);
+                    }
                 }
             }
         }

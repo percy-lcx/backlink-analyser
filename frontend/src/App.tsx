@@ -964,9 +964,14 @@ function Dashboard() {
             <div className="space-y-6">
               {/* Summary cards */}
               {pages.length > 0 && (() => {
-                const totalBacklinks = pages.reduce((s, p) => s + p.link_count, 0);
-                const weightedDr = pages.reduce((s, p) => s + (p.avg_dr ?? 0) * p.link_count, 0);
-                const weightedDf = pages.reduce((s, p) => s + (p.dofollow_ratio ?? 0) * p.link_count, 0);
+                const { totalBacklinks, weightedDr, weightedDf } = pages.reduce(
+                  (acc, p) => ({
+                    totalBacklinks: acc.totalBacklinks + p.link_count,
+                    weightedDr: acc.weightedDr + (p.avg_dr ?? 0) * p.link_count,
+                    weightedDf: acc.weightedDf + (p.dofollow_ratio ?? 0) * p.link_count,
+                  }),
+                  { totalBacklinks: 0, weightedDr: 0, weightedDf: 0 },
+                );
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <SummaryCard label="Total Pages" value={pages.length.toLocaleString()} tooltip={METRICS.total_pages.short} />

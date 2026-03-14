@@ -20,15 +20,26 @@ _URL_PATTERN = re.compile(
     r"^(https?://)?(www\.)?[\w\-]+\.[\w\-]+(\.[\w\-]+)*(\/\S*)?$", re.IGNORECASE
 )
 
+# Pre-lowercased config terms, lazily initialised once.
+_lowered_branded: list[str] | None = None
+_lowered_keywords: list[str] | None = None
+
+
+def _get_lowered_terms() -> tuple[list[str], list[str]]:
+    global _lowered_branded, _lowered_keywords
+    if _lowered_branded is None:
+        cfg = get_config().get("anchor_categories", {})
+        _lowered_branded = [t.lower() for t in cfg.get("branded_terms", [])]
+        _lowered_keywords = [kw.lower() for kw in cfg.get("target_keywords", [])]
+    return _lowered_branded, _lowered_keywords  # type: ignore[return-value]
+
 
 def categorise_anchor(
     anchor: Optional[str],
     link_type: Optional[str],
 ) -> str:
     """Return the category string for a single anchor text."""
-    cfg = get_config().get("anchor_categories", {})
-    branded_terms: list[str] = cfg.get("branded_terms", [])
-    target_keywords: list[str] = cfg.get("target_keywords", [])
+    branded_terms, target_keywords = _get_lowered_terms()
 
     if not anchor:
         anchor = ""
@@ -44,22 +55,22 @@ def categorise_anchor(
 
     # branded
     for term in branded_terms:
-        if term.lower() in anchor_lower:
+        if term in anchor_lower:
             return "branded"
 
     # generic
     if anchor_lower in GENERIC_ANCHORS:
         return "generic"
 
-    # exact match
+    # Single pass: check both exact and partial match in one loop — O(K)
+    found_partial = False
     for kw in target_keywords:
-        if anchor_lower == kw.lower():
+        if anchor_lower == kw:
             return "exact_match"
-
-    # partial match
-    for kw in target_keywords:
-        if kw.lower() in anchor_lower:
-            return "partial_match"
+        if not found_partial and kw in anchor_lower:
+            found_partial = True
+    if found_partial:
+        return "partial_match"
 
     return "other"
 
@@ -80,6 +91,19 @@ def summarise_categories(rows: list[dict]) -> dict:
     for row in rows:
         cat = row.get("category", "other")
         counts[cat] = counts.get(cat, 0) + 1
+    return {
+        cat: {"count": c, "percentage": round(c / total * 100, 2)}
+        for cat, c in counts.items()
+    }
+
+
+def summarise_categories_weighted(items: list[dict]) -> dict:
+    """Like summarise_categories but uses pre-aggregated counts — O(M) not O(N)."""
+    total = sum(r["count"] for r in items) or 1
+    counts: dict[str, int] = {}
+    for r in items:
+        cat = r.get("category", "other")
+        counts[cat] = counts.get(cat, 0) + r["count"]
     return {
         cat: {"count": c, "percentage": round(c / total * 100, 2)}
         for cat, c in counts.items()
