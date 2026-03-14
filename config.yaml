@@ -6,11 +6,24 @@ page_categories:
     - "^/blog/"
     - "^/education/"
     - "^/news/"
-    - "^/resources/"
   money_pages:
     - "^/trading-account"
     - "^/demo-account"
     - "^/cfd-trading/"
+  branding:
+    - "^/about"
+    - "^/contact"
+    - "^/partner"
+    - "^/team"
+    - "^/careers"
+    - "^/legal"
+    - "^/privacy"
+    - "^/terms"
+    - "^/press"
+    - "^/company"
+    - "^/sponsor"
+    - "^/resources"
+    - "^/help"
 
 anchor_categories:
   branded_terms:
