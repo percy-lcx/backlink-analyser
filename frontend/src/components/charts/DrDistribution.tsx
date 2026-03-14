@@ -16,7 +16,14 @@ export default function DrDistribution({ data, maxCount, onBarClick }: Props) {
         <Tooltip text={METRICS.dr_distribution.short}>DR Distribution</Tooltip>
       </h3>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <BarChart
+          data={data}
+          margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+          onClick={onBarClick ? (state: { activeLabel?: string }) => {
+            if (state?.activeLabel) onBarClick(state.activeLabel);
+          } : undefined}
+          style={onBarClick ? { cursor: "pointer" } : undefined}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} domain={maxCount !== undefined ? [0, maxCount] : undefined} />
@@ -27,8 +34,6 @@ export default function DrDistribution({ data, maxCount, onBarClick }: Props) {
             dataKey="count"
             fill="#6366f1"
             radius={[4, 4, 0, 0]}
-            cursor={onBarClick ? "pointer" : undefined}
-            onClick={onBarClick ? (entry: { bucket: string }) => onBarClick(entry.bucket) : undefined}
           />
         </BarChart>
       </ResponsiveContainer>
