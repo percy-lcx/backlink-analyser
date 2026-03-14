@@ -18,10 +18,8 @@ export default function DrDistribution({ data, maxCount }: Props) {
         <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
-          <RechartsTooltip
           <YAxis tick={{ fontSize: 12 }} domain={maxCount !== undefined ? [0, maxCount] : undefined} />
-          <Tooltip
+          <RechartsTooltip
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
           />
           <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
