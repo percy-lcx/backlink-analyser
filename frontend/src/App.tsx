@@ -857,7 +857,6 @@ function Dashboard() {
         )}
 
         {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} />}
-        {tab === "compare" && <CompareTab />}
 
         {tab === "terminology" && <TerminologyTab />}
       </main>
