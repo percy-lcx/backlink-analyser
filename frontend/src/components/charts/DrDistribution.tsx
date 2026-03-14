@@ -5,9 +5,10 @@ import { METRICS } from "../../lib/metrics";
 
 interface Props {
   data: DrBucket[];
+  maxCount?: number;
 }
 
-export default function DrDistribution({ data }: Props) {
+export default function DrDistribution({ data, maxCount }: Props) {
   return (
     <div className="bg-white rounded-lg shadow p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-4">
@@ -19,6 +20,8 @@ export default function DrDistribution({ data }: Props) {
           <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <RechartsTooltip
+          <YAxis tick={{ fontSize: 12 }} domain={maxCount !== undefined ? [0, maxCount] : undefined} />
+          <Tooltip
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
           />
           <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />

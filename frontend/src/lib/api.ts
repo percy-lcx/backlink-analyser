@@ -85,6 +85,13 @@ export interface AnchorRecord {
   pct: number;
 }
 
+export interface AnchorParams {
+  anchor_search?: string;
+  category?: string;
+  count_min?: number;
+  count_max?: number;
+}
+
 export interface AnchorContext {
   left_context: string;
   anchor: string;
@@ -98,7 +105,18 @@ export interface ReferringDomain {
   max_dr: number;
   total_traffic: number;
   is_sitewide: boolean;
-  dominant_anchor: string;
+}
+
+export interface ReferringDomainParams {
+  sort?: string;
+  domain_search?: string;
+  dr_min?: number;
+  dr_max?: number;
+  traffic_min?: number;
+  traffic_max?: number;
+  links_min?: number;
+  links_max?: number;
+  is_sitewide?: boolean;
 }
 
 export interface DrBucket {
@@ -164,9 +182,13 @@ export interface CompareProfile {
   total_links: number;
   referring_domains: number;
   avg_dr: number;
+  median_dr: number;
   dofollow_ratio: number;
   spam_ratio: number;
   anchor_diversity: number;
+  links_per_domain: number;
+  sitewide_ratio: number;
+  image_link_ratio: number;
 }
 
 export interface LinkGapDomain {
@@ -239,16 +261,16 @@ export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
   return get<LinkAttribute[]>(`${BASE}/link-attributes`, { profile });
 }
 
-export function fetchAnchors(profile: string, targetPath?: string): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
-  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, target_path: targetPath });
+export function fetchAnchors(profile: string, params?: AnchorParams & { target_path?: string }): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
+  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchAnchorsContext(profile: string, anchor: string): Promise<AnchorContext[]> {
   return get<AnchorContext[]>(`${BASE}/anchors-context`, { profile, anchor });
 }
 
-export function fetchReferringDomains(profile: string, sort?: string): Promise<ReferringDomain[]> {
-  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
+export function fetchReferringDomains(profile: string, params?: ReferringDomainParams): Promise<ReferringDomain[]> {
+  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchDrDistribution(profile: string, targetPath?: string): Promise<DrDistributionResponse> {

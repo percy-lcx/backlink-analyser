@@ -41,6 +41,7 @@ def compare(
                 COUNT(*) AS total_links,
                 COUNT(DISTINCT referring_domain) AS referring_domains,
                 AVG(domain_rating) AS avg_dr,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY domain_rating) AS median_dr,
                 CASE WHEN COUNT(*) > 0
                     THEN COUNT(*) FILTER (
                         WHERE COALESCE(is_nofollow, false) = false
@@ -51,7 +52,16 @@ def compare(
                 CASE WHEN COUNT(*) > 0
                     THEN COUNT(*) FILTER (WHERE is_spam = true)::FLOAT / COUNT(*)
                     ELSE 0 END AS spam_ratio,
-                COUNT(DISTINCT anchor) AS anchor_diversity
+                COUNT(DISTINCT anchor) AS anchor_diversity,
+                CASE WHEN COUNT(DISTINCT referring_domain) > 0
+                    THEN COUNT(*)::FLOAT / COUNT(DISTINCT referring_domain)
+                    ELSE 0 END AS links_per_domain,
+                CASE WHEN COUNT(*) > 0
+                    THEN COUNT(*) FILTER (WHERE links_in_group > 10)::FLOAT / COUNT(*)
+                    ELSE 0 END AS sitewide_ratio,
+                CASE WHEN COUNT(*) > 0
+                    THEN COUNT(*) FILTER (WHERE link_type = 'image')::FLOAT / COUNT(*)
+                    ELSE 0 END AS image_link_ratio
             FROM backlinks
             {where}
             """,
@@ -62,9 +72,13 @@ def compare(
             "total_links",
             "referring_domains",
             "avg_dr",
+            "median_dr",
             "dofollow_ratio",
             "spam_ratio",
             "anchor_diversity",
+            "links_per_domain",
+            "sitewide_ratio",
+            "image_link_ratio",
         ]
         summary = dict(zip(cols, row)) if row else {}
         summary["profile_label"] = label
