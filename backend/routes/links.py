@@ -1,8 +1,35 @@
 from fastapi import APIRouter, Query
-from typing import Optional
+from typing import Literal, Optional
 from db import get_conn
 
 router = APIRouter()
+
+
+def _add_text_filter(
+    conditions: list,
+    params: list,
+    idx: int,
+    column: str,
+    value: str,
+    exclude: bool | None,
+    mode: str | None,
+) -> int:
+    """Append a text-search condition and return the next param index."""
+    mode = mode or "contain"
+    if mode == "exact":
+        op = "!=" if exclude else "="
+        conditions.append(f"{column} {op} ${idx}")
+        params.append(value)
+    elif mode == "regex":
+        op = "!~*" if exclude else "~*"
+        conditions.append(f"{column} {op} ${idx}")
+        params.append(value)
+    else:  # contain
+        op = "NOT ILIKE" if exclude else "ILIKE"
+        conditions.append(f"{column} {op} ${idx}")
+        params.append(f"%{value}%")
+    return idx + 1
+
 
 SORTABLE_COLUMNS = {
     "domain_rating",
@@ -33,17 +60,21 @@ def list_links(
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
     anchor_exclude: Optional[bool] = Query(None),
+    anchor_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
     traffic_min: Optional[float] = Query(None),
     traffic_max: Optional[float] = Query(None),
     first_seen_from: Optional[str] = Query(None),
     first_seen_to: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
     domain_exclude: Optional[bool] = Query(None),
+    domain_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
     url_search: Optional[str] = Query(None),
     url_exclude: Optional[bool] = Query(None),
+    url_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
     target_path_search: Optional[str] = Query(None),
     target_path_exact: Optional[bool] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
+    target_path_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -78,10 +109,8 @@ def list_links(
         idx += 1
 
     if anchor_search is not None:
-        op = "NOT ILIKE" if anchor_exclude else "ILIKE"
-        conditions.append(f"anchor {op} ${idx}")
-        params.append(f"%{anchor_search}%")
-        idx += 1
+        idx = _add_text_filter(conditions, params, idx, "anchor", anchor_search, anchor_exclude, anchor_match_mode)
+
 
     if traffic_min is not None:
         conditions.append(f"page_traffic >= ${idx}")
@@ -104,27 +133,14 @@ def list_links(
         idx += 1
 
     if domain_search is not None:
-        op = "NOT ILIKE" if domain_exclude else "ILIKE"
-        conditions.append(f"referring_domain {op} ${idx}")
-        params.append(f"%{domain_search}%")
-        idx += 1
+        idx = _add_text_filter(conditions, params, idx, "referring_domain", domain_search, domain_exclude, domain_match_mode)
 
     if url_search is not None:
-        op = "NOT ILIKE" if url_exclude else "ILIKE"
-        conditions.append(f"referring_url {op} ${idx}")
-        params.append(f"%{url_search}%")
-        idx += 1
+        idx = _add_text_filter(conditions, params, idx, "referring_url", url_search, url_exclude, url_match_mode)
 
     if target_path_search is not None:
-        if target_path_exact:
-            op = "!=" if target_path_exclude else "="
-            conditions.append(f"target_path {op} ${idx}")
-            params.append(target_path_search)
-        else:
-            op = "NOT ILIKE" if target_path_exclude else "ILIKE"
-            conditions.append(f"target_path {op} ${idx}")
-            params.append(f"%{target_path_search}%")
-        idx += 1
+        mode = target_path_match_mode or ("exact" if target_path_exact else "contain")
+        idx = _add_text_filter(conditions, params, idx, "target_path", target_path_search, target_path_exclude, mode)
 
     where = " AND ".join(conditions)
 

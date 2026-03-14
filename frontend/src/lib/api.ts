@@ -24,6 +24,8 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---- Types ---- */
 
+export type MatchMode = "contain" | "exact" | "regex";
+
 export interface Profile {
   profile_label: string;
   total_links: number;
@@ -232,17 +234,21 @@ export interface LinkParams {
   dr_max?: number;
   anchor_search?: string;
   anchor_exclude?: boolean;
+  anchor_match_mode?: MatchMode;
   traffic_min?: number;
   traffic_max?: number;
   first_seen_from?: string;
   first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
+  domain_match_mode?: MatchMode;
   url_search?: string;
   url_exclude?: boolean;
+  url_match_mode?: MatchMode;
   target_path_search?: string;
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
+  target_path_match_mode?: MatchMode;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
