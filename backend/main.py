@@ -22,6 +22,7 @@ from routes import (
     sitewide,
     compare,
     gap,
+    intersect,
     target_paths,
 )
 
@@ -57,6 +58,7 @@ app.include_router(quality.router)
 app.include_router(sitewide.router)
 app.include_router(compare.router)
 app.include_router(gap.router)
+app.include_router(intersect.router)
 app.include_router(target_paths.router)
 
 

@@ -237,6 +237,24 @@ export interface RedirectSummary {
   items: RedirectInfo[];
 }
 
+export interface IntersectDomain {
+  referring_domain: string;
+  max_dr: number;
+  competitor_flags: boolean[];
+  competitor_count: number;
+}
+
+export interface IntersectSummary {
+  count: number;
+  domains: number;
+}
+
+export interface IntersectResponse {
+  competitors: string[];
+  summary: IntersectSummary[];
+  domains: IntersectDomain[];
+}
+
 /* ---- Endpoints (matching actual backend routes) ---- */
 
 export interface LinkParams {
@@ -337,6 +355,18 @@ export function fetchLinkGap(
     competitors: competitors.join(","),
     base_target_path: baseTargetPath,
     competitor_target_path: competitorTargetPath,
+  });
+}
+
+export function fetchLinkIntersect(
+  base: string,
+  competitors: string[],
+  minDr?: number,
+): Promise<IntersectResponse> {
+  return get<IntersectResponse>(`${BASE}/link-intersect`, {
+    base,
+    competitors: competitors.join(","),
+    min_dr: minDr,
   });
 }
 

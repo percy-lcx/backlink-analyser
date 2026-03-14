@@ -306,6 +306,26 @@ export const METRICS: Record<string, MetricDef> = {
     full: "A normalized radar chart that visually compares two link profiles across multiple dimensions: backlinks, referring domains, dofollow ratio, average DR, and anchor diversity. Values are normalized to a 0-100 scale for fair comparison. This provides a quick visual snapshot of relative strengths and weaknesses.",
     category: "Compare",
   },
+
+  // ── Intersect ──────────────────────────────────────────────
+  intersect_breakdown: {
+    label: "Intersection Breakdown",
+    short: "How many competitors each gap domain links to.",
+    full: "A bar chart showing the distribution of gap domains by the number of competitors they link to. Domains linking to ALL competitors represent the strongest outreach opportunities — these sites are clearly open to linking in your niche but haven't linked to you yet.",
+    category: "Intersect",
+  },
+  intersect_gap_domains: {
+    label: "Gap Domains",
+    short: "Domains linking to competitors but not to you.",
+    full: "The full list of referring domains that link to one or more competitors but not to your site. Each row shows which specific competitors the domain links to, the domain's DR, and the total competitor count. Filter by intersection count to focus on the strongest opportunities (domains linking to all competitors).",
+    category: "Intersect",
+  },
+  competitor_count: {
+    label: "Competitor Count",
+    short: "Number of selected competitors this domain links to.",
+    full: "The number of competitors (out of those selected) that this referring domain links to. Higher counts indicate stronger link opportunities — a domain linking to all your competitors is very likely relevant to your niche and open to linking.",
+    category: "Intersect",
+  },
 };
 
 const labelIndex = new Map<string, MetricDef>();
