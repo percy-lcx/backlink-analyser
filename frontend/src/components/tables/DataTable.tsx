@@ -9,6 +9,7 @@ import {
   type ColumnSizingState,
 } from "@tanstack/react-table";
 import { useState, useMemo, useEffect } from "react";
+import Tooltip from "../Tooltip";
 
 export type { SortingState };
 
@@ -160,7 +161,15 @@ export default function DataTable<T>({
                       className="flex items-center gap-1 cursor-pointer"
                       onClick={header.column.getToggleSortingHandler()}
                     >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.isPlaceholder ? null : (
+                        header.column.columnDef.meta?.tooltip ? (
+                          <Tooltip text={header.column.columnDef.meta.tooltip}>
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </Tooltip>
+                        ) : (
+                          flexRender(header.column.columnDef.header, header.getContext())
+                        )
+                      )}
                       {{ asc: " ↑", desc: " ↓" }[header.column.getIsSorted() as string] ?? ""}
                     </span>
                     <div

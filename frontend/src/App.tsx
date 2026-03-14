@@ -5,6 +5,7 @@ import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
 import CompareTab from "./components/CompareTab";
+import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
 import {
@@ -28,13 +29,15 @@ import {
   type PageRow,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
+import { METRICS } from "./lib/metrics";
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain" },
+  { accessorKey: "referring_domain", header: "Referring Domain", meta: { tooltip: METRICS.referring_domain.short } },
   {
     accessorKey: "referring_url",
     header: "Referring URL",
     size: 400,
+    meta: { tooltip: METRICS.referring_url.short },
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -50,6 +53,12 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
+  { accessorKey: "anchor", header: "Anchor", size: 400, meta: { tooltip: METRICS.anchor.short } },
+  { accessorKey: "target_path", header: "Target", size: 400, meta: { tooltip: METRICS.target.short } },
+  { accessorKey: "domain_rating", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
+  { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
+  { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
   { accessorKey: "anchor", header: "Anchor", size: 400 },
   { accessorKey: "target_path", header: "Target", size: 400 },
   { accessorKey: "domain_rating", header: "DR" },
@@ -60,58 +69,64 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   {
     accessorKey: "is_nofollow",
     header: "NF",
+    meta: { tooltip: METRICS.nf.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   {
     accessorKey: "is_spam",
     header: "Spam",
+    meta: { tooltip: METRICS.spam.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
-  { accessorKey: "first_seen", header: "First Seen" },
+  { accessorKey: "first_seen", header: "First Seen", meta: { tooltip: METRICS.first_seen.short } },
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Domain", size: 400 },
-  { accessorKey: "link_count", header: "Links" },
-  { accessorKey: "max_dr", header: "DR" },
-  { accessorKey: "total_traffic", header: "Traffic" },
-  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400 },
+  { accessorKey: "referring_domain", header: "Domain", size: 400, meta: { tooltip: METRICS.domain.short } },
+  { accessorKey: "link_count", header: "Links", meta: { tooltip: METRICS.links.short } },
+  { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "total_traffic", header: "Traffic", meta: { tooltip: METRICS.traffic.short } },
+  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400, meta: { tooltip: METRICS.top_anchor.short } },
   {
     accessorKey: "is_sitewide",
     header: "Sitewide",
+    meta: { tooltip: METRICS.sitewide.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
 ];
 
 const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
-  { accessorKey: "anchor", header: "Anchor Text", size: 400 },
-  { accessorKey: "count", header: "Count" },
-  { accessorKey: "category", header: "Category" },
+  { accessorKey: "anchor", header: "Anchor Text", size: 400, meta: { tooltip: METRICS.anchor_text.short } },
+  { accessorKey: "count", header: "Count", meta: { tooltip: METRICS.count.short } },
+  { accessorKey: "category", header: "Category", meta: { tooltip: METRICS.category.short } },
   {
     accessorKey: "pct",
     header: "%",
+    meta: { tooltip: METRICS.pct.short },
     cell: ({ getValue }) => `${(getValue() as number).toFixed(1)}%`,
   },
 ];
 
 const pageColumns: ColumnDef<PageRow, unknown>[] = [
-  { accessorKey: "target_path", header: "Target URL", size: 400 },
-  { accessorKey: "category", header: "Category" },
-  { accessorKey: "link_count", header: "Backlinks" },
-  { accessorKey: "unique_referring_domains", header: "Ref. Domains" },
+  { accessorKey: "target_path", header: "Target URL", size: 400, meta: { tooltip: METRICS.target_url.short } },
+  { accessorKey: "category", header: "Category", meta: { tooltip: METRICS.category.short } },
+  { accessorKey: "link_count", header: "Backlinks", meta: { tooltip: METRICS.backlinks.short } },
+  { accessorKey: "unique_referring_domains", header: "Ref. Domains", meta: { tooltip: METRICS.ref_domains.short } },
   {
     accessorKey: "avg_dr",
     header: "Avg DR",
+    meta: { tooltip: METRICS.avg_dr.short },
     cell: ({ getValue }) => (getValue() as number)?.toFixed(1) ?? "—",
   },
   {
     accessorKey: "dofollow_ratio",
     header: "Dofollow %",
+    meta: { tooltip: METRICS.dofollow_pct.short },
     cell: ({ getValue }) => `${((getValue() as number) * 100).toFixed(0)}%`,
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "terminology";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -421,6 +436,7 @@ function Dashboard() {
     { key: "pages", label: "Pages" },
     { key: "quality", label: "Quality" },
     { key: "compare", label: "Compare" },
+    { key: "terminology", label: "Terminology" },
   ];
 
   return (
@@ -477,15 +493,15 @@ function Dashboard() {
         {tab === "overview" && overview && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SummaryCard label="Total Backlinks" value={(overview.total_backlinks ?? 0).toLocaleString()} />
-              <SummaryCard label="Referring Domains" value={(overview.unique_referring_domains ?? 0).toLocaleString()} />
-              <SummaryCard label="Dofollow" value={(overview.dofollow_count ?? 0).toLocaleString()} color="text-green-600" />
-              <SummaryCard label="Avg DR" value={overview.avg_dr?.toFixed(1) ?? "—"} />
-              <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} />
-              <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} />
-              <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} />
-              <SummaryCard label="Total Backlink Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
-              <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} />
+              <SummaryCard label="Total Backlinks" value={(overview.total_backlinks ?? 0).toLocaleString()} tooltip={METRICS.total_backlinks.short} />
+              <SummaryCard label="Referring Domains" value={(overview.unique_referring_domains ?? 0).toLocaleString()} tooltip={METRICS.referring_domains.short} />
+              <SummaryCard label="Dofollow" value={(overview.dofollow_count ?? 0).toLocaleString()} color="text-green-600" tooltip={METRICS.dofollow.short} />
+              <SummaryCard label="Avg DR" value={overview.avg_dr?.toFixed(1) ?? "—"} tooltip={METRICS.avg_dr.short} />
+              <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} tooltip={METRICS.nofollow.short} />
+              <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} tooltip={METRICS.spam_ratio.short} />
+              <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} tooltip={METRICS.image_links.short} />
+              <SummaryCard label="Total Backlink Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} tooltip={METRICS.total_backlink_traffic.short} />
+              <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} tooltip={METRICS.newest_backlink.short} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DrDistribution data={drDist} />
@@ -833,6 +849,8 @@ function Dashboard() {
         )}
 
         {tab === "compare" && <CompareTab />}
+
+        {tab === "terminology" && <TerminologyTab />}
       </main>
     </div>
   );
