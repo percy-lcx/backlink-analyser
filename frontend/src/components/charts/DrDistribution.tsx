@@ -3,9 +3,10 @@ import type { DrBucket } from "../../lib/api";
 
 interface Props {
   data: DrBucket[];
+  maxCount?: number;
 }
 
-export default function DrDistribution({ data }: Props) {
+export default function DrDistribution({ data, maxCount }: Props) {
   return (
     <div className="bg-white rounded-lg shadow p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-4">DR Distribution</h3>
@@ -13,7 +14,7 @@ export default function DrDistribution({ data }: Props) {
         <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} domain={maxCount !== undefined ? [0, maxCount] : undefined} />
           <Tooltip
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
           />
