@@ -89,7 +89,6 @@ const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
   { accessorKey: "link_count", header: "Links", meta: { tooltip: METRICS.links.short } },
   { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
   { accessorKey: "total_traffic", header: "Traffic", meta: { tooltip: METRICS.traffic.short } },
-  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400, meta: { tooltip: METRICS.top_anchor.short } },
   {
     accessorKey: "is_sitewide",
     header: "Sitewide",
@@ -130,6 +129,38 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
 ];
 
 type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "terminology";
+type MatchMode = "exact" | "contains" | "regex";
+
+const MODES: { value: MatchMode; label: string }[] = [
+  { value: "exact", label: "Exact" },
+  { value: "contains", label: "Contains" },
+  { value: "regex", label: "Regex" },
+];
+
+function MatchModeToggle({ value, onChange }: { value: MatchMode; onChange: (m: MatchMode) => void }) {
+  return (
+    <div className="inline-flex rounded-md shadow-sm">
+      {MODES.map((m, i) => (
+        <button
+          key={m.value}
+          type="button"
+          className={`px-2 py-2 text-xs font-medium border transition-colors ${
+            i === 0 ? "rounded-l-md" : ""
+          }${i === MODES.length - 1 ? " rounded-r-md" : ""
+          }${i > 0 ? " border-l-0" : ""} ${
+            value === m.value
+              ? "bg-indigo-600 text-white border-indigo-600"
+              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+          }`}
+          onClick={() => onChange(m.value)}
+          title={`${m.label} match`}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -152,17 +183,20 @@ function Dashboard() {
   // Link filter state
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
-  const [exactMatch, setExactMatch] = useState(false);
+  const [targetPathMode, setTargetPathMode] = useState<"exact" | "contains" | "regex">("contains");
   const [targetPathExclude, setTargetPathExclude] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
   const [domainExclude, setDomainExclude] = useState(false);
+  const [domainMode, setDomainMode] = useState<"exact" | "contains" | "regex">("contains");
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const [urlExclude, setUrlExclude] = useState(false);
+  const [urlMode, setUrlMode] = useState<"exact" | "contains" | "regex">("contains");
   const [anchorInput, setAnchorInput] = useState("");
   const [anchorFilter, setAnchorFilter] = useState<string | null>(null);
   const [anchorExclude, setAnchorExclude] = useState(false);
+  const [anchorLinkMode, setAnchorLinkMode] = useState<"exact" | "contains" | "regex">("contains");
   const [linkTypeFilter, setLinkTypeFilter] = useState<string>("");
   const [nofollowFilter, setNofollowFilter] = useState<string>("");
   const [spamFilter, setSpamFilter] = useState<string>("");
@@ -189,6 +223,7 @@ function Dashboard() {
   const [domLinksMin, setDomLinksMin] = useState("");
   const [domLinksMax, setDomLinksMax] = useState("");
   const [domSitewideFilter, setDomSitewideFilter] = useState<string>("");
+  const [domDomainMode, setDomDomainMode] = useState<"exact" | "contains" | "regex">("contains");
   const domDomainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Anchors state
@@ -198,6 +233,7 @@ function Dashboard() {
   const [anchorCategoryFilter, setAnchorCategoryFilter] = useState("");
   const [anchorCountMin, setAnchorCountMin] = useState("");
   const [anchorCountMax, setAnchorCountMax] = useState("");
+  const [anchorTabMode, setAnchorTabMode] = useState<"exact" | "contains" | "regex">("contains");
   const anchorTabDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Pages state
@@ -230,19 +266,22 @@ function Dashboard() {
       const params: Record<string, unknown> = { page: linkPage + 1, per_page: linkPageSize, sort: sortParam };
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
-        if (exactMatch) params.target_path_exact = true;
+        if (targetPathMode !== "contains") params.target_path_mode = targetPathMode;
         if (targetPathExclude) params.target_path_exclude = true;
       }
       if (domainFilter) {
         params.domain_search = domainFilter;
+        if (domainMode !== "contains") params.domain_mode = domainMode;
         if (domainExclude) params.domain_exclude = true;
       }
       if (urlFilter) {
         params.url_search = urlFilter;
+        if (urlMode !== "contains") params.url_mode = urlMode;
         if (urlExclude) params.url_exclude = true;
       }
       if (anchorFilter) {
         params.anchor_search = anchorFilter;
+        if (anchorLinkMode !== "contains") params.anchor_mode = anchorLinkMode;
         if (anchorExclude) params.anchor_exclude = true;
       }
       if (linkTypeFilter) params.link_type = linkTypeFilter;
@@ -259,7 +298,10 @@ function Dashboard() {
         .catch(() => setLinksData(null));
     } else if (tab === "domains") {
       const domParams: Record<string, string | number | boolean | undefined> = {};
-      if (domDomainSearch) domParams.domain_search = domDomainSearch;
+      if (domDomainSearch) {
+        domParams.domain_search = domDomainSearch;
+        if (domDomainMode !== "contains") domParams.domain_mode = domDomainMode;
+      }
       if (domDrMin) domParams.dr_min = parseFloat(domDrMin);
       if (domDrMax) domParams.dr_max = parseFloat(domDrMax);
       if (domTrafficMin) domParams.traffic_min = parseFloat(domTrafficMin);
@@ -270,7 +312,10 @@ function Dashboard() {
       fetchReferringDomains(selected, domParams).then(setDomains).catch(() => setDomains([]));
     } else if (tab === "anchors") {
       const anchorParams: Record<string, string | number | boolean | undefined> = {};
-      if (anchorTabSearchFilter) anchorParams.anchor_search = anchorTabSearchFilter;
+      if (anchorTabSearchFilter) {
+        anchorParams.anchor_search = anchorTabSearchFilter;
+        if (anchorTabMode !== "contains") anchorParams.anchor_mode = anchorTabMode;
+      }
       if (anchorCategoryFilter) anchorParams.category = anchorCategoryFilter;
       if (anchorCountMin) anchorParams.count_min = parseInt(anchorCountMin);
       if (anchorCountMax) anchorParams.count_max = parseInt(anchorCountMax);
@@ -302,7 +347,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainExclude, domainMode, urlFilter, urlExclude, urlMode, anchorFilter, anchorExclude, anchorLinkMode, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -399,7 +444,7 @@ function Dashboard() {
   const handlePageRowClick = (row: PageRow) => {
     setTargetPathInput(row.target_path);
     setDrilldownPath(row.target_path);
-    setExactMatch(true);
+    setTargetPathMode("exact");
     setTab("links");
   };
 
@@ -426,7 +471,7 @@ function Dashboard() {
     if (targetPath) {
       setTargetPathInput(targetPath);
       setDrilldownPath(targetPath);
-      setExactMatch(true);
+      setTargetPathMode("exact");
     }
   };
 
@@ -439,7 +484,7 @@ function Dashboard() {
     if (targetPath) {
       setTargetPathInput(targetPath);
       setDrilldownPath(targetPath);
-      setExactMatch(true);
+      setTargetPathMode("exact");
     }
   };
 
@@ -581,7 +626,8 @@ function Dashboard() {
           <div>
             {/* Link filters */}
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="flex min-w-[180px] max-w-xs flex-1">
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={domainMode} onChange={setDomainMode} />
                 <button
                   onClick={() => setDomainExclude((v) => !v)}
                   className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
@@ -609,7 +655,8 @@ function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="flex min-w-[180px] max-w-xs flex-1">
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={urlMode} onChange={setUrlMode} />
                 <button
                   onClick={() => setUrlExclude((v) => !v)}
                   className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
@@ -637,7 +684,8 @@ function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="flex min-w-[180px] max-w-xs flex-1">
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={targetPathMode} onChange={setTargetPathMode} />
                 <button
                   onClick={() => setTargetPathExclude((v) => !v)}
                   className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
@@ -665,7 +713,8 @@ function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="flex min-w-[180px] max-w-xs flex-1">
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={anchorLinkMode} onChange={setAnchorLinkMode} />
                 <button
                   onClick={() => setAnchorExclude((v) => !v)}
                   className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
@@ -693,17 +742,6 @@ function Dashboard() {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setExactMatch((v) => !v)}
-                className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                  exactMatch
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                }`}
-                title={exactMatch ? "Exact match enabled — click to switch to contains" : "Contains match — click to switch to exact match"}
-              >
-                {exactMatch ? "Exact" : "Contains"}
-              </button>
               {linksData && (
                 <span className="text-sm text-gray-400">
                   {linksData.total.toLocaleString()} backlinks
@@ -784,20 +822,23 @@ function Dashboard() {
         {tab === "domains" && (
           <div>
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="relative min-w-[180px] max-w-xs flex-1">
-                <input
-                  type="text"
-                  placeholder="Filter by domain..."
-                  value={domDomainInput}
-                  onChange={(e) => setDomDomainInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {domDomainInput && (
-                  <button
-                    onClick={() => { setDomDomainInput(""); setDomDomainSearch(null); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                  >&#x2715;</button>
-                )}
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={domDomainMode} onChange={setDomDomainMode} />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Filter by domain..."
+                    value={domDomainInput}
+                    onChange={(e) => setDomDomainInput(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  {domDomainInput && (
+                    <button
+                      onClick={() => { setDomDomainInput(""); setDomDomainSearch(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500">DR</span>
@@ -843,20 +884,23 @@ function Dashboard() {
         {tab === "anchors" && (
           <div>
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="relative min-w-[180px] max-w-xs flex-1">
-                <input
-                  type="text"
-                  placeholder="Filter by anchor text..."
-                  value={anchorTabSearch}
-                  onChange={(e) => setAnchorTabSearch(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {anchorTabSearch && (
-                  <button
-                    onClick={() => { setAnchorTabSearch(""); setAnchorTabSearchFilter(null); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                  >&#x2715;</button>
-                )}
+              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
+                <MatchModeToggle value={anchorTabMode} onChange={setAnchorTabMode} />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Filter by anchor text..."
+                    value={anchorTabSearch}
+                    onChange={(e) => setAnchorTabSearch(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  {anchorTabSearch && (
+                    <button
+                      onClick={() => { setAnchorTabSearch(""); setAnchorTabSearchFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
               <select
                 value={anchorCategoryFilter}
