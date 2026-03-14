@@ -4,6 +4,9 @@ import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
+import PageCategoryChart from "./components/charts/PageCategoryChart";
+import TopPagesChart from "./components/charts/TopPagesChart";
+import PageScatterPlot from "./components/charts/PageScatterPlot";
 import CompareTab from "./components/CompareTab";
 import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
@@ -27,6 +30,7 @@ import {
   type QualityPoint,
   type LinksResponse,
   type PageRow,
+  type PageBreakdownResponse,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { METRICS } from "./lib/metrics";
@@ -199,6 +203,7 @@ function Dashboard() {
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [pageCategories, setPageCategories] = useState<PageBreakdownResponse["categories"]>({});
   const [pagePathInput, setPagePathInput] = useState("");
   const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
   const [pagePathExclude, setPagePathExclude] = useState(false);
@@ -293,7 +298,8 @@ function Dashboard() {
       fetchPageBreakdown(selected, pageParams).then((data) => {
         const items = Array.isArray(data) ? data : (data as { pages: PageRow[] }).pages ?? [];
         setPages(items);
-      }).catch(() => setPages([]));
+        setPageCategories((data as PageBreakdownResponse).categories ?? {});
+      }).catch(() => { setPages([]); setPageCategories({}); });
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
@@ -956,19 +962,55 @@ function Dashboard() {
                 <input type="number" placeholder="Max" value={pageDofollowMax} onChange={(e) => setPageDofollowMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
-                  <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
-                </div>
-                <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+            <div className="space-y-6">
+              {/* Summary cards */}
+              {pages.length > 0 && (() => {
+                const totalBacklinks = pages.reduce((s, p) => s + p.link_count, 0);
+                const weightedDr = pages.reduce((s, p) => s + (p.avg_dr ?? 0) * p.link_count, 0);
+                const weightedDf = pages.reduce((s, p) => s + (p.dofollow_ratio ?? 0) * p.link_count, 0);
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <SummaryCard label="Total Pages" value={pages.length.toLocaleString()} tooltip={METRICS.total_pages.short} />
+                    <SummaryCard label="Total Backlinks" value={totalBacklinks.toLocaleString()} tooltip={METRICS.total_page_backlinks.short} />
+                    <SummaryCard label="Avg Backlinks/Page" value={(totalBacklinks / pages.length).toFixed(1)} tooltip={METRICS.avg_backlinks_per_page.short} />
+                    <SummaryCard label="Avg DR" value={totalBacklinks > 0 ? (weightedDr / totalBacklinks).toFixed(1) : "—"} tooltip={METRICS.avg_dr.short} />
+                    <SummaryCard label="Avg Dofollow %" value={totalBacklinks > 0 ? `${((weightedDf / totalBacklinks) * 100).toFixed(1)}%` : "—"} tooltip={METRICS.dofollow_pct.short} />
+                  </div>
+                );
+              })()}
+
+              {/* Charts row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PageCategoryChart
+                  data={Object.entries(pageCategories).map(([category, d]) => ({ category, link_count: d.link_count }))}
+                  onBarClick={(category) => setPageCategoryFilter(category)}
+                />
+                <TopPagesChart
+                  data={pages}
+                  onBarClick={(targetPath) => handlePageRowClick({ target_path: targetPath } as PageRow)}
+                />
               </div>
-              <DataTable
-                data={pages}
-                columns={pageColumns}
-                onRowClick={handlePageRowClick}
-              />
+
+              {/* Scatter plot */}
+              {pages.length > 0 && (
+                <PageScatterPlot data={pages} />
+              )}
+
+              {/* Data table */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
+                    <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+                  </div>
+                  <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+                </div>
+                <DataTable
+                  data={pages}
+                  columns={pageColumns}
+                  onRowClick={handlePageRowClick}
+                />
+              </div>
             </div>
           </div>
         )}
