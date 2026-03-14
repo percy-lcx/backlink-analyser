@@ -21,6 +21,8 @@ page_categories:
     - "calendar"
     - "webinars?"
     - "e-?books?"
+    - "what-is"
+    - "how-to"
   money_pages:
     - "accounts?"
     - "platforms?"
@@ -33,6 +35,7 @@ page_categories:
     - "campaign"
     - "\\bapp\\b"
     - "instruments?"
+    - "trading"
   branding:
     - "about"
     - "contact"
