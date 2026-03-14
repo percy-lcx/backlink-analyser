@@ -174,6 +174,12 @@ function Dashboard() {
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
+  const [anchorTabSearch, setAnchorTabSearch] = useState("");
+  const [anchorTabSearchFilter, setAnchorTabSearchFilter] = useState<string | null>(null);
+  const [anchorCategoryFilter, setAnchorCategoryFilter] = useState("");
+  const [anchorCountMin, setAnchorCountMin] = useState("");
+  const [anchorCountMax, setAnchorCountMax] = useState("");
+  const anchorTabDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
@@ -230,7 +236,12 @@ function Dashboard() {
       if (domSitewideFilter) domParams.is_sitewide = domSitewideFilter === "yes";
       fetchReferringDomains(selected, domParams).then(setDomains).catch(() => setDomains([]));
     } else if (tab === "anchors") {
-      fetchAnchors(selected).then((data) => {
+      const anchorParams: Record<string, string | number | boolean | undefined> = {};
+      if (anchorTabSearchFilter) anchorParams.anchor_search = anchorTabSearchFilter;
+      if (anchorCategoryFilter) anchorParams.category = anchorCategoryFilter;
+      if (anchorCountMin) anchorParams.count_min = parseInt(anchorCountMin);
+      if (anchorCountMax) anchorParams.count_max = parseInt(anchorCountMax);
+      fetchAnchors(selected, anchorParams).then((data) => {
         const items = Array.isArray(data) ? data : (data as { items: AnchorRecord[] }).items ?? [];
         const total = items.reduce((s, a) => s + a.count, 0);
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
@@ -243,7 +254,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorCategoryFilter, anchorCountMin, anchorCountMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -295,6 +306,15 @@ function Dashboard() {
     return () => clearTimeout(domDomainDebounceRef.current);
   }, [domDomainInput]);
 
+  // Debounce: anchorTabSearch → anchorTabSearchFilter
+  useEffect(() => {
+    clearTimeout(anchorTabDebounceRef.current);
+    anchorTabDebounceRef.current = setTimeout(() => {
+      setAnchorTabSearchFilter(anchorTabSearch || null);
+    }, 300);
+    return () => clearTimeout(anchorTabDebounceRef.current);
+  }, [anchorTabSearch]);
+
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
     if (sorting.length > 0) {
@@ -330,6 +350,13 @@ function Dashboard() {
   const handleDomainRowClick = (row: ReferringDomain) => {
     setDomainInput(row.referring_domain);
     setDomainFilter(row.referring_domain);
+    setTab("links");
+  };
+
+  // Click an anchor row → drilldown into its backlinks
+  const handleAnchorRowClick = (row: AnchorRecord) => {
+    setAnchorInput(row.anchor);
+    setAnchorFilter(row.anchor);
     setTab("links");
   };
 
@@ -730,12 +757,54 @@ function Dashboard() {
         )}
 
         {tab === "anchors" && (
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3>
-              <ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />
+          <div>
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="relative min-w-[180px] max-w-xs flex-1">
+                <input
+                  type="text"
+                  placeholder="Filter by anchor text..."
+                  value={anchorTabSearch}
+                  onChange={(e) => setAnchorTabSearch(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {anchorTabSearch && (
+                  <button
+                    onClick={() => { setAnchorTabSearch(""); setAnchorTabSearchFilter(null); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >&#x2715;</button>
+                )}
+              </div>
+              <select
+                value={anchorCategoryFilter}
+                onChange={(e) => setAnchorCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Category: All</option>
+                <option value="branded">Branded</option>
+                <option value="exact_match">Exact Match</option>
+                <option value="partial_match">Partial Match</option>
+                <option value="naked_url">Naked URL</option>
+                <option value="generic">Generic</option>
+                <option value="image">Image</option>
+                <option value="other">Other</option>
+              </select>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Count</span>
+                <input type="number" placeholder="Min" value={anchorCountMin} onChange={(e) => setAnchorCountMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">–</span>
+                <input type="number" placeholder="Max" value={anchorCountMax} onChange={(e) => setAnchorCountMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
             </div>
-            <DataTable data={anchors} columns={anchorColumns} />
+            <div className="bg-white rounded-lg shadow p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3>
+                  <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks with that anchor text.</p>
+                </div>
+                <ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />
+              </div>
+              <DataTable data={anchors} columns={anchorColumns} onRowClick={handleAnchorRowClick} />
+            </div>
           </div>
         )}
 
