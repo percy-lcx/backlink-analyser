@@ -11,10 +11,23 @@ page_categories:
     - "guides?"
     - "tutorials?"
     - "courses?"
+    - "learn"
+    - "terminolog"
+    - "glossar"
+    - "definition"
+    - "analysis"
+    - "calculator"
+    - "calendar"
   money_pages:
     - "accounts?"
     - "platforms?"
     - "cfd-trading"
+    - "download"
+    - "login"
+    - "\\bmarkets?\\b"
+    - "\\blp\\b"
+    - "landing"
+    - "campaign"
   branding:
     - "about"
     - "contact"
@@ -34,6 +47,13 @@ page_categories:
     - "events?"
     - "referrals?"
     - "affiliates?"
+    - "fees?"
+    - "commissions?"
+    - "deposits?"
+    - "withdrawa?l"
+    - "regulations?"
+    - "licen[cs]e"
+    - "polic(y|ies)"
 
 anchor_categories:
   branded_terms:
