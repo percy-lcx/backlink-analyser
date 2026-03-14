@@ -377,19 +377,29 @@ function Dashboard() {
   };
 
   // Click a link gap row in Compare → drilldown into that profile's links filtered by domain
-  const handleGapRowClick = (profileLabel: string, referringDomain: string) => {
+  const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
     handleTabClick("links");
     setSelected(profileLabel);
     setDomainInput(referringDomain);
     setDomainFilter(referringDomain);
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setExactMatch(true);
+    }
   };
 
   // Click a DR distribution bar in Compare → drilldown into links with DR range
-  const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number) => {
+  const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => {
     handleTabClick("links");
     setSelected(profileLabel);
     setDrMin(String(drMin));
     setDrMax(String(drMax));
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setExactMatch(true);
+    }
   };
 
   // Clicking the Links tab directly clears any drilldown filter
