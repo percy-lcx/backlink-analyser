@@ -104,10 +104,10 @@ impl AhrefsColumns {
             referring_url: find("Referring page URL").or_else(|| find("Referring page url")),
             language: find("Language"),
             platform: find("Platform"),
-            http_code: find("HTTP code")
+            http_code: find("Referring page HTTP code")
+                .or_else(|| find("HTTP code"))
                 .or_else(|| find("Status code"))
-                .or_else(|| find("HTTP Status"))
-                .or_else(|| find("Status")),
+                .or_else(|| find("HTTP Status")),
             domain_rating: find("Domain rating").or_else(|| find("Domain Rating")),
             url_rating: find("URL rating").or_else(|| find("URL Rating").or_else(|| find("UR"))),
             domain_traffic: find("Domain traffic").or_else(|| find("Domain organic traffic")),
