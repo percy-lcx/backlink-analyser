@@ -4,9 +4,10 @@ import type { DrBucket } from "../../lib/api";
 interface Props {
   data: DrBucket[];
   maxCount?: number;
+  onBarClick?: (bucket: string) => void;
 }
 
-export default function DrDistribution({ data, maxCount }: Props) {
+export default function DrDistribution({ data, maxCount, onBarClick }: Props) {
   return (
     <div className="bg-white rounded-lg shadow p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-4">DR Distribution</h3>
@@ -18,7 +19,13 @@ export default function DrDistribution({ data, maxCount }: Props) {
           <Tooltip
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
           />
-          <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="count"
+            fill="#6366f1"
+            radius={[4, 4, 0, 0]}
+            cursor={onBarClick ? "pointer" : undefined}
+            onClick={onBarClick ? (entry: { bucket: string }) => onBarClick(entry.bucket) : undefined}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

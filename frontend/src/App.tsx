@@ -361,6 +361,14 @@ function Dashboard() {
     setTab("links");
   };
 
+  // Click a DR distribution bar in Compare → drilldown into links with DR range
+  const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDrMin(String(drMin));
+    setDrMax(String(drMax));
+  };
+
   // Clicking the Links tab directly clears any drilldown filter
   const handleTabClick = (t: Tab) => {
     if (t === "links") {
@@ -832,7 +840,7 @@ function Dashboard() {
           </div>
         )}
 
-        {tab === "compare" && <CompareTab />}
+        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} />}
       </main>
     </div>
   );
