@@ -87,6 +87,7 @@ export interface AnchorRecord {
 
 export interface AnchorParams {
   anchor_search?: string;
+  anchor_mode?: string;
   category?: string;
   count_min?: number;
   count_max?: number;
@@ -110,6 +111,7 @@ export interface ReferringDomain {
 export interface ReferringDomainParams {
   sort?: string;
   domain_search?: string;
+  domain_mode?: string;
   dr_min?: number;
   dr_max?: number;
   traffic_min?: number;
@@ -228,17 +230,21 @@ export interface LinkParams {
   dr_max?: number;
   anchor_search?: string;
   anchor_exclude?: boolean;
+  anchor_mode?: string;
   traffic_min?: number;
   traffic_max?: number;
   first_seen_from?: string;
   first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
+  domain_mode?: string;
   url_search?: string;
   url_exclude?: boolean;
+  url_mode?: string;
   target_path_search?: string;
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
+  target_path_mode?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
