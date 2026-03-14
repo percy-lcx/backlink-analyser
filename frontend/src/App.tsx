@@ -932,6 +932,7 @@ function Dashboard() {
                 <option value="homepage">Homepage</option>
                 <option value="content">Content</option>
                 <option value="money_pages">Money Pages</option>
+                <option value="branding">Branding</option>
                 <option value="other">Other</option>
               </select>
             </div>
