@@ -18,7 +18,7 @@ interface Props {
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
 
-const METRICS: { key: keyof CompareProfile; label: string }[] = [
+const RADAR_METRICS: { key: keyof CompareProfile; label: string }[] = [
   { key: "total_links", label: "Backlinks" },
   { key: "referring_domains", label: "Domains" },
   { key: "dofollow_ratio", label: "Dofollow %" },
@@ -35,7 +35,7 @@ export default function RadarCompare({ data }: Props) {
   if (data.length === 0) return null;
 
   // Build radar data: one entry per metric, each profile as a value
-  const radarData = METRICS.map((m) => {
+  const radarData = RADAR_METRICS.map((m) => {
     const raw = data.map((d) => Number(d[m.key]) || 0);
     const norm = normalize(raw);
     const entry: Record<string, string | number> = { metric: m.label };
