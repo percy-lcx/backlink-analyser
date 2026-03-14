@@ -16,7 +16,7 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 
 const gapColumns: ColumnDef<LinkGapDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain" },
+  { accessorKey: "referring_domain", header: "Referring Domain", size: 400 },
   { accessorKey: "max_dr", header: "DR" },
   { accessorKey: "total_links", header: "Links" },
 ];
