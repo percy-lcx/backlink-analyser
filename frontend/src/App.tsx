@@ -53,6 +53,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "anchor", header: "Anchor", size: 400 },
   { accessorKey: "target_path", header: "Target", size: 400 },
   { accessorKey: "domain_rating", header: "DR" },
+  { accessorKey: "url_rating", header: "UR" },
   { accessorKey: "page_traffic", header: "Page Traffic" },
   { accessorKey: "domain_traffic", header: "Domain Traffic" },
   { accessorKey: "link_type", header: "Type" },
