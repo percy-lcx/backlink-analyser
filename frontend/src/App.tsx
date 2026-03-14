@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfile } from "./components/ProfileContext";
 import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
@@ -10,6 +10,7 @@ import CompareTab from "./components/CompareTab";
 import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
+import FilterInput from "./components/FilterInput";
 import {
   fetchOverview,
   fetchDrDistribution,
@@ -30,6 +31,7 @@ import {
   type LinksResponse,
   type PageRow,
   type PageBreakdownResponse,
+  type MatchMode,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { METRICS } from "./lib/metrics";
@@ -59,16 +61,10 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "anchor", header: "Anchor", size: 400, meta: { tooltip: METRICS.anchor.short } },
   { accessorKey: "target_path", header: "Target", size: 400, meta: { tooltip: METRICS.target.short } },
   { accessorKey: "domain_rating", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "url_rating", header: "UR" },
   { accessorKey: "page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
   { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
   { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
-  { accessorKey: "anchor", header: "Anchor", size: 400 },
-  { accessorKey: "target_path", header: "Target", size: 400 },
-  { accessorKey: "domain_rating", header: "DR" },
-  { accessorKey: "url_rating", header: "UR" },
-  { accessorKey: "page_traffic", header: "Page Traffic" },
-  { accessorKey: "domain_traffic", header: "Domain Traffic" },
-  { accessorKey: "link_type", header: "Type" },
   {
     accessorKey: "is_nofollow",
     header: "NF",
@@ -129,38 +125,6 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
 ];
 
 type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "terminology";
-type MatchMode = "exact" | "contains" | "regex";
-
-const MODES: { value: MatchMode; label: string }[] = [
-  { value: "exact", label: "Exact" },
-  { value: "contains", label: "Contains" },
-  { value: "regex", label: "Regex" },
-];
-
-function MatchModeToggle({ value, onChange }: { value: MatchMode; onChange: (m: MatchMode) => void }) {
-  return (
-    <div className="inline-flex rounded-md shadow-sm">
-      {MODES.map((m, i) => (
-        <button
-          key={m.value}
-          type="button"
-          className={`px-2 py-2 text-xs font-medium border transition-colors ${
-            i === 0 ? "rounded-l-md" : ""
-          }${i === MODES.length - 1 ? " rounded-r-md" : ""
-          }${i > 0 ? " border-l-0" : ""} ${
-            value === m.value
-              ? "bg-indigo-600 text-white border-indigo-600"
-              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-          }`}
-          onClick={() => onChange(m.value)}
-          title={`${m.label} match`}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -183,20 +147,20 @@ function Dashboard() {
   // Link filter state
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
-  const [targetPathMode, setTargetPathMode] = useState<"exact" | "contains" | "regex">("contains");
   const [targetPathExclude, setTargetPathExclude] = useState(false);
+  const [targetPathMode, setTargetPathMode] = useState<MatchMode>("contains");
   const [domainInput, setDomainInput] = useState("");
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
   const [domainExclude, setDomainExclude] = useState(false);
-  const [domainMode, setDomainMode] = useState<"exact" | "contains" | "regex">("contains");
+  const [domainMode, setDomainMode] = useState<MatchMode>("contains");
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const [urlExclude, setUrlExclude] = useState(false);
-  const [urlMode, setUrlMode] = useState<"exact" | "contains" | "regex">("contains");
+  const [urlMode, setUrlMode] = useState<MatchMode>("contains");
   const [anchorInput, setAnchorInput] = useState("");
   const [anchorFilter, setAnchorFilter] = useState<string | null>(null);
   const [anchorExclude, setAnchorExclude] = useState(false);
-  const [anchorLinkMode, setAnchorLinkMode] = useState<"exact" | "contains" | "regex">("contains");
+  const [anchorMode, setAnchorMode] = useState<MatchMode>("contains");
   const [linkTypeFilter, setLinkTypeFilter] = useState<string>("");
   const [nofollowFilter, setNofollowFilter] = useState<string>("");
   const [spamFilter, setSpamFilter] = useState<string>("");
@@ -207,10 +171,6 @@ function Dashboard() {
   const [firstSeenFrom, setFirstSeenFrom] = useState("");
   const [firstSeenTo, setFirstSeenTo] = useState("");
   const [sortParam, setSortParam] = useState("domain_rating:desc");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const domainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const urlDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const anchorDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Domains state
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
@@ -223,8 +183,7 @@ function Dashboard() {
   const [domLinksMin, setDomLinksMin] = useState("");
   const [domLinksMax, setDomLinksMax] = useState("");
   const [domSitewideFilter, setDomSitewideFilter] = useState<string>("");
-  const [domDomainMode, setDomDomainMode] = useState<"exact" | "contains" | "regex">("contains");
-  const domDomainDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [domDomainMode, setDomDomainMode] = useState<MatchMode>("contains");
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
@@ -233,8 +192,7 @@ function Dashboard() {
   const [anchorCategoryFilter, setAnchorCategoryFilter] = useState("");
   const [anchorCountMin, setAnchorCountMin] = useState("");
   const [anchorCountMax, setAnchorCountMax] = useState("");
-  const [anchorTabMode, setAnchorTabMode] = useState<"exact" | "contains" | "regex">("contains");
-  const anchorTabDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [anchorTabMode, setAnchorTabMode] = useState<MatchMode>("contains");
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
@@ -251,7 +209,6 @@ function Dashboard() {
   const [pageDrMax, setPageDrMax] = useState("");
   const [pageDofollowMin, setPageDofollowMin] = useState("");
   const [pageDofollowMax, setPageDofollowMax] = useState("");
-  const pagePathDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
@@ -281,7 +238,7 @@ function Dashboard() {
       }
       if (anchorFilter) {
         params.anchor_search = anchorFilter;
-        if (anchorLinkMode !== "contains") params.anchor_mode = anchorLinkMode;
+        if (anchorMode !== "contains") params.anchor_mode = anchorMode;
         if (anchorExclude) params.anchor_exclude = true;
       }
       if (linkTypeFilter) params.link_type = linkTypeFilter;
@@ -347,75 +304,21 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainExclude, domainMode, urlFilter, urlExclude, urlMode, anchorFilter, anchorExclude, anchorLinkMode, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
   }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
 
-  // Debounce: input → drilldownPath
-  useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDrilldownPath(targetPathInput || null);
-    }, 300);
-    return () => clearTimeout(debounceRef.current);
-  }, [targetPathInput]);
-
-  // Debounce: domainInput → domainFilter
-  useEffect(() => {
-    clearTimeout(domainDebounceRef.current);
-    domainDebounceRef.current = setTimeout(() => {
-      setDomainFilter(domainInput || null);
-    }, 300);
-    return () => clearTimeout(domainDebounceRef.current);
-  }, [domainInput]);
-
-  // Debounce: urlInput → urlFilter
-  useEffect(() => {
-    clearTimeout(urlDebounceRef.current);
-    urlDebounceRef.current = setTimeout(() => {
-      setUrlFilter(urlInput || null);
-    }, 300);
-    return () => clearTimeout(urlDebounceRef.current);
-  }, [urlInput]);
-
-  // Debounce: anchorInput → anchorFilter
-  useEffect(() => {
-    clearTimeout(anchorDebounceRef.current);
-    anchorDebounceRef.current = setTimeout(() => {
-      setAnchorFilter(anchorInput || null);
-    }, 300);
-    return () => clearTimeout(anchorDebounceRef.current);
-  }, [anchorInput]);
-
-  // Debounce: domDomainInput → domDomainSearch
-  useEffect(() => {
-    clearTimeout(domDomainDebounceRef.current);
-    domDomainDebounceRef.current = setTimeout(() => {
-      setDomDomainSearch(domDomainInput || null);
-    }, 300);
-    return () => clearTimeout(domDomainDebounceRef.current);
-  }, [domDomainInput]);
-
-  // Debounce: anchorTabSearch → anchorTabSearchFilter
-  useEffect(() => {
-    clearTimeout(anchorTabDebounceRef.current);
-    anchorTabDebounceRef.current = setTimeout(() => {
-      setAnchorTabSearchFilter(anchorTabSearch || null);
-    }, 300);
-    return () => clearTimeout(anchorTabDebounceRef.current);
-  }, [anchorTabSearch]);
-
-  // Debounce: pagePathInput → pagePathFilter
-  useEffect(() => {
-    clearTimeout(pagePathDebounceRef.current);
-    pagePathDebounceRef.current = setTimeout(() => {
-      setPagePathFilter(pagePathInput || null);
-    }, 300);
-    return () => clearTimeout(pagePathDebounceRef.current);
-  }, [pagePathInput]);
+  // Stable callbacks for FilterInput debounce handlers
+  const setDrilldownPathCb = useCallback((v: string | null) => setDrilldownPath(v), []);
+  const setDomainFilterCb = useCallback((v: string | null) => setDomainFilter(v), []);
+  const setUrlFilterCb = useCallback((v: string | null) => setUrlFilter(v), []);
+  const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
+  const setDomDomainSearchCb = useCallback((v: string | null) => setDomDomainSearch(v), []);
+  const setAnchorTabSearchFilterCb = useCallback((v: string | null) => setAnchorTabSearchFilter(v), []);
+  const setPagePathFilterCb = useCallback((v: string | null) => setPagePathFilter(v), []);
 
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
@@ -626,122 +529,50 @@ function Dashboard() {
           <div>
             {/* Link filters */}
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={domainMode} onChange={setDomainMode} />
-                <button
-                  onClick={() => setDomainExclude((v) => !v)}
-                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
-                    domainExclude
-                      ? "bg-red-600 text-white border-red-600"
-                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  title={domainExclude ? "Excluding — click to include" : "Including — click to exclude"}
-                >{domainExclude ? "\u2212" : "+"}</button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder={domainExclude ? "Exclude referring domain..." : "Filter by referring domain..."}
-                    value={domainInput}
-                    onChange={(e) => setDomainInput(e.target.value)}
-                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      domainExclude ? "border-red-300" : "border-gray-300"
-                    }`}
-                  />
-                  {domainInput && (
-                    <button
-                      onClick={() => { setDomainInput(""); setDomainFilter(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={urlMode} onChange={setUrlMode} />
-                <button
-                  onClick={() => setUrlExclude((v) => !v)}
-                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
-                    urlExclude
-                      ? "bg-red-600 text-white border-red-600"
-                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  title={urlExclude ? "Excluding — click to include" : "Including — click to exclude"}
-                >{urlExclude ? "\u2212" : "+"}</button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder={urlExclude ? "Exclude referring URL..." : "Filter by referring URL..."}
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      urlExclude ? "border-red-300" : "border-gray-300"
-                    }`}
-                  />
-                  {urlInput && (
-                    <button
-                      onClick={() => { setUrlInput(""); setUrlFilter(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={targetPathMode} onChange={setTargetPathMode} />
-                <button
-                  onClick={() => setTargetPathExclude((v) => !v)}
-                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
-                    targetPathExclude
-                      ? "bg-red-600 text-white border-red-600"
-                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  title={targetPathExclude ? "Excluding — click to include" : "Including — click to exclude"}
-                >{targetPathExclude ? "\u2212" : "+"}</button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder={targetPathExclude ? "Exclude target URL..." : "Filter by target URL..."}
-                    value={targetPathInput}
-                    onChange={(e) => setTargetPathInput(e.target.value)}
-                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      targetPathExclude ? "border-red-300" : "border-gray-300"
-                    }`}
-                  />
-                  {targetPathInput && (
-                    <button
-                      onClick={() => { setTargetPathInput(""); setDrilldownPath(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={anchorLinkMode} onChange={setAnchorLinkMode} />
-                <button
-                  onClick={() => setAnchorExclude((v) => !v)}
-                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
-                    anchorExclude
-                      ? "bg-red-600 text-white border-red-600"
-                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  title={anchorExclude ? "Excluding — click to include" : "Including — click to exclude"}
-                >{anchorExclude ? "\u2212" : "+"}</button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder={anchorExclude ? "Exclude anchor..." : "Filter by anchor..."}
-                    value={anchorInput}
-                    onChange={(e) => setAnchorInput(e.target.value)}
-                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      anchorExclude ? "border-red-300" : "border-gray-300"
-                    }`}
-                  />
-                  {anchorInput && (
-                    <button
-                      onClick={() => { setAnchorInput(""); setAnchorFilter(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
+              <FilterInput
+                value={domainInput}
+                onChange={setDomainInput}
+                placeholder="Filter by domain..."
+                excludePlaceholder="Exclude domain..."
+                exclude={domainExclude}
+                onExcludeChange={setDomainExclude}
+                matchMode={domainMode}
+                onMatchModeChange={setDomainMode}
+                onDebouncedChange={setDomainFilterCb}
+              />
+              <FilterInput
+                value={urlInput}
+                onChange={setUrlInput}
+                placeholder="Filter by URL..."
+                excludePlaceholder="Exclude URL..."
+                exclude={urlExclude}
+                onExcludeChange={setUrlExclude}
+                matchMode={urlMode}
+                onMatchModeChange={setUrlMode}
+                onDebouncedChange={setUrlFilterCb}
+              />
+              <FilterInput
+                value={targetPathInput}
+                onChange={setTargetPathInput}
+                placeholder="Filter by target..."
+                excludePlaceholder="Exclude target..."
+                exclude={targetPathExclude}
+                onExcludeChange={setTargetPathExclude}
+                matchMode={targetPathMode}
+                onMatchModeChange={setTargetPathMode}
+                onDebouncedChange={setDrilldownPathCb}
+              />
+              <FilterInput
+                value={anchorInput}
+                onChange={setAnchorInput}
+                placeholder="Filter by anchor..."
+                excludePlaceholder="Exclude anchor..."
+                exclude={anchorExclude}
+                onExcludeChange={setAnchorExclude}
+                matchMode={anchorMode}
+                onMatchModeChange={setAnchorMode}
+                onDebouncedChange={setAnchorFilterCb}
+              />
               {linksData && (
                 <span className="text-sm text-gray-400">
                   {linksData.total.toLocaleString()} backlinks
@@ -822,24 +653,14 @@ function Dashboard() {
         {tab === "domains" && (
           <div>
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={domDomainMode} onChange={setDomDomainMode} />
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Filter by domain..."
-                    value={domDomainInput}
-                    onChange={(e) => setDomDomainInput(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {domDomainInput && (
-                    <button
-                      onClick={() => { setDomDomainInput(""); setDomDomainSearch(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
+              <FilterInput
+                value={domDomainInput}
+                onChange={setDomDomainInput}
+                placeholder="Filter by domain..."
+                matchMode={domDomainMode}
+                onMatchModeChange={setDomDomainMode}
+                onDebouncedChange={setDomDomainSearchCb}
+              />
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500">DR</span>
                 <input type="number" placeholder="Min" value={domDrMin} onChange={(e) => setDomDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -884,24 +705,14 @@ function Dashboard() {
         {tab === "anchors" && (
           <div>
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 min-w-[180px] max-w-sm flex-1">
-                <MatchModeToggle value={anchorTabMode} onChange={setAnchorTabMode} />
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Filter by anchor text..."
-                    value={anchorTabSearch}
-                    onChange={(e) => setAnchorTabSearch(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {anchorTabSearch && (
-                    <button
-                      onClick={() => { setAnchorTabSearch(""); setAnchorTabSearchFilter(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
+              <FilterInput
+                value={anchorTabSearch}
+                onChange={setAnchorTabSearch}
+                placeholder="Filter by anchor text..."
+                matchMode={anchorTabMode}
+                onMatchModeChange={setAnchorTabMode}
+                onDebouncedChange={setAnchorTabSearchFilterCb}
+              />
               <select
                 value={anchorCategoryFilter}
                 onChange={(e) => setAnchorCategoryFilter(e.target.value)}
@@ -939,34 +750,15 @@ function Dashboard() {
         {tab === "pages" && (
           <div>
             <div className="mb-4 flex items-center gap-3 flex-wrap">
-              <div className="flex min-w-[180px] max-w-xs flex-1">
-                <button
-                  onClick={() => setPagePathExclude((v) => !v)}
-                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
-                    pagePathExclude
-                      ? "bg-red-600 text-white border-red-600"
-                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  title={pagePathExclude ? "Excluding — click to include" : "Including — click to exclude"}
-                >{pagePathExclude ? "\u2212" : "+"}</button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder={pagePathExclude ? "Exclude target URL..." : "Filter by target URL..."}
-                    value={pagePathInput}
-                    onChange={(e) => setPagePathInput(e.target.value)}
-                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      pagePathExclude ? "border-red-300" : "border-gray-300"
-                    }`}
-                  />
-                  {pagePathInput && (
-                    <button
-                      onClick={() => { setPagePathInput(""); setPagePathFilter(null); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                    >&#x2715;</button>
-                  )}
-                </div>
-              </div>
+              <FilterInput
+                value={pagePathInput}
+                onChange={setPagePathInput}
+                placeholder="Filter by target URL..."
+                excludePlaceholder="Exclude target URL..."
+                exclude={pagePathExclude}
+                onExcludeChange={setPagePathExclude}
+                onDebouncedChange={setPagePathFilterCb}
+              />
               <select
                 value={pageCategoryFilter}
                 onChange={(e) => setPageCategoryFilter(e.target.value)}

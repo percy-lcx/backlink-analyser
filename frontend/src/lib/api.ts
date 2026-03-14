@@ -24,6 +24,8 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---- Types ---- */
 
+export type MatchMode = "contains" | "exact" | "regex";
+
 export interface Profile {
   profile_label: string;
   total_links: number;
