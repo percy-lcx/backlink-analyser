@@ -72,7 +72,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
     meta: { tooltip: "HTTP status code of the referring page." },
     cell: ({ getValue }) => {
       const code = getValue() as number;
-      if (!code) return "";
+      if (code == null || code === 0) return <span className="text-gray-400">—</span>;
       const color = code >= 200 && code < 300 ? "text-green-600" : code >= 300 && code < 400 ? "text-yellow-600" : "text-red-600";
       return <span className={color}>{code}</span>;
     },
