@@ -89,74 +89,71 @@ def velocity(
 
     conn = get_conn()
 
-    new_rows = conn.execute(
+    # Single CTE query combining new, new-by-status, and lost — 1 scan instead of 3
+    rows = conn.execute(
         f"""
+        WITH new AS (
+            SELECT
+                DATE_TRUNC('{interval}', first_seen) AS period,
+                COUNT(*) AS new_count
+            FROM backlinks
+            WHERE profile_label = $1 AND first_seen IS NOT NULL
+            GROUP BY period
+        ),
+        new_by_status AS (
+            SELECT
+                DATE_TRUNC('{interval}', first_seen) AS period,
+                discovered_status,
+                COUNT(*) AS count
+            FROM backlinks
+            WHERE profile_label = $1 AND first_seen IS NOT NULL
+            GROUP BY period, discovered_status
+        ),
+        lost AS (
+            SELECT
+                DATE_TRUNC('{interval}', lost_date) AS period,
+                COUNT(*) AS lost_count
+            FROM backlinks
+            WHERE profile_label = $1 AND lost_date IS NOT NULL
+            GROUP BY period
+        ),
+        periods AS (
+            SELECT period FROM new
+            UNION
+            SELECT period FROM lost
+        )
         SELECT
-            DATE_TRUNC('{interval}', first_seen) AS period,
-            COUNT(*) AS new_count
-        FROM backlinks
-        WHERE profile_label = $1
-          AND first_seen IS NOT NULL
-        GROUP BY period
-        ORDER BY period
+            p.period,
+            COALESCE(n.new_count, 0) AS new_count,
+            COALESCE(l.lost_count, 0) AS lost_count,
+            ns.discovered_status,
+            COALESCE(ns.count, 0) AS status_count
+        FROM periods p
+        LEFT JOIN new n ON p.period = n.period
+        LEFT JOIN lost l ON p.period = l.period
+        LEFT JOIN new_by_status ns ON p.period = ns.period
+        ORDER BY p.period, ns.discovered_status
         """,
         [profile],
     ).fetchall()
 
-    new_by_status_rows = conn.execute(
-        f"""
-        SELECT
-            DATE_TRUNC('{interval}', first_seen) AS period,
-            discovered_status,
-            COUNT(*) AS count
-        FROM backlinks
-        WHERE profile_label = $1
-          AND first_seen IS NOT NULL
-        GROUP BY period, discovered_status
-        ORDER BY period
-        """,
-        [profile],
-    ).fetchall()
-
-    lost_rows = conn.execute(
-        f"""
-        SELECT
-            DATE_TRUNC('{interval}', lost_date) AS period,
-            COUNT(*) AS lost_count
-        FROM backlinks
-        WHERE profile_label = $1
-          AND lost_date IS NOT NULL
-        GROUP BY period
-        ORDER BY period
-        """,
-        [profile],
-    ).fetchall()
-
-    # Merge new and lost into a single timeline
-    new_map = {str(r[0]): r[1] for r in new_rows}
-    lost_map = {str(r[0]): r[1] for r in lost_rows}
-
-    # Build breakdown by discovered_status per period
-    status_breakdown: dict[str, dict[str, int]] = {}
-    for r in new_by_status_rows:
+    # Merge rows into timeline (multiple rows per period when statuses exist)
+    timeline: dict[str, dict] = {}
+    for r in rows:
         period_key = str(r[0])
-        status = r[1] or "unknown"
-        if period_key not in status_breakdown:
-            status_breakdown[period_key] = {}
-        status_breakdown[period_key][status] = r[2]
+        if period_key not in timeline:
+            new_count = r[1]
+            lost_count = r[2]
+            timeline[period_key] = {
+                "period": period_key,
+                "new_count": new_count,
+                "lost_count": lost_count,
+                "net": new_count - lost_count,
+                "new_by_status": {},
+            }
+        status = r[3]
+        status_count = r[4]
+        if status is not None and status_count:
+            timeline[period_key]["new_by_status"][status or "unknown"] = status_count
 
-    all_periods = sorted(set(list(new_map.keys()) + list(lost_map.keys())))
-
-    result = []
-    for p in all_periods:
-        new_count = new_map.get(p, 0)
-        lost_count = lost_map.get(p, 0)
-        result.append({
-            "period": p,
-            "new_count": new_count,
-            "lost_count": lost_count,
-            "net": new_count - lost_count,
-            "new_by_status": status_breakdown.get(p, {}),
-        })
-
-    return result
+    return list(timeline.values())

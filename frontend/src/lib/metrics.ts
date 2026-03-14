@@ -223,6 +223,36 @@ export const METRICS: Record<string, MetricDef> = {
     category: "Pages",
   },
 
+  total_pages: {
+    label: "Total Pages",
+    short: "Number of distinct target pages receiving backlinks.",
+    full: "The total number of unique target pages that have at least one backlink pointing to them. A higher number indicates a more distributed link profile across the site.",
+    category: "Pages",
+  },
+  total_page_backlinks: {
+    label: "Total Backlinks",
+    short: "Sum of all backlinks across all target pages.",
+    full: "The aggregate count of backlinks across all target pages currently shown. When filters are active, this reflects only the filtered subset.",
+    category: "Pages",
+  },
+  avg_backlinks_per_page: {
+    label: "Avg Backlinks/Page",
+    short: "Average number of backlinks per target page.",
+    full: "The mean number of backlinks per target page. A high average with few pages suggests link concentration; a low average with many pages suggests broad but shallow link distribution.",
+    category: "Pages",
+  },
+  page_category_chart: {
+    label: "Category Breakdown",
+    short: "Distribution of backlinks across page categories.",
+    full: "Bar chart showing how backlinks are distributed across page categories (homepage, content, money pages, other). Click a bar to filter the table to that category. A healthy profile typically has links spread across multiple categories.",
+    category: "Pages",
+  },
+  top_pages_chart: {
+    label: "Top Pages",
+    short: "Pages with the most backlinks.",
+    full: "Horizontal bar chart showing the top 15 pages ranked by backlink count. Click a bar to drill down into the Links tab for that specific page. Helps identify content assets that attract the most links.",
+    category: "Pages",
+  },
   // ── Quality ───────────────────────────────────────────────
   quality_matrix: {
     label: "Quality Matrix",

@@ -145,7 +145,12 @@ function PathCombobox({
 
 /* ---- Main component ---- */
 
-export default function CompareTab() {
+interface CompareTabProps {
+  onDrBarClick?: (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => void;
+  onGapRowClick?: (profileLabel: string, referringDomain: string, targetPath?: string) => void;
+}
+
+export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabProps) {
   const { profiles } = useProfile();
   const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
@@ -378,7 +383,7 @@ export default function CompareTab() {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelB} but not {labelA}
               </p>
-              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-1">
@@ -387,7 +392,7 @@ export default function CompareTab() {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelA} but not {labelB}
               </p>
-              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} />
             </div>
           </div>
 
@@ -395,11 +400,17 @@ export default function CompareTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA} — DR Distribution</h3>
-              <DrDistribution data={drDistA} maxCount={drMaxCount} />
+              <DrDistribution data={drDistA} maxCount={drMaxCount} onBarClick={onDrBarClick ? (bucket) => {
+                const [min, max] = bucket.split("-").map(Number);
+                onDrBarClick(profileA, min, max, mode === "url" ? pathA : undefined);
+              } : undefined} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB} — DR Distribution</h3>
-              <DrDistribution data={drDistB} maxCount={drMaxCount} />
+              <DrDistribution data={drDistB} maxCount={drMaxCount} onBarClick={onDrBarClick ? (bucket) => {
+                const [min, max] = bucket.split("-").map(Number);
+                onDrBarClick(profileB, min, max, mode === "url" ? pathB : undefined);
+              } : undefined} />
             </div>
           </div>
         </>

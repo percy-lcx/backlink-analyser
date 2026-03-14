@@ -1,35 +1,9 @@
 from fastapi import APIRouter, Query
-from typing import Literal, Optional
+from typing import Optional
 from db import get_conn
+from routes._filters import apply_text_filter
 
 router = APIRouter()
-
-
-def _add_text_filter(
-    conditions: list,
-    params: list,
-    idx: int,
-    column: str,
-    value: str,
-    exclude: bool | None,
-    mode: str | None,
-) -> int:
-    """Append a text-search condition and return the next param index."""
-    mode = mode or "contain"
-    if mode == "exact":
-        op = "!=" if exclude else "="
-        conditions.append(f"{column} {op} ${idx}")
-        params.append(value)
-    elif mode == "regex":
-        op = "!~*" if exclude else "~*"
-        conditions.append(f"{column} {op} ${idx}")
-        params.append(value)
-    else:  # contain
-        op = "NOT ILIKE" if exclude else "ILIKE"
-        conditions.append(f"{column} {op} ${idx}")
-        params.append(f"%{value}%")
-    return idx + 1
-
 
 SORTABLE_COLUMNS = {
     "domain_rating",
@@ -60,21 +34,21 @@ def list_links(
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
     anchor_exclude: Optional[bool] = Query(None),
-    anchor_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
+    anchor_mode: Optional[str] = Query(None),
     traffic_min: Optional[float] = Query(None),
     traffic_max: Optional[float] = Query(None),
     first_seen_from: Optional[str] = Query(None),
     first_seen_to: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
     domain_exclude: Optional[bool] = Query(None),
-    domain_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
+    domain_mode: Optional[str] = Query(None),
     url_search: Optional[str] = Query(None),
     url_exclude: Optional[bool] = Query(None),
-    url_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
+    url_mode: Optional[str] = Query(None),
     target_path_search: Optional[str] = Query(None),
     target_path_exact: Optional[bool] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
-    target_path_match_mode: Optional[Literal["contain", "exact", "regex"]] = Query("contain"),
+    target_path_mode: Optional[str] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -109,8 +83,11 @@ def list_links(
         idx += 1
 
     if anchor_search is not None:
-        idx = _add_text_filter(conditions, params, idx, "anchor", anchor_search, anchor_exclude, anchor_match_mode)
-
+        idx = apply_text_filter(
+            conditions, params, idx, "anchor", anchor_search,
+            mode=anchor_mode or "contains",
+            exclude=bool(anchor_exclude),
+        )
 
     if traffic_min is not None:
         conditions.append(f"page_traffic >= ${idx}")
@@ -133,14 +110,27 @@ def list_links(
         idx += 1
 
     if domain_search is not None:
-        idx = _add_text_filter(conditions, params, idx, "referring_domain", domain_search, domain_exclude, domain_match_mode)
+        idx = apply_text_filter(
+            conditions, params, idx, "referring_domain", domain_search,
+            mode=domain_mode or "contains",
+            exclude=bool(domain_exclude),
+        )
 
     if url_search is not None:
-        idx = _add_text_filter(conditions, params, idx, "referring_url", url_search, url_exclude, url_match_mode)
+        idx = apply_text_filter(
+            conditions, params, idx, "referring_url", url_search,
+            mode=url_mode or "contains",
+            exclude=bool(url_exclude),
+        )
 
     if target_path_search is not None:
-        mode = target_path_match_mode or ("exact" if target_path_exact else "contain")
-        idx = _add_text_filter(conditions, params, idx, "target_path", target_path_search, target_path_exclude, mode)
+        # Backward compat: target_path_exact=true → mode="exact"
+        tp_mode = target_path_mode or ("exact" if target_path_exact else "contains")
+        idx = apply_text_filter(
+            conditions, params, idx, "target_path", target_path_search,
+            mode=tp_mode,
+            exclude=bool(target_path_exclude),
+        )
 
     where = " AND ".join(conditions)
 

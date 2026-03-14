@@ -4,6 +4,8 @@ import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
+import PageCategoryChart from "./components/charts/PageCategoryChart";
+import TopPagesChart from "./components/charts/TopPagesChart";
 import CompareTab from "./components/CompareTab";
 import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
@@ -28,6 +30,7 @@ import {
   type QualityPoint,
   type LinksResponse,
   type PageRow,
+  type PageBreakdownResponse,
   type MatchMode,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -58,16 +61,10 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "anchor", header: "Anchor", size: 400, meta: { tooltip: METRICS.anchor.short } },
   { accessorKey: "target_path", header: "Target", size: 400, meta: { tooltip: METRICS.target.short } },
   { accessorKey: "domain_rating", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "url_rating", header: "UR" },
   { accessorKey: "page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
   { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
   { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
-  { accessorKey: "anchor", header: "Anchor", size: 400 },
-  { accessorKey: "target_path", header: "Target", size: 400 },
-  { accessorKey: "domain_rating", header: "DR" },
-  { accessorKey: "url_rating", header: "UR" },
-  { accessorKey: "page_traffic", header: "Page Traffic" },
-  { accessorKey: "domain_traffic", header: "Domain Traffic" },
-  { accessorKey: "link_type", header: "Type" },
   {
     accessorKey: "is_nofollow",
     header: "NF",
@@ -88,7 +85,6 @@ const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
   { accessorKey: "link_count", header: "Links", meta: { tooltip: METRICS.links.short } },
   { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
   { accessorKey: "total_traffic", header: "Traffic", meta: { tooltip: METRICS.traffic.short } },
-  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400, meta: { tooltip: METRICS.top_anchor.short } },
   {
     accessorKey: "is_sitewide",
     header: "Sitewide",
@@ -152,19 +148,19 @@ function Dashboard() {
   const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
   const [targetPathInput, setTargetPathInput] = useState("");
   const [targetPathExclude, setTargetPathExclude] = useState(false);
-  const [targetPathMode, setTargetPathMode] = useState<MatchMode>("contain");
+  const [targetPathMode, setTargetPathMode] = useState<MatchMode>("contains");
   const [domainInput, setDomainInput] = useState("");
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
   const [domainExclude, setDomainExclude] = useState(false);
-  const [domainMode, setDomainMode] = useState<MatchMode>("contain");
+  const [domainMode, setDomainMode] = useState<MatchMode>("contains");
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const [urlExclude, setUrlExclude] = useState(false);
-  const [urlMode, setUrlMode] = useState<MatchMode>("contain");
+  const [urlMode, setUrlMode] = useState<MatchMode>("contains");
   const [anchorInput, setAnchorInput] = useState("");
   const [anchorFilter, setAnchorFilter] = useState<string | null>(null);
   const [anchorExclude, setAnchorExclude] = useState(false);
-  const [anchorMode, setAnchorMode] = useState<MatchMode>("contain");
+  const [anchorMode, setAnchorMode] = useState<MatchMode>("contains");
   const [linkTypeFilter, setLinkTypeFilter] = useState<string>("");
   const [nofollowFilter, setNofollowFilter] = useState<string>("");
   const [spamFilter, setSpamFilter] = useState<string>("");
@@ -187,6 +183,7 @@ function Dashboard() {
   const [domLinksMin, setDomLinksMin] = useState("");
   const [domLinksMax, setDomLinksMax] = useState("");
   const [domSitewideFilter, setDomSitewideFilter] = useState<string>("");
+  const [domDomainMode, setDomDomainMode] = useState<MatchMode>("contains");
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
@@ -195,9 +192,23 @@ function Dashboard() {
   const [anchorCategoryFilter, setAnchorCategoryFilter] = useState("");
   const [anchorCountMin, setAnchorCountMin] = useState("");
   const [anchorCountMax, setAnchorCountMax] = useState("");
+  const [anchorTabMode, setAnchorTabMode] = useState<MatchMode>("contains");
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [pageCategories, setPageCategories] = useState<PageBreakdownResponse["categories"]>({});
+  const [pagePathInput, setPagePathInput] = useState("");
+  const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
+  const [pagePathExclude, setPagePathExclude] = useState(false);
+  const [pageCategoryFilter, setPageCategoryFilter] = useState("");
+  const [pageLinksMin, setPageLinksMin] = useState("");
+  const [pageLinksMax, setPageLinksMax] = useState("");
+  const [pageDomainsMin, setPageDomainsMin] = useState("");
+  const [pageDomainsMax, setPageDomainsMax] = useState("");
+  const [pageDrMin, setPageDrMin] = useState("");
+  const [pageDrMax, setPageDrMax] = useState("");
+  const [pageDofollowMin, setPageDofollowMin] = useState("");
+  const [pageDofollowMax, setPageDofollowMax] = useState("");
 
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
@@ -212,22 +223,22 @@ function Dashboard() {
       const params: Record<string, unknown> = { page: linkPage + 1, per_page: linkPageSize, sort: sortParam };
       if (drilldownPath) {
         params.target_path_search = drilldownPath;
-        params.target_path_match_mode = targetPathMode;
+        if (targetPathMode !== "contains") params.target_path_mode = targetPathMode;
         if (targetPathExclude) params.target_path_exclude = true;
       }
       if (domainFilter) {
         params.domain_search = domainFilter;
-        params.domain_match_mode = domainMode;
+        if (domainMode !== "contains") params.domain_mode = domainMode;
         if (domainExclude) params.domain_exclude = true;
       }
       if (urlFilter) {
         params.url_search = urlFilter;
-        params.url_match_mode = urlMode;
+        if (urlMode !== "contains") params.url_mode = urlMode;
         if (urlExclude) params.url_exclude = true;
       }
       if (anchorFilter) {
         params.anchor_search = anchorFilter;
-        params.anchor_match_mode = anchorMode;
+        if (anchorMode !== "contains") params.anchor_mode = anchorMode;
         if (anchorExclude) params.anchor_exclude = true;
       }
       if (linkTypeFilter) params.link_type = linkTypeFilter;
@@ -244,7 +255,10 @@ function Dashboard() {
         .catch(() => setLinksData(null));
     } else if (tab === "domains") {
       const domParams: Record<string, string | number | boolean | undefined> = {};
-      if (domDomainSearch) domParams.domain_search = domDomainSearch;
+      if (domDomainSearch) {
+        domParams.domain_search = domDomainSearch;
+        if (domDomainMode !== "contains") domParams.domain_mode = domDomainMode;
+      }
       if (domDrMin) domParams.dr_min = parseFloat(domDrMin);
       if (domDrMax) domParams.dr_max = parseFloat(domDrMax);
       if (domTrafficMin) domParams.traffic_min = parseFloat(domTrafficMin);
@@ -255,7 +269,10 @@ function Dashboard() {
       fetchReferringDomains(selected, domParams).then(setDomains).catch(() => setDomains([]));
     } else if (tab === "anchors") {
       const anchorParams: Record<string, string | number | boolean | undefined> = {};
-      if (anchorTabSearchFilter) anchorParams.anchor_search = anchorTabSearchFilter;
+      if (anchorTabSearchFilter) {
+        anchorParams.anchor_search = anchorTabSearchFilter;
+        if (anchorTabMode !== "contains") anchorParams.anchor_mode = anchorTabMode;
+      }
       if (anchorCategoryFilter) anchorParams.category = anchorCategoryFilter;
       if (anchorCountMin) anchorParams.count_min = parseInt(anchorCountMin);
       if (anchorCountMax) anchorParams.count_max = parseInt(anchorCountMax);
@@ -265,14 +282,29 @@ function Dashboard() {
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
       }).catch(() => setAnchors([]));
     } else if (tab === "pages") {
-      fetchPageBreakdown(selected).then((data) => {
+      const pageParams: Record<string, string | number | boolean | undefined> = {};
+      if (pagePathFilter) {
+        pageParams.target_path_search = pagePathFilter;
+        if (pagePathExclude) pageParams.target_path_exclude = true;
+      }
+      if (pageCategoryFilter) pageParams.category = pageCategoryFilter;
+      if (pageLinksMin) pageParams.link_count_min = parseInt(pageLinksMin);
+      if (pageLinksMax) pageParams.link_count_max = parseInt(pageLinksMax);
+      if (pageDomainsMin) pageParams.ref_domains_min = parseInt(pageDomainsMin);
+      if (pageDomainsMax) pageParams.ref_domains_max = parseInt(pageDomainsMax);
+      if (pageDrMin) pageParams.avg_dr_min = parseFloat(pageDrMin);
+      if (pageDrMax) pageParams.avg_dr_max = parseFloat(pageDrMax);
+      if (pageDofollowMin) pageParams.dofollow_min = parseFloat(pageDofollowMin) / 100;
+      if (pageDofollowMax) pageParams.dofollow_max = parseFloat(pageDofollowMax) / 100;
+      fetchPageBreakdown(selected, pageParams).then((data) => {
         const items = Array.isArray(data) ? data : (data as { pages: PageRow[] }).pages ?? [];
         setPages(items);
-      }).catch(() => setPages([]));
+        setPageCategories((data as PageBreakdownResponse).categories ?? {});
+      }).catch(() => { setPages([]); setPageCategories({}); });
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorCategoryFilter, anchorCountMin, anchorCountMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -286,6 +318,7 @@ function Dashboard() {
   const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
   const setDomDomainSearchCb = useCallback((v: string | null) => setDomDomainSearch(v), []);
   const setAnchorTabSearchFilterCb = useCallback((v: string | null) => setAnchorTabSearchFilter(v), []);
+  const setPagePathFilterCb = useCallback((v: string | null) => setPagePathFilter(v), []);
 
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
@@ -314,7 +347,7 @@ function Dashboard() {
   const handlePageRowClick = (row: PageRow) => {
     setTargetPathInput(row.target_path);
     setDrilldownPath(row.target_path);
-    setExactMatch(true);
+    setTargetPathMode("exact");
     setTab("links");
   };
 
@@ -330,6 +363,32 @@ function Dashboard() {
     setAnchorInput(row.anchor);
     setAnchorFilter(row.anchor);
     setTab("links");
+  };
+
+  // Click a link gap row in Compare → drilldown into that profile's links filtered by domain
+  const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDomainInput(referringDomain);
+    setDomainFilter(referringDomain);
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setTargetPathMode("exact");
+    }
+  };
+
+  // Click a DR distribution bar in Compare → drilldown into links with DR range
+  const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDrMin(String(drMin));
+    setDrMax(String(drMax));
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setTargetPathMode("exact");
+    }
   };
 
   // Clicking the Links tab directly clears any drilldown filter
@@ -598,6 +657,8 @@ function Dashboard() {
                 value={domDomainInput}
                 onChange={setDomDomainInput}
                 placeholder="Filter by domain..."
+                matchMode={domDomainMode}
+                onMatchModeChange={setDomDomainMode}
                 onDebouncedChange={setDomDomainSearchCb}
               />
               <div className="flex items-center gap-1">
@@ -648,6 +709,8 @@ function Dashboard() {
                 value={anchorTabSearch}
                 onChange={setAnchorTabSearch}
                 placeholder="Filter by anchor text..."
+                matchMode={anchorTabMode}
+                onMatchModeChange={setAnchorTabMode}
                 onDebouncedChange={setAnchorTabSearchFilterCb}
               />
               <select
@@ -685,19 +748,105 @@ function Dashboard() {
         )}
 
         {tab === "pages" && (
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
-                <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
-              </div>
-              <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+          <div>
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <FilterInput
+                value={pagePathInput}
+                onChange={setPagePathInput}
+                placeholder="Filter by target URL..."
+                excludePlaceholder="Exclude target URL..."
+                exclude={pagePathExclude}
+                onExcludeChange={setPagePathExclude}
+                onDebouncedChange={setPagePathFilterCb}
+              />
+              <select
+                value={pageCategoryFilter}
+                onChange={(e) => setPageCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Category: All</option>
+                <option value="homepage">Homepage</option>
+                <option value="content">Content</option>
+                <option value="money_pages">Money Pages</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-            <DataTable
-              data={pages}
-              columns={pageColumns}
-              onRowClick={handlePageRowClick}
-            />
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Backlinks</span>
+                <input type="number" placeholder="Min" value={pageLinksMin} onChange={(e) => setPageLinksMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageLinksMax} onChange={(e) => setPageLinksMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Ref. Domains</span>
+                <input type="number" placeholder="Min" value={pageDomainsMin} onChange={(e) => setPageDomainsMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDomainsMax} onChange={(e) => setPageDomainsMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Avg DR</span>
+                <input type="number" placeholder="Min" value={pageDrMin} onChange={(e) => setPageDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDrMax} onChange={(e) => setPageDrMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Dofollow %</span>
+                <input type="number" placeholder="Min" value={pageDofollowMin} onChange={(e) => setPageDofollowMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDofollowMax} onChange={(e) => setPageDofollowMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <div className="space-y-6">
+              {/* Summary cards */}
+              {pages.length > 0 && (() => {
+                const { totalBacklinks, weightedDr, weightedDf } = pages.reduce(
+                  (acc, p) => ({
+                    totalBacklinks: acc.totalBacklinks + p.link_count,
+                    weightedDr: acc.weightedDr + (p.avg_dr ?? 0) * p.link_count,
+                    weightedDf: acc.weightedDf + (p.dofollow_ratio ?? 0) * p.link_count,
+                  }),
+                  { totalBacklinks: 0, weightedDr: 0, weightedDf: 0 },
+                );
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <SummaryCard label="Total Pages" value={pages.length.toLocaleString()} tooltip={METRICS.total_pages.short} />
+                    <SummaryCard label="Total Backlinks" value={totalBacklinks.toLocaleString()} tooltip={METRICS.total_page_backlinks.short} />
+                    <SummaryCard label="Avg Backlinks/Page" value={(totalBacklinks / pages.length).toFixed(1)} tooltip={METRICS.avg_backlinks_per_page.short} />
+                    <SummaryCard label="Avg DR" value={totalBacklinks > 0 ? (weightedDr / totalBacklinks).toFixed(1) : "—"} tooltip={METRICS.avg_dr.short} />
+                    <SummaryCard label="Avg Dofollow %" value={totalBacklinks > 0 ? `${((weightedDf / totalBacklinks) * 100).toFixed(1)}%` : "—"} tooltip={METRICS.dofollow_pct.short} />
+                  </div>
+                );
+              })()}
+
+              {/* Charts row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PageCategoryChart
+                  data={Object.entries(pageCategories).map(([category, d]) => ({ category, link_count: d.link_count }))}
+                  onBarClick={(category) => setPageCategoryFilter(category)}
+                />
+                <TopPagesChart
+                  data={pages}
+                  onBarClick={(targetPath) => handlePageRowClick({ target_path: targetPath } as PageRow)}
+                />
+              </div>
+
+              {/* Data table */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
+                    <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+                  </div>
+                  <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+                </div>
+                <DataTable
+                  data={pages}
+                  columns={pageColumns}
+                  onRowClick={handlePageRowClick}
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -707,7 +856,7 @@ function Dashboard() {
           </div>
         )}
 
-        {tab === "compare" && <CompareTab />}
+        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
 
         {tab === "terminology" && <TerminologyTab />}
       </main>

@@ -22,13 +22,13 @@ interface FilterInputProps {
 }
 
 const MODE_LABELS: Record<MatchMode, string> = {
-  contain: "Contains",
+  contains: "Contains",
   exact: "Exact",
   regex: "Regex",
 };
 
 const MODE_ICONS: Record<MatchMode, string> = {
-  contain: "≈",
+  contains: "≈",
   exact: "=",
   regex: ".*",
 };
@@ -40,7 +40,7 @@ export default function FilterInput({
   excludePlaceholder,
   exclude = false,
   onExcludeChange,
-  matchMode = "contain",
+  matchMode = "contains",
   onMatchModeChange,
   debounceMs = 300,
   onDebouncedChange,
@@ -58,7 +58,7 @@ export default function FilterInput({
 
   const cycleMode = () => {
     if (!onMatchModeChange) return;
-    const modes: MatchMode[] = ["contain", "exact", "regex"];
+    const modes: MatchMode[] = ["contains", "exact", "regex"];
     const next = modes[(modes.indexOf(matchMode) + 1) % modes.length];
     onMatchModeChange(next);
   };
@@ -115,7 +115,7 @@ export default function FilterInput({
         <button
           onClick={cycleMode}
           className={`px-2 py-2 text-xs font-medium border border-l-0 rounded-r-md transition-colors shrink-0 ${
-            matchMode === "contain"
+            matchMode === "contains"
               ? "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
               : matchMode === "exact"
                 ? "bg-indigo-600 text-white border-indigo-600"

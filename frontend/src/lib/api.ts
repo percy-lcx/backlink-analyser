@@ -24,7 +24,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---- Types ---- */
 
-export type MatchMode = "contain" | "exact" | "regex";
+export type MatchMode = "contains" | "exact" | "regex";
 
 export interface Profile {
   profile_label: string;
@@ -89,6 +89,7 @@ export interface AnchorRecord {
 
 export interface AnchorParams {
   anchor_search?: string;
+  anchor_mode?: string;
   category?: string;
   count_min?: number;
   count_max?: number;
@@ -112,6 +113,7 @@ export interface ReferringDomain {
 export interface ReferringDomainParams {
   sort?: string;
   domain_search?: string;
+  domain_mode?: string;
   dr_min?: number;
   dr_max?: number;
   traffic_min?: number;
@@ -145,6 +147,20 @@ export interface PageRow {
   unique_referring_domains: number;
   avg_dr: number;
   dofollow_ratio: number;
+}
+
+export interface PageBreakdownParams {
+  target_path_search?: string;
+  target_path_exclude?: boolean;
+  category?: string;
+  link_count_min?: number;
+  link_count_max?: number;
+  ref_domains_min?: number;
+  ref_domains_max?: number;
+  avg_dr_min?: number;
+  avg_dr_max?: number;
+  dofollow_min?: number;
+  dofollow_max?: number;
 }
 
 export interface PageBreakdownResponse {
@@ -234,21 +250,21 @@ export interface LinkParams {
   dr_max?: number;
   anchor_search?: string;
   anchor_exclude?: boolean;
-  anchor_match_mode?: MatchMode;
+  anchor_mode?: string;
   traffic_min?: number;
   traffic_max?: number;
   first_seen_from?: string;
   first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
-  domain_match_mode?: MatchMode;
+  domain_mode?: string;
   url_search?: string;
   url_exclude?: boolean;
-  url_match_mode?: MatchMode;
+  url_mode?: string;
   target_path_search?: string;
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
-  target_path_match_mode?: MatchMode;
+  target_path_mode?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
@@ -287,8 +303,8 @@ export function fetchVelocity(profile: string, interval?: string): Promise<Veloc
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
-export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
-  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile });
+export function fetchPageBreakdown(profile: string, params?: PageBreakdownParams): Promise<PageBreakdownResponse> {
+  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
