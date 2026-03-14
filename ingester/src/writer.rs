@@ -11,56 +11,94 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
 
     let len = records.len();
 
-    let referring_page_title: Vec<&str> = records.iter().map(|r| r.referring_page_title.as_str()).collect();
-    let referring_url: Vec<&str> = records.iter().map(|r| r.referring_url.as_str()).collect();
-    let referring_domain: Vec<&str> = records.iter().map(|r| r.referring_domain.as_str()).collect();
-    let language: Vec<&str> = records.iter().map(|r| r.language.as_str()).collect();
-    let platform: Vec<&str> = records.iter().map(|r| r.platform.as_str()).collect();
-    let http_code: Vec<u32> = records.iter().map(|r| r.http_code as u32).collect();
-    let domain_rating: Vec<f32> = records.iter().map(|r| r.domain_rating).collect();
-    let url_rating: Vec<f32> = records.iter().map(|r| r.url_rating).collect();
-    let domain_traffic: Vec<u64> = records.iter().map(|r| r.domain_traffic).collect();
-    let referring_domains: Vec<u32> = records.iter().map(|r| r.referring_domains).collect();
-    let linked_domains: Vec<u32> = records.iter().map(|r| r.linked_domains).collect();
-    let external_links: Vec<u32> = records.iter().map(|r| r.external_links).collect();
-    let page_traffic: Vec<u64> = records.iter().map(|r| r.page_traffic).collect();
-    let keywords: Vec<u32> = records.iter().map(|r| r.keywords).collect();
-    let target_url: Vec<&str> = records.iter().map(|r| r.target_url.as_str()).collect();
-    let target_domain: Vec<&str> = records.iter().map(|r| r.target_domain.as_str()).collect();
-    let target_path: Vec<&str> = records.iter().map(|r| r.target_path.as_str()).collect();
-    let left_context: Vec<&str> = records.iter().map(|r| r.left_context.as_str()).collect();
-    let anchor: Vec<&str> = records.iter().map(|r| r.anchor.as_str()).collect();
-    let right_context: Vec<&str> = records.iter().map(|r| r.right_context.as_str()).collect();
-    let redirect_chain_urls: Vec<&str> = records.iter().map(|r| r.redirect_chain_urls.as_str()).collect();
-    let redirect_chain_codes: Vec<&str> = records.iter().map(|r| r.redirect_chain_codes.as_str()).collect();
-    let link_type: Vec<&str> = records.iter().map(|r| r.link_type.as_str()).collect();
-    let is_spam: Vec<bool> = records.iter().map(|r| r.is_spam).collect();
-    let is_content: Vec<bool> = records.iter().map(|r| r.is_content).collect();
-    let is_nofollow: Vec<bool> = records.iter().map(|r| r.is_nofollow).collect();
-    let is_ugc: Vec<bool> = records.iter().map(|r| r.is_ugc).collect();
-    let is_sponsored: Vec<bool> = records.iter().map(|r| r.is_sponsored).collect();
-    let is_rendered: Vec<bool> = records.iter().map(|r| r.is_rendered).collect();
-    let is_raw: Vec<bool> = records.iter().map(|r| r.is_raw).collect();
-    let lost_status: Vec<&str> = records.iter().map(|r| r.lost_status.as_str()).collect();
-    let drop_reason: Vec<&str> = records.iter().map(|r| r.drop_reason.as_str()).collect();
-    let discovered_status: Vec<&str> = records.iter().map(|r| r.discovered_status.as_str()).collect();
+    // Single pass: collect all 47 columns simultaneously instead of 47 separate iterations
+    let mut referring_page_title = Vec::with_capacity(len);
+    let mut referring_url = Vec::with_capacity(len);
+    let mut referring_domain = Vec::with_capacity(len);
+    let mut language = Vec::with_capacity(len);
+    let mut platform = Vec::with_capacity(len);
+    let mut http_code = Vec::with_capacity(len);
+    let mut domain_rating = Vec::with_capacity(len);
+    let mut url_rating = Vec::with_capacity(len);
+    let mut domain_traffic = Vec::with_capacity(len);
+    let mut referring_domains = Vec::with_capacity(len);
+    let mut linked_domains = Vec::with_capacity(len);
+    let mut external_links = Vec::with_capacity(len);
+    let mut page_traffic = Vec::with_capacity(len);
+    let mut keywords = Vec::with_capacity(len);
+    let mut target_url = Vec::with_capacity(len);
+    let mut target_domain = Vec::with_capacity(len);
+    let mut target_path = Vec::with_capacity(len);
+    let mut left_context = Vec::with_capacity(len);
+    let mut anchor = Vec::with_capacity(len);
+    let mut right_context = Vec::with_capacity(len);
+    let mut redirect_chain_urls = Vec::with_capacity(len);
+    let mut redirect_chain_codes = Vec::with_capacity(len);
+    let mut link_type = Vec::with_capacity(len);
+    let mut is_spam = Vec::with_capacity(len);
+    let mut is_content = Vec::with_capacity(len);
+    let mut is_nofollow = Vec::with_capacity(len);
+    let mut is_ugc = Vec::with_capacity(len);
+    let mut is_sponsored = Vec::with_capacity(len);
+    let mut is_rendered = Vec::with_capacity(len);
+    let mut is_raw = Vec::with_capacity(len);
+    let mut lost_status = Vec::with_capacity(len);
+    let mut drop_reason = Vec::with_capacity(len);
+    let mut discovered_status = Vec::with_capacity(len);
+    let mut first_seen = Vec::with_capacity(len);
+    let mut last_seen = Vec::with_capacity(len);
+    let mut lost_date = Vec::with_capacity(len);
+    let mut author = Vec::with_capacity(len);
+    let mut page_type = Vec::with_capacity(len);
+    let mut page_category = Vec::with_capacity(len);
+    let mut links_in_group = Vec::with_capacity(len);
+    let mut source_file = Vec::with_capacity(len);
+    let mut profile_label = Vec::with_capacity(len);
 
-    // Convert datetimes to millisecond timestamps for polars
-    let first_seen: Vec<i64> = records.iter().map(|r| r.first_seen.and_utc().timestamp_millis()).collect();
-    let last_seen: Vec<i64> = records.iter().map(|r| r.last_seen.and_utc().timestamp_millis()).collect();
-    let lost_date: Vec<Option<i64>> = records
-        .iter()
-        .map(|r| r.lost_date.map(|d| d.and_utc().timestamp_millis()))
-        .collect();
-
-    let author: Vec<&str> = records.iter().map(|r| r.author.as_str()).collect();
-    let page_type: Vec<&str> = records.iter().map(|r| r.page_type.as_str()).collect();
-    let page_category: Vec<&str> = records.iter().map(|r| r.page_category.as_str()).collect();
-    let links_in_group: Vec<u32> = records.iter().map(|r| r.links_in_group).collect();
-    let source_file: Vec<&str> = records.iter().map(|r| r.source_file.as_str()).collect();
-    let profile_label: Vec<&str> = records.iter().map(|r| r.profile_label.as_str()).collect();
-
-    let _ = len; // used implicitly by Series lengths
+    for r in records {
+        referring_page_title.push(r.referring_page_title.as_str());
+        referring_url.push(r.referring_url.as_str());
+        referring_domain.push(r.referring_domain.as_str());
+        language.push(r.language.as_str());
+        platform.push(r.platform.as_str());
+        http_code.push(r.http_code as u32);
+        domain_rating.push(r.domain_rating);
+        url_rating.push(r.url_rating);
+        domain_traffic.push(r.domain_traffic);
+        referring_domains.push(r.referring_domains);
+        linked_domains.push(r.linked_domains);
+        external_links.push(r.external_links);
+        page_traffic.push(r.page_traffic);
+        keywords.push(r.keywords);
+        target_url.push(r.target_url.as_str());
+        target_domain.push(r.target_domain.as_str());
+        target_path.push(r.target_path.as_str());
+        left_context.push(r.left_context.as_str());
+        anchor.push(r.anchor.as_str());
+        right_context.push(r.right_context.as_str());
+        redirect_chain_urls.push(r.redirect_chain_urls.as_str());
+        redirect_chain_codes.push(r.redirect_chain_codes.as_str());
+        link_type.push(r.link_type.as_str());
+        is_spam.push(r.is_spam);
+        is_content.push(r.is_content);
+        is_nofollow.push(r.is_nofollow);
+        is_ugc.push(r.is_ugc);
+        is_sponsored.push(r.is_sponsored);
+        is_rendered.push(r.is_rendered);
+        is_raw.push(r.is_raw);
+        lost_status.push(r.lost_status.as_str());
+        drop_reason.push(r.drop_reason.as_str());
+        discovered_status.push(r.discovered_status.as_str());
+        first_seen.push(r.first_seen.and_utc().timestamp_millis());
+        last_seen.push(r.last_seen.and_utc().timestamp_millis());
+        lost_date.push(r.lost_date.map(|d| d.and_utc().timestamp_millis()));
+        author.push(r.author.as_str());
+        page_type.push(r.page_type.as_str());
+        page_category.push(r.page_category.as_str());
+        links_in_group.push(r.links_in_group);
+        source_file.push(r.source_file.as_str());
+        profile_label.push(r.profile_label.as_str());
+    }
 
     let mut df = DataFrame::new(vec![
         Column::new("referring_page_title".into(), &referring_page_title),

@@ -1,7 +1,8 @@
-use crate::normalize::{extract_domain, extract_path, BacklinkRecord};
+use crate::normalize::{extract_domain, extract_domain_and_path, BacklinkRecord};
 use crate::parser::detector::Delimiter;
 use anyhow::Result;
 use chrono::NaiveDateTime;
+use std::collections::HashMap;
 use std::path::Path;
 
 fn parse_bool(val: &str) -> bool {
@@ -88,12 +89,14 @@ struct AhrefsColumns {
 
 impl AhrefsColumns {
     fn from_headers(headers: &csv::StringRecord) -> Self {
+        // Build HashMap for O(1) lookups instead of O(h) linear search per column
+        let header_map: HashMap<String, usize> = headers
+            .iter()
+            .enumerate()
+            .map(|(i, h)| (h.trim().trim_matches('"').to_lowercase(), i))
+            .collect();
         let find = |name: &str| -> Option<usize> {
-            headers.iter().position(|h| {
-                h.trim()
-                    .trim_matches('"')
-                    .eq_ignore_ascii_case(name)
-            })
+            header_map.get(&name.to_lowercase()).copied()
         };
 
         AhrefsColumns {
@@ -183,8 +186,7 @@ pub fn parse_ahrefs_file(
         let target_url = cols.get(&row, cols.target_url).to_string();
 
         let referring_domain = extract_domain(&referring_url);
-        let target_domain = extract_domain(&target_url);
-        let target_path = extract_path(&target_url);
+        let (target_domain, target_path) = extract_domain_and_path(&target_url);
 
         let first_seen_str = cols.get(&row, cols.first_seen);
         let last_seen_str = cols.get(&row, cols.last_seen);
