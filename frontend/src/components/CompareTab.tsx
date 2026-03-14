@@ -147,9 +147,10 @@ function PathCombobox({
 
 interface CompareTabProps {
   onDrBarClick?: (profileLabel: string, drMin: number, drMax: number) => void;
+  onGapRowClick?: (profileLabel: string, referringDomain: string) => void;
 }
 
-export default function CompareTab({ onDrBarClick }: CompareTabProps) {
+export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabProps) {
   const { profiles } = useProfile();
   const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
@@ -382,7 +383,7 @@ export default function CompareTab({ onDrBarClick }: CompareTabProps) {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelB} but not {labelA}
               </p>
-              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain) : undefined} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-1">
@@ -391,7 +392,7 @@ export default function CompareTab({ onDrBarClick }: CompareTabProps) {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelA} but not {labelB}
               </p>
-              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain) : undefined} />
             </div>
           </div>
 
