@@ -182,9 +182,13 @@ export interface CompareProfile {
   total_links: number;
   referring_domains: number;
   avg_dr: number;
+  median_dr: number;
   dofollow_ratio: number;
   spam_ratio: number;
   anchor_diversity: number;
+  links_per_domain: number;
+  sitewide_ratio: number;
+  image_link_ratio: number;
 }
 
 export interface LinkGapDomain {

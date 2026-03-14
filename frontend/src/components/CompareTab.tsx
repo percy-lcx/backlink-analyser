@@ -34,6 +34,7 @@ interface MetricRow {
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 const num = (v: number) => v.toLocaleString();
 const dec1 = (v: number) => v.toFixed(1);
+const dec2 = (v: number) => v.toFixed(2);
 
 function buildMetrics(a: CompareProfile, b: CompareProfile): MetricRow[] {
   const defs: {
@@ -45,9 +46,13 @@ function buildMetrics(a: CompareProfile, b: CompareProfile): MetricRow[] {
     { metric: "Total Links", key: "total_links", higherIsBetter: true, format: num },
     { metric: "Referring Domains", key: "referring_domains", higherIsBetter: true, format: num },
     { metric: "Avg DR", key: "avg_dr", higherIsBetter: true, format: dec1 },
+    { metric: "Median DR", key: "median_dr", higherIsBetter: true, format: dec1 },
     { metric: "Dofollow %", key: "dofollow_ratio", higherIsBetter: true, format: pct },
     { metric: "Spam %", key: "spam_ratio", higherIsBetter: false, format: pct },
     { metric: "Anchor Diversity", key: "anchor_diversity", higherIsBetter: true, format: num },
+    { metric: "Links / Domain", key: "links_per_domain", higherIsBetter: false, format: dec2 },
+    { metric: "Sitewide %", key: "sitewide_ratio", higherIsBetter: false, format: pct },
+    { metric: "Image Link %", key: "image_link_ratio", higherIsBetter: false, format: pct },
   ];
   return defs.map((d) => {
     const va = Number(a[d.key]) || 0;
@@ -231,6 +236,12 @@ export default function CompareTab() {
   const labelA = mode === "url" && pathA ? `${profileA} ${pathA}` : profileA;
   const labelB = mode === "url" && pathB ? `${profileB} ${pathB}` : profileB;
 
+  const drMaxCount = Math.max(
+    ...drDistA.map((d) => d.count),
+    ...drDistB.map((d) => d.count),
+    0,
+  );
+
   return (
     <div className="space-y-6">
       {/* Profile selectors + mode toggle */}
@@ -380,11 +391,11 @@ export default function CompareTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA} — DR Distribution</h3>
-              <DrDistribution data={drDistA} />
+              <DrDistribution data={drDistA} maxCount={drMaxCount} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB} — DR Distribution</h3>
-              <DrDistribution data={drDistB} />
+              <DrDistribution data={drDistB} maxCount={drMaxCount} />
             </div>
           </div>
         </>
