@@ -376,6 +376,14 @@ function Dashboard() {
     setTab("links");
   };
 
+  // Click a link gap row in Compare → drilldown into that profile's links filtered by domain
+  const handleGapRowClick = (profileLabel: string, referringDomain: string) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDomainInput(referringDomain);
+    setDomainFilter(referringDomain);
+  };
+
   // Click a DR distribution bar in Compare → drilldown into links with DR range
   const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number) => {
     handleTabClick("links");
@@ -856,7 +864,7 @@ function Dashboard() {
           </div>
         )}
 
-        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} />}
+        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
 
         {tab === "terminology" && <TerminologyTab />}
       </main>
