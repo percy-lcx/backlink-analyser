@@ -253,13 +253,6 @@ export const METRICS: Record<string, MetricDef> = {
     full: "Horizontal bar chart showing the top 15 pages ranked by backlink count. Click a bar to drill down into the Links tab for that specific page. Helps identify content assets that attract the most links.",
     category: "Pages",
   },
-  page_scatter: {
-    label: "Pages Scatter",
-    short: "Referring domains vs backlink count per page, colored by category.",
-    full: "Scatter plot where each point is a target page. X-axis shows unique referring domains, Y-axis shows total backlinks. Points above the diagonal have many backlinks from few domains (potential sitewide links). Points near the diagonal have diverse link profiles.",
-    category: "Pages",
-  },
-
   // ── Quality ───────────────────────────────────────────────
   quality_matrix: {
     label: "Quality Matrix",

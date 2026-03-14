@@ -6,7 +6,6 @@ import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
 import PageCategoryChart from "./components/charts/PageCategoryChart";
 import TopPagesChart from "./components/charts/TopPagesChart";
-import PageScatterPlot from "./components/charts/PageScatterPlot";
 import CompareTab from "./components/CompareTab";
 import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
@@ -990,11 +989,6 @@ function Dashboard() {
                   onBarClick={(targetPath) => handlePageRowClick({ target_path: targetPath } as PageRow)}
                 />
               </div>
-
-              {/* Scatter plot */}
-              {pages.length > 0 && (
-                <PageScatterPlot data={pages} />
-              )}
 
               {/* Data table */}
               <div className="bg-white rounded-lg shadow p-5">
