@@ -14,11 +14,13 @@ import {
   type TargetPath,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
+import Tooltip from "./Tooltip";
+import { METRICS, getMetricByLabel } from "../lib/metrics";
 
 const gapColumns: ColumnDef<LinkGapDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain", size: 400 },
-  { accessorKey: "max_dr", header: "DR" },
-  { accessorKey: "total_links", header: "Links" },
+  { accessorKey: "referring_domain", header: "Referring Domain", size: 400, meta: { tooltip: METRICS.referring_domain.short } },
+  { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "total_links", header: "Links", meta: { tooltip: METRICS.links.short } },
 ];
 
 interface MetricRow {
@@ -340,7 +342,9 @@ export default function CompareTab() {
                 <tbody>
                   {metrics.map((row) => (
                     <tr key={row.metric} className="border-b border-gray-100">
-                      <td className="py-2 text-gray-700">{row.metric}</td>
+                      <td className="py-2 text-gray-700">
+                        <Tooltip text={getMetricByLabel(row.metric)?.short ?? ""}>{row.metric}</Tooltip>
+                      </td>
                       <td className="py-2">{row.format(row.a)}</td>
                       <td className="py-2">{row.format(row.b)}</td>
                       <td className={`py-2 font-medium ${deltaColor(row)}`}>

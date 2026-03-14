@@ -6,9 +6,11 @@ import {
   Radar,
   Legend,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 import type { CompareProfile } from "../../lib/api";
+import Tooltip from "../Tooltip";
+import { METRICS } from "../../lib/metrics";
 
 interface Props {
   data: CompareProfile[];
@@ -45,13 +47,15 @@ export default function RadarCompare({ data }: Props) {
 
   return (
     <div className="bg-white rounded-lg shadow p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Comparison (Normalized)</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">
+        <Tooltip text={METRICS.profile_comparison.short}>Profile Comparison (Normalized)</Tooltip>
+      </h3>
       <ResponsiveContainer width="100%" height={380}>
         <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
           <PolarGrid stroke="#e5e7eb" />
           <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-          <Tooltip />
+          <RechartsTooltip />
           {data.map((d, i) => (
             <Radar
               key={d.profile_label}
