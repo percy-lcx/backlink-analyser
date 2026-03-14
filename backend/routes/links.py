@@ -16,6 +16,7 @@ SORTABLE_COLUMNS = {
     "anchor",
     "target_path",
     "link_type",
+    "http_code",
     "is_nofollow",
     "is_spam",
 }

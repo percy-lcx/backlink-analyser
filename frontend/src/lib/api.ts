@@ -55,6 +55,7 @@ export interface LinkRecord {
   target_url: string;
   target_path: string;
   anchor: string;
+  http_code: number;
   is_nofollow: boolean;
   is_ugc: boolean;
   is_sponsored: boolean;
