@@ -6,9 +6,11 @@ import {
   Radar,
   Legend,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 import type { CompareProfile } from "../../lib/api";
+import Tooltip from "../Tooltip";
+import { METRICS } from "../../lib/metrics";
 
 interface Props {
   data: CompareProfile[];
@@ -16,7 +18,7 @@ interface Props {
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
 
-const METRICS: { key: keyof CompareProfile; label: string }[] = [
+const RADAR_METRICS: { key: keyof CompareProfile; label: string }[] = [
   { key: "total_links", label: "Backlinks" },
   { key: "referring_domains", label: "Domains" },
   { key: "dofollow_ratio", label: "Dofollow %" },
@@ -33,7 +35,7 @@ export default function RadarCompare({ data }: Props) {
   if (data.length === 0) return null;
 
   // Build radar data: one entry per metric, each profile as a value
-  const radarData = METRICS.map((m) => {
+  const radarData = RADAR_METRICS.map((m) => {
     const raw = data.map((d) => Number(d[m.key]) || 0);
     const norm = normalize(raw);
     const entry: Record<string, string | number> = { metric: m.label };
@@ -45,13 +47,15 @@ export default function RadarCompare({ data }: Props) {
 
   return (
     <div className="bg-white rounded-lg shadow p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Comparison (Normalized)</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">
+        <Tooltip text={METRICS.profile_comparison.short}>Profile Comparison (Normalized)</Tooltip>
+      </h3>
       <ResponsiveContainer width="100%" height={380}>
         <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
           <PolarGrid stroke="#e5e7eb" />
           <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-          <Tooltip />
+          <RechartsTooltip />
           {data.map((d, i) => (
             <Radar
               key={d.profile_label}
