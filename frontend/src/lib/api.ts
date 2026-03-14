@@ -85,6 +85,13 @@ export interface AnchorRecord {
   pct: number;
 }
 
+export interface AnchorParams {
+  anchor_search?: string;
+  category?: string;
+  count_min?: number;
+  count_max?: number;
+}
+
 export interface AnchorContext {
   left_context: string;
   anchor: string;
@@ -250,8 +257,8 @@ export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
   return get<LinkAttribute[]>(`${BASE}/link-attributes`, { profile });
 }
 
-export function fetchAnchors(profile: string, targetPath?: string): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
-  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, target_path: targetPath });
+export function fetchAnchors(profile: string, params?: AnchorParams & { target_path?: string }): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
+  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchAnchorsContext(profile: string, anchor: string): Promise<AnchorContext[]> {
