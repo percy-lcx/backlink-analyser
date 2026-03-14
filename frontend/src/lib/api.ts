@@ -98,7 +98,18 @@ export interface ReferringDomain {
   max_dr: number;
   total_traffic: number;
   is_sitewide: boolean;
-  dominant_anchor: string;
+}
+
+export interface ReferringDomainParams {
+  sort?: string;
+  domain_search?: string;
+  dr_min?: number;
+  dr_max?: number;
+  traffic_min?: number;
+  traffic_max?: number;
+  links_min?: number;
+  links_max?: number;
+  is_sitewide?: boolean;
 }
 
 export interface DrBucket {
@@ -247,8 +258,8 @@ export function fetchAnchorsContext(profile: string, anchor: string): Promise<An
   return get<AnchorContext[]>(`${BASE}/anchors-context`, { profile, anchor });
 }
 
-export function fetchReferringDomains(profile: string, sort?: string): Promise<ReferringDomain[]> {
-  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
+export function fetchReferringDomains(profile: string, params?: ReferringDomainParams): Promise<ReferringDomain[]> {
+  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchDrDistribution(profile: string, targetPath?: string): Promise<DrDistributionResponse> {
