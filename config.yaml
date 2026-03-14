@@ -23,6 +23,7 @@ page_categories:
     - "e-?books?"
     - "what-is"
     - "how-to"
+    - "faqs?"
   money_pages:
     - "accounts?"
     - "platforms?"
@@ -67,6 +68,8 @@ page_categories:
     - "contests?"
     - "competitions?"
     - "notifications?"
+    - "achievements?"
+    - "awards?"
 
 anchor_categories:
   branded_terms:
