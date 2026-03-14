@@ -199,6 +199,19 @@ function Dashboard() {
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [pagePathInput, setPagePathInput] = useState("");
+  const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
+  const [pagePathExclude, setPagePathExclude] = useState(false);
+  const [pageCategoryFilter, setPageCategoryFilter] = useState("");
+  const [pageLinksMin, setPageLinksMin] = useState("");
+  const [pageLinksMax, setPageLinksMax] = useState("");
+  const [pageDomainsMin, setPageDomainsMin] = useState("");
+  const [pageDomainsMax, setPageDomainsMax] = useState("");
+  const [pageDrMin, setPageDrMin] = useState("");
+  const [pageDrMax, setPageDrMax] = useState("");
+  const [pageDofollowMin, setPageDofollowMin] = useState("");
+  const [pageDofollowMax, setPageDofollowMax] = useState("");
+  const pagePathDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
@@ -263,14 +276,28 @@ function Dashboard() {
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
       }).catch(() => setAnchors([]));
     } else if (tab === "pages") {
-      fetchPageBreakdown(selected).then((data) => {
+      const pageParams: Record<string, string | number | boolean | undefined> = {};
+      if (pagePathFilter) {
+        pageParams.target_path_search = pagePathFilter;
+        if (pagePathExclude) pageParams.target_path_exclude = true;
+      }
+      if (pageCategoryFilter) pageParams.category = pageCategoryFilter;
+      if (pageLinksMin) pageParams.link_count_min = parseInt(pageLinksMin);
+      if (pageLinksMax) pageParams.link_count_max = parseInt(pageLinksMax);
+      if (pageDomainsMin) pageParams.ref_domains_min = parseInt(pageDomainsMin);
+      if (pageDomainsMax) pageParams.ref_domains_max = parseInt(pageDomainsMax);
+      if (pageDrMin) pageParams.avg_dr_min = parseFloat(pageDrMin);
+      if (pageDrMax) pageParams.avg_dr_max = parseFloat(pageDrMax);
+      if (pageDofollowMin) pageParams.dofollow_min = parseFloat(pageDofollowMin) / 100;
+      if (pageDofollowMax) pageParams.dofollow_max = parseFloat(pageDofollowMax) / 100;
+      fetchPageBreakdown(selected, pageParams).then((data) => {
         const items = Array.isArray(data) ? data : (data as { pages: PageRow[] }).pages ?? [];
         setPages(items);
       }).catch(() => setPages([]));
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorCategoryFilter, anchorCountMin, anchorCountMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, exactMatch, targetPathExclude, domainFilter, domainExclude, urlFilter, urlExclude, anchorFilter, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -330,6 +357,15 @@ function Dashboard() {
     }, 300);
     return () => clearTimeout(anchorTabDebounceRef.current);
   }, [anchorTabSearch]);
+
+  // Debounce: pagePathInput → pagePathFilter
+  useEffect(() => {
+    clearTimeout(pagePathDebounceRef.current);
+    pagePathDebounceRef.current = setTimeout(() => {
+      setPagePathFilter(pagePathInput || null);
+    }, 300);
+    return () => clearTimeout(pagePathDebounceRef.current);
+  }, [pagePathInput]);
 
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
@@ -852,19 +888,88 @@ function Dashboard() {
         )}
 
         {tab === "pages" && (
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
-                <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+          <div>
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setPagePathExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    pagePathExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={pagePathExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{pagePathExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={pagePathExclude ? "Exclude target URL..." : "Filter by target URL..."}
+                    value={pagePathInput}
+                    onChange={(e) => setPagePathInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      pagePathExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {pagePathInput && (
+                    <button
+                      onClick={() => { setPagePathInput(""); setPagePathFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
-              <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+              <select
+                value={pageCategoryFilter}
+                onChange={(e) => setPageCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Category: All</option>
+                <option value="homepage">Homepage</option>
+                <option value="content">Content</option>
+                <option value="money_pages">Money Pages</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-            <DataTable
-              data={pages}
-              columns={pageColumns}
-              onRowClick={handlePageRowClick}
-            />
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Backlinks</span>
+                <input type="number" placeholder="Min" value={pageLinksMin} onChange={(e) => setPageLinksMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageLinksMax} onChange={(e) => setPageLinksMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Ref. Domains</span>
+                <input type="number" placeholder="Min" value={pageDomainsMin} onChange={(e) => setPageDomainsMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDomainsMax} onChange={(e) => setPageDomainsMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Avg DR</span>
+                <input type="number" placeholder="Min" value={pageDrMin} onChange={(e) => setPageDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDrMax} onChange={(e) => setPageDrMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Dofollow %</span>
+                <input type="number" placeholder="Min" value={pageDofollowMin} onChange={(e) => setPageDofollowMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDofollowMax} onChange={(e) => setPageDofollowMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
+                  <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+                </div>
+                <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+              </div>
+              <DataTable
+                data={pages}
+                columns={pageColumns}
+                onRowClick={handlePageRowClick}
+              />
+            </div>
           </div>
         )}
 

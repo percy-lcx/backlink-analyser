@@ -145,6 +145,20 @@ export interface PageRow {
   dofollow_ratio: number;
 }
 
+export interface PageBreakdownParams {
+  target_path_search?: string;
+  target_path_exclude?: boolean;
+  category?: string;
+  link_count_min?: number;
+  link_count_max?: number;
+  ref_domains_min?: number;
+  ref_domains_max?: number;
+  avg_dr_min?: number;
+  avg_dr_max?: number;
+  dofollow_min?: number;
+  dofollow_max?: number;
+}
+
 export interface PageBreakdownResponse {
   pages: PageRow[];
   categories: Record<string, { link_count: number; unique_referring_domains: number; avg_dr: number; dofollow_ratio: number }>;
@@ -281,8 +295,8 @@ export function fetchVelocity(profile: string, interval?: string): Promise<Veloc
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
-export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
-  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile });
+export function fetchPageBreakdown(profile: string, params?: PageBreakdownParams): Promise<PageBreakdownResponse> {
+  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
