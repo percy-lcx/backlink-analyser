@@ -54,9 +54,12 @@ pub fn extract_domain(url_str: &str) -> String {
         .unwrap_or_default()
 }
 
-pub fn extract_path(url_str: &str) -> String {
-    Url::parse(url_str)
-        .ok()
-        .map(|u| u.path().to_string())
-        .unwrap_or_default()
+pub fn extract_domain_and_path(url_str: &str) -> (String, String) {
+    match Url::parse(url_str) {
+        Ok(u) => (
+            u.host_str().unwrap_or("").to_string(),
+            u.path().to_string(),
+        ),
+        Err(_) => (String::new(), String::new()),
+    }
 }

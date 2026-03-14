@@ -1,6 +1,21 @@
+from __future__ import annotations
 import re
 from typing import Optional
 from config import get_config
+
+# Pre-compiled regex patterns, lazily initialised once.
+_compiled_page_patterns: dict[str, list[re.Pattern]] | None = None
+
+
+def _get_compiled_page_patterns() -> dict[str, list[re.Pattern]]:
+    global _compiled_page_patterns
+    if _compiled_page_patterns is None:
+        cfg = get_config().get("page_categories", {})
+        _compiled_page_patterns = {
+            cat: [re.compile(p) for p in patterns]
+            for cat, patterns in cfg.items()
+        }
+    return _compiled_page_patterns
 
 
 def categorise_page(target_path: Optional[str]) -> str:
@@ -8,12 +23,10 @@ def categorise_page(target_path: Optional[str]) -> str:
     if not target_path:
         return "other"
 
-    cfg = get_config().get("page_categories", {})
-
-    # Try config patterns first
-    for category, patterns in cfg.items():
-        for pattern in patterns:
-            if re.search(pattern, target_path):
+    # Try pre-compiled config patterns first
+    for category, patterns in _get_compiled_page_patterns().items():
+        for pat in patterns:
+            if pat.search(target_path):
                 return category
 
     # Fallback heuristics

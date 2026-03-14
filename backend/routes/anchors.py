@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 from db import get_conn
-from analysis.anchors import categorise_anchor, summarise_categories
+from analysis.anchors import categorise_anchor, summarise_categories_weighted
 from routes._filters import apply_text_filter
 
 router = APIRouter()
@@ -104,9 +104,8 @@ def anchors(
     if category:
         items = [item for item in items if item["category"] == category]
 
-    # Build summary
-    all_rows = [{"anchor": r["anchor"], "link_type": r["link_type"], "category": r["category"]} for r in items for _ in range(r["count"])]
-    summary = summarise_categories(all_rows)
+    # Build summary from grouped counts — O(M) not O(N)
+    summary = summarise_categories_weighted(items)
 
     return {
         "items": items,

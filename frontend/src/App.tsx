@@ -4,7 +4,10 @@ import SummaryCard from "./components/SummaryCard";
 import DrDistribution from "./components/charts/DrDistribution";
 import VelocityChart from "./components/charts/VelocityChart";
 import ScatterPlot from "./components/charts/ScatterPlot";
+import PageCategoryChart from "./components/charts/PageCategoryChart";
+import TopPagesChart from "./components/charts/TopPagesChart";
 import CompareTab from "./components/CompareTab";
+import TerminologyTab from "./components/TerminologyTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
 import {
@@ -26,15 +29,18 @@ import {
   type QualityPoint,
   type LinksResponse,
   type PageRow,
+  type PageBreakdownResponse,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
+import { METRICS } from "./lib/metrics";
 
 const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain" },
+  { accessorKey: "referring_domain", header: "Referring Domain", meta: { tooltip: METRICS.referring_domain.short } },
   {
     accessorKey: "referring_url",
     header: "Referring URL",
     size: 400,
+    meta: { tooltip: METRICS.referring_url.short },
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -50,6 +56,12 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
+  { accessorKey: "anchor", header: "Anchor", size: 400, meta: { tooltip: METRICS.anchor.short } },
+  { accessorKey: "target_path", header: "Target", size: 400, meta: { tooltip: METRICS.target.short } },
+  { accessorKey: "domain_rating", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
+  { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
+  { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
   { accessorKey: "anchor", header: "Anchor", size: 400 },
   { accessorKey: "target_path", header: "Target", size: 400 },
   { accessorKey: "domain_rating", header: "DR" },
@@ -60,58 +72,63 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   {
     accessorKey: "is_nofollow",
     header: "NF",
+    meta: { tooltip: METRICS.nf.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   {
     accessorKey: "is_spam",
     header: "Spam",
+    meta: { tooltip: METRICS.spam.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
-  { accessorKey: "first_seen", header: "First Seen" },
+  { accessorKey: "first_seen", header: "First Seen", meta: { tooltip: METRICS.first_seen.short } },
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Domain", size: 400 },
-  { accessorKey: "link_count", header: "Links" },
-  { accessorKey: "max_dr", header: "DR" },
-  { accessorKey: "total_traffic", header: "Traffic" },
-  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400 },
+  { accessorKey: "referring_domain", header: "Domain", size: 400, meta: { tooltip: METRICS.domain.short } },
+  { accessorKey: "link_count", header: "Links", meta: { tooltip: METRICS.links.short } },
+  { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "total_traffic", header: "Traffic", meta: { tooltip: METRICS.traffic.short } },
   {
     accessorKey: "is_sitewide",
     header: "Sitewide",
+    meta: { tooltip: METRICS.sitewide.short },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
 ];
 
 const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
-  { accessorKey: "anchor", header: "Anchor Text", size: 400 },
-  { accessorKey: "count", header: "Count" },
-  { accessorKey: "category", header: "Category" },
+  { accessorKey: "anchor", header: "Anchor Text", size: 400, meta: { tooltip: METRICS.anchor_text.short } },
+  { accessorKey: "count", header: "Count", meta: { tooltip: METRICS.count.short } },
+  { accessorKey: "category", header: "Category", meta: { tooltip: METRICS.category.short } },
   {
     accessorKey: "pct",
     header: "%",
+    meta: { tooltip: METRICS.pct.short },
     cell: ({ getValue }) => `${(getValue() as number).toFixed(1)}%`,
   },
 ];
 
 const pageColumns: ColumnDef<PageRow, unknown>[] = [
-  { accessorKey: "target_path", header: "Target URL", size: 400 },
-  { accessorKey: "category", header: "Category" },
-  { accessorKey: "link_count", header: "Backlinks" },
-  { accessorKey: "unique_referring_domains", header: "Ref. Domains" },
+  { accessorKey: "target_path", header: "Target URL", size: 400, meta: { tooltip: METRICS.target_url.short } },
+  { accessorKey: "category", header: "Category", meta: { tooltip: METRICS.category.short } },
+  { accessorKey: "link_count", header: "Backlinks", meta: { tooltip: METRICS.backlinks.short } },
+  { accessorKey: "unique_referring_domains", header: "Ref. Domains", meta: { tooltip: METRICS.ref_domains.short } },
   {
     accessorKey: "avg_dr",
     header: "Avg DR",
+    meta: { tooltip: METRICS.avg_dr.short },
     cell: ({ getValue }) => (getValue() as number)?.toFixed(1) ?? "—",
   },
   {
     accessorKey: "dofollow_ratio",
     header: "Dofollow %",
+    meta: { tooltip: METRICS.dofollow_pct.short },
     cell: ({ getValue }) => `${((getValue() as number) * 100).toFixed(0)}%`,
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "terminology";
 type MatchMode = "exact" | "contains" | "regex";
 
 const MODES: { value: MatchMode; label: string }[] = [
@@ -221,6 +238,20 @@ function Dashboard() {
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [pageCategories, setPageCategories] = useState<PageBreakdownResponse["categories"]>({});
+  const [pagePathInput, setPagePathInput] = useState("");
+  const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
+  const [pagePathExclude, setPagePathExclude] = useState(false);
+  const [pageCategoryFilter, setPageCategoryFilter] = useState("");
+  const [pageLinksMin, setPageLinksMin] = useState("");
+  const [pageLinksMax, setPageLinksMax] = useState("");
+  const [pageDomainsMin, setPageDomainsMin] = useState("");
+  const [pageDomainsMax, setPageDomainsMax] = useState("");
+  const [pageDrMin, setPageDrMin] = useState("");
+  const [pageDrMax, setPageDrMax] = useState("");
+  const [pageDofollowMin, setPageDofollowMin] = useState("");
+  const [pageDofollowMax, setPageDofollowMax] = useState("");
+  const pagePathDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
@@ -294,14 +325,29 @@ function Dashboard() {
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
       }).catch(() => setAnchors([]));
     } else if (tab === "pages") {
-      fetchPageBreakdown(selected).then((data) => {
+      const pageParams: Record<string, string | number | boolean | undefined> = {};
+      if (pagePathFilter) {
+        pageParams.target_path_search = pagePathFilter;
+        if (pagePathExclude) pageParams.target_path_exclude = true;
+      }
+      if (pageCategoryFilter) pageParams.category = pageCategoryFilter;
+      if (pageLinksMin) pageParams.link_count_min = parseInt(pageLinksMin);
+      if (pageLinksMax) pageParams.link_count_max = parseInt(pageLinksMax);
+      if (pageDomainsMin) pageParams.ref_domains_min = parseInt(pageDomainsMin);
+      if (pageDomainsMax) pageParams.ref_domains_max = parseInt(pageDomainsMax);
+      if (pageDrMin) pageParams.avg_dr_min = parseFloat(pageDrMin);
+      if (pageDrMax) pageParams.avg_dr_max = parseFloat(pageDrMax);
+      if (pageDofollowMin) pageParams.dofollow_min = parseFloat(pageDofollowMin) / 100;
+      if (pageDofollowMax) pageParams.dofollow_max = parseFloat(pageDofollowMax) / 100;
+      fetchPageBreakdown(selected, pageParams).then((data) => {
         const items = Array.isArray(data) ? data : (data as { pages: PageRow[] }).pages ?? [];
         setPages(items);
-      }).catch(() => setPages([]));
+        setPageCategories((data as PageBreakdownResponse).categories ?? {});
+      }).catch(() => { setPages([]); setPageCategories({}); });
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainExclude, domainMode, urlFilter, urlExclude, urlMode, anchorFilter, anchorExclude, anchorLinkMode, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainExclude, domainMode, urlFilter, urlExclude, urlMode, anchorFilter, anchorExclude, anchorLinkMode, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -362,6 +408,15 @@ function Dashboard() {
     return () => clearTimeout(anchorTabDebounceRef.current);
   }, [anchorTabSearch]);
 
+  // Debounce: pagePathInput → pagePathFilter
+  useEffect(() => {
+    clearTimeout(pagePathDebounceRef.current);
+    pagePathDebounceRef.current = setTimeout(() => {
+      setPagePathFilter(pagePathInput || null);
+    }, 300);
+    return () => clearTimeout(pagePathDebounceRef.current);
+  }, [pagePathInput]);
+
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
     if (sorting.length > 0) {
@@ -405,6 +460,32 @@ function Dashboard() {
     setAnchorInput(row.anchor);
     setAnchorFilter(row.anchor);
     setTab("links");
+  };
+
+  // Click a link gap row in Compare → drilldown into that profile's links filtered by domain
+  const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDomainInput(referringDomain);
+    setDomainFilter(referringDomain);
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setTargetPathMode("exact");
+    }
+  };
+
+  // Click a DR distribution bar in Compare → drilldown into links with DR range
+  const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => {
+    handleTabClick("links");
+    setSelected(profileLabel);
+    setDrMin(String(drMin));
+    setDrMax(String(drMax));
+    if (targetPath) {
+      setTargetPathInput(targetPath);
+      setDrilldownPath(targetPath);
+      setTargetPathMode("exact");
+    }
   };
 
   // Clicking the Links tab directly clears any drilldown filter
@@ -467,6 +548,7 @@ function Dashboard() {
     { key: "pages", label: "Pages" },
     { key: "quality", label: "Quality" },
     { key: "compare", label: "Compare" },
+    { key: "terminology", label: "Terminology" },
   ];
 
   return (
@@ -523,15 +605,15 @@ function Dashboard() {
         {tab === "overview" && overview && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SummaryCard label="Total Backlinks" value={(overview.total_backlinks ?? 0).toLocaleString()} />
-              <SummaryCard label="Referring Domains" value={(overview.unique_referring_domains ?? 0).toLocaleString()} />
-              <SummaryCard label="Dofollow" value={(overview.dofollow_count ?? 0).toLocaleString()} color="text-green-600" />
-              <SummaryCard label="Avg DR" value={overview.avg_dr?.toFixed(1) ?? "—"} />
-              <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} />
-              <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} />
-              <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} />
-              <SummaryCard label="Total Backlink Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} />
-              <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} />
+              <SummaryCard label="Total Backlinks" value={(overview.total_backlinks ?? 0).toLocaleString()} tooltip={METRICS.total_backlinks.short} />
+              <SummaryCard label="Referring Domains" value={(overview.unique_referring_domains ?? 0).toLocaleString()} tooltip={METRICS.referring_domains.short} />
+              <SummaryCard label="Dofollow" value={(overview.dofollow_count ?? 0).toLocaleString()} color="text-green-600" tooltip={METRICS.dofollow.short} />
+              <SummaryCard label="Avg DR" value={overview.avg_dr?.toFixed(1) ?? "—"} tooltip={METRICS.avg_dr.short} />
+              <SummaryCard label="Nofollow" value={(overview.nofollow_count ?? 0).toLocaleString()} tooltip={METRICS.nofollow.short} />
+              <SummaryCard label="Spam Ratio" value={`${((overview.spam_ratio ?? 0) * 100).toFixed(1)}%`} color={(overview.spam_ratio ?? 0) > 0.1 ? "text-red-600" : "text-green-600"} tooltip={METRICS.spam_ratio.short} />
+              <SummaryCard label="Image Links" value={(overview.image_link_count ?? 0).toLocaleString()} tooltip={METRICS.image_links.short} />
+              <SummaryCard label="Total Backlink Traffic" value={(overview.total_page_traffic ?? 0).toLocaleString()} tooltip={METRICS.total_backlink_traffic.short} />
+              <SummaryCard label="Newest Backlink" value={overview.newest_backlink_date ? new Date(overview.newest_backlink_date).toLocaleDateString() : "—"} tooltip={METRICS.newest_backlink.short} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DrDistribution data={drDist} />
@@ -855,19 +937,124 @@ function Dashboard() {
         )}
 
         {tab === "pages" && (
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
-                <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+          <div>
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex min-w-[180px] max-w-xs flex-1">
+                <button
+                  onClick={() => setPagePathExclude((v) => !v)}
+                  className={`px-2 py-2 text-sm font-medium border rounded-l-md transition-colors ${
+                    pagePathExclude
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={pagePathExclude ? "Excluding — click to include" : "Including — click to exclude"}
+                >{pagePathExclude ? "\u2212" : "+"}</button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={pagePathExclude ? "Exclude target URL..." : "Filter by target URL..."}
+                    value={pagePathInput}
+                    onChange={(e) => setPagePathInput(e.target.value)}
+                    className={`w-full border border-l-0 rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      pagePathExclude ? "border-red-300" : "border-gray-300"
+                    }`}
+                  />
+                  {pagePathInput && (
+                    <button
+                      onClick={() => { setPagePathInput(""); setPagePathFilter(null); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >&#x2715;</button>
+                  )}
+                </div>
               </div>
-              <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+              <select
+                value={pageCategoryFilter}
+                onChange={(e) => setPageCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Category: All</option>
+                <option value="homepage">Homepage</option>
+                <option value="content">Content</option>
+                <option value="money_pages">Money Pages</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-            <DataTable
-              data={pages}
-              columns={pageColumns}
-              onRowClick={handlePageRowClick}
-            />
+            <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Backlinks</span>
+                <input type="number" placeholder="Min" value={pageLinksMin} onChange={(e) => setPageLinksMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageLinksMax} onChange={(e) => setPageLinksMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Ref. Domains</span>
+                <input type="number" placeholder="Min" value={pageDomainsMin} onChange={(e) => setPageDomainsMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDomainsMax} onChange={(e) => setPageDomainsMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Avg DR</span>
+                <input type="number" placeholder="Min" value={pageDrMin} onChange={(e) => setPageDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDrMax} onChange={(e) => setPageDrMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Dofollow %</span>
+                <input type="number" placeholder="Min" value={pageDofollowMin} onChange={(e) => setPageDofollowMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">&ndash;</span>
+                <input type="number" placeholder="Max" value={pageDofollowMax} onChange={(e) => setPageDofollowMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <div className="space-y-6">
+              {/* Summary cards */}
+              {pages.length > 0 && (() => {
+                const { totalBacklinks, weightedDr, weightedDf } = pages.reduce(
+                  (acc, p) => ({
+                    totalBacklinks: acc.totalBacklinks + p.link_count,
+                    weightedDr: acc.weightedDr + (p.avg_dr ?? 0) * p.link_count,
+                    weightedDf: acc.weightedDf + (p.dofollow_ratio ?? 0) * p.link_count,
+                  }),
+                  { totalBacklinks: 0, weightedDr: 0, weightedDf: 0 },
+                );
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <SummaryCard label="Total Pages" value={pages.length.toLocaleString()} tooltip={METRICS.total_pages.short} />
+                    <SummaryCard label="Total Backlinks" value={totalBacklinks.toLocaleString()} tooltip={METRICS.total_page_backlinks.short} />
+                    <SummaryCard label="Avg Backlinks/Page" value={(totalBacklinks / pages.length).toFixed(1)} tooltip={METRICS.avg_backlinks_per_page.short} />
+                    <SummaryCard label="Avg DR" value={totalBacklinks > 0 ? (weightedDr / totalBacklinks).toFixed(1) : "—"} tooltip={METRICS.avg_dr.short} />
+                    <SummaryCard label="Avg Dofollow %" value={totalBacklinks > 0 ? `${((weightedDf / totalBacklinks) * 100).toFixed(1)}%` : "—"} tooltip={METRICS.dofollow_pct.short} />
+                  </div>
+                );
+              })()}
+
+              {/* Charts row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PageCategoryChart
+                  data={Object.entries(pageCategories).map(([category, d]) => ({ category, link_count: d.link_count }))}
+                  onBarClick={(category) => setPageCategoryFilter(category)}
+                />
+                <TopPagesChart
+                  data={pages}
+                  onBarClick={(targetPath) => handlePageRowClick({ target_path: targetPath } as PageRow)}
+                />
+              </div>
+
+              {/* Data table */}
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
+                    <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
+                  </div>
+                  <ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />
+                </div>
+                <DataTable
+                  data={pages}
+                  columns={pageColumns}
+                  onRowClick={handlePageRowClick}
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -877,7 +1064,9 @@ function Dashboard() {
           </div>
         )}
 
-        {tab === "compare" && <CompareTab />}
+        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
+
+        {tab === "terminology" && <TerminologyTab />}
       </main>
     </div>
   );
