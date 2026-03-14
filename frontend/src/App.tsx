@@ -34,6 +34,7 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   {
     accessorKey: "referring_url",
     header: "Referring URL",
+    size: 400,
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
@@ -49,8 +50,8 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
       );
     },
   },
-  { accessorKey: "anchor", header: "Anchor" },
-  { accessorKey: "target_path", header: "Target" },
+  { accessorKey: "anchor", header: "Anchor", size: 400 },
+  { accessorKey: "target_path", header: "Target", size: 400 },
   { accessorKey: "domain_rating", header: "DR" },
   { accessorKey: "page_traffic", header: "Page Traffic" },
   { accessorKey: "domain_traffic", header: "Domain Traffic" },
@@ -69,10 +70,11 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Domain" },
+  { accessorKey: "referring_domain", header: "Domain", size: 400 },
   { accessorKey: "link_count", header: "Links" },
   { accessorKey: "max_dr", header: "DR" },
   { accessorKey: "total_traffic", header: "Traffic" },
+  { accessorKey: "dominant_anchor", header: "Top Anchor", size: 400 },
   {
     accessorKey: "is_sitewide",
     header: "Sitewide",
@@ -81,7 +83,7 @@ const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
 ];
 
 const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
-  { accessorKey: "anchor", header: "Anchor Text" },
+  { accessorKey: "anchor", header: "Anchor Text", size: 400 },
   { accessorKey: "count", header: "Count" },
   { accessorKey: "category", header: "Category" },
   {
@@ -92,7 +94,7 @@ const anchorColumns: ColumnDef<AnchorRecord, unknown>[] = [
 ];
 
 const pageColumns: ColumnDef<PageRow, unknown>[] = [
-  { accessorKey: "target_path", header: "Target URL" },
+  { accessorKey: "target_path", header: "Target URL", size: 400 },
   { accessorKey: "category", header: "Category" },
   { accessorKey: "link_count", header: "Backlinks" },
   { accessorKey: "unique_referring_domains", header: "Ref. Domains" },

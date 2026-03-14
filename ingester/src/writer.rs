@@ -107,6 +107,18 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         Column::new("profile_label".into(), &profile_label),
     ])?;
 
+    // Merge with existing parquet if present
+    if output_path.exists() {
+        let existing_file = std::fs::File::open(output_path)?;
+        let existing_df = ParquetReader::new(existing_file).finish()?;
+        let new_count = df.height();
+        let mut combined = existing_df.vstack(&df)?;
+        combined = combined.unique_stable(None, UniqueKeepStrategy::First, None)?;
+        println!("    Merge: {} existing + {} new -> {} after dedup",
+            existing_df.height(), new_count, combined.height());
+        df = combined;
+    }
+
     // Ensure output directory exists
     if let Some(parent) = output_path.parent() {
         std::fs::create_dir_all(parent)?;

@@ -6,12 +6,16 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
+  type ColumnSizingState,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export type { SortingState };
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
+const MIN_COL_WIDTH = 60;
+const CHAR_WIDTH_PX = 8;
+const CELL_PADDING = 24;
 
 interface Props<T> {
   data: T[];
@@ -44,8 +48,50 @@ export default function DataTable<T>({
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [localPageSize, setLocalPageSize] = useState(pageSize);
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
 
   const effectivePageSize = manualPagination ? pageSize : localPageSize;
+
+  // Compute initial column sizes based on longest data value per column
+  const initialColumnSizing = useMemo(() => {
+    const sizing: Record<string, number> = {};
+    for (const col of columns) {
+      const accessorKey = (col as { accessorKey?: string }).accessorKey;
+      if (!accessorKey) continue;
+
+      // If column def specifies an explicit size, use it instead of computing from data
+      const explicitSize = (col as { size?: number }).size;
+      if (explicitSize) {
+        sizing[accessorKey] = explicitSize;
+        continue;
+      }
+
+      const headerText = typeof col.header === "string" ? col.header : accessorKey;
+      let maxLen = headerText.length;
+
+      for (const row of data) {
+        const val = (row as Record<string, unknown>)[accessorKey];
+        if (val != null) {
+          const strLen = String(val).length;
+          if (strLen > maxLen) maxLen = strLen;
+        }
+      }
+
+      const computed = maxLen * CHAR_WIDTH_PX + CELL_PADDING;
+      sizing[accessorKey] = Math.max(MIN_COL_WIDTH, computed);
+    }
+    return sizing;
+  }, [data, columns]);
+
+  // Reset user-adjusted sizes when data changes
+  useEffect(() => {
+    setColumnSizing({});
+  }, [data]);
+
+  // Merge: user-adjusted sizes override computed initial sizes
+  const effectiveColumnSizing = useMemo(() => {
+    return { ...initialColumnSizing, ...columnSizing };
+  }, [initialColumnSizing, columnSizing]);
 
   const handleSortingChange: typeof setSorting = (updater) => {
     setSorting((prev) => {
@@ -58,13 +104,20 @@ export default function DataTable<T>({
   const table = useReactTable({
     data,
     columns,
+    defaultColumn: {
+      minSize: MIN_COL_WIDTH,
+    },
+    enableColumnResizing: true,
+    columnResizeMode: "onChange",
     state: {
       sorting,
+      columnSizing: effectiveColumnSizing,
       ...(manualPagination
         ? { pagination: { pageIndex: pageIndex ?? 0, pageSize: effectivePageSize } }
         : {}),
     },
     onSortingChange: handleSortingChange,
+    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     ...(manualSorting ? { manualSorting: true } : { getSortedRowModel: getSortedRowModel() }),
     ...(manualPagination
@@ -75,6 +128,7 @@ export default function DataTable<T>({
 
   const currentPage = manualPagination ? (pageIndex ?? 0) : table.getState().pagination.pageIndex;
   const totalPages = manualPagination ? (pageCount ?? 1) : table.getPageCount();
+  const isResizing = table.getState().columnSizingInfo.isResizingColumn;
 
   const handlePageSizeChange = (newSize: number) => {
     if (manualPagination) {
@@ -87,22 +141,37 @@ export default function DataTable<T>({
   };
 
   return (
-    <div>
+    <div className={isResizing ? "cursor-col-resize" : ""}>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table
+          className="text-sm"
+          style={{ width: table.getCenterTotalSize(), tableLayout: "fixed" }}
+        >
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-gray-200">
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-semibold text-gray-600 bg-gray-50 cursor-pointer select-none whitespace-nowrap"
-                    onClick={header.column.getToggleSortingHandler()}
+                    className="px-3 py-2 text-left font-semibold text-gray-600 bg-gray-50 select-none whitespace-nowrap relative group"
+                    style={{ width: header.getSize() }}
                   >
-                    <span className="flex items-center gap-1">
+                    <span
+                      className="flex items-center gap-1 cursor-pointer"
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       {{ asc: " ↑", desc: " ↓" }[header.column.getIsSorted() as string] ?? ""}
                     </span>
+                    <div
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                      className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none ${
+                        header.column.getIsResizing()
+                          ? "bg-indigo-500"
+                          : "bg-transparent group-hover:bg-gray-300"
+                      }`}
+                    />
                   </th>
                 ))}
               </tr>
@@ -116,7 +185,11 @@ export default function DataTable<T>({
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2 break-words">
+                  <td
+                    key={cell.id}
+                    className="px-3 py-2 break-words overflow-hidden"
+                    style={{ width: cell.column.getSize() }}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
