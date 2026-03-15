@@ -91,6 +91,7 @@ export interface AnchorRecord {
 export interface AnchorParams {
   anchor_search?: string;
   anchor_mode?: string;
+  anchor_exclude?: boolean;
   category?: string;
   count_min?: number;
   count_max?: number;
@@ -115,6 +116,7 @@ export interface ReferringDomainParams {
   sort?: string;
   domain_search?: string;
   domain_mode?: string;
+  domain_exclude?: boolean;
   dr_min?: number;
   dr_max?: number;
   traffic_min?: number;
@@ -153,6 +155,7 @@ export interface PageRow {
 export interface PageBreakdownParams {
   target_path_search?: string;
   target_path_exclude?: boolean;
+  target_path_mode?: string;
   category?: string;
   link_count_min?: number;
   link_count_max?: number;
