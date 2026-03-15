@@ -187,7 +187,7 @@ export default function DataTable<T>({
             <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
               <span className="text-xs font-semibold text-gray-500 uppercase">Toggle columns</span>
               <button
-                className="text-xs text-indigo-600 hover:text-indigo-800"
+                className="text-xs text-primary-500 hover:text-primary-700"
                 onClick={() => setColumnVisibility({})}
               >
                 Show all
@@ -205,7 +205,7 @@ export default function DataTable<T>({
                     type="checkbox"
                     checked={column.getIsVisible()}
                     onChange={column.getToggleVisibilityHandler()}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
                   />
                   {label}
                 </label>
@@ -225,7 +225,7 @@ export default function DataTable<T>({
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-semibold text-gray-600 bg-gray-50 select-none whitespace-nowrap relative group"
+                    className="px-3 py-2 text-left font-semibold text-gray-600 bg-primary-50 select-none whitespace-nowrap relative group"
                     style={{ width: header.getSize() }}
                   >
                     <span
@@ -248,7 +248,7 @@ export default function DataTable<T>({
                       onTouchStart={header.getResizeHandler()}
                       className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none ${
                         header.column.getIsResizing()
-                          ? "bg-indigo-500"
+                          ? "bg-primary-400"
                           : "bg-transparent group-hover:bg-gray-300"
                       }`}
                     />
@@ -258,10 +258,10 @@ export default function DataTable<T>({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
+            {table.getRowModel().rows.map((row, idx) => (
               <tr
                 key={row.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 ${onRowClick ? "cursor-pointer" : ""} ${getRowClassName ? getRowClassName(row.original) : ""}`}
+                className={`border-b border-gray-100 hover:bg-primary-50 ${idx % 2 === 1 ? "bg-row-alt" : ""} ${onRowClick ? "cursor-pointer" : ""} ${getRowClassName ? getRowClassName(row.original) : ""}`}
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (

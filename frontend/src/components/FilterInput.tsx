@@ -91,7 +91,7 @@ export default function FilterInput({
           placeholder={resolvedPlaceholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+          className={`w-full border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
             onExcludeChange ? "border-l-0" : "rounded-l-md"
           } ${onMatchModeChange ? "" : "rounded-r-md"} ${
             exclude ? "border-red-300" : "border-gray-300"
@@ -118,7 +118,7 @@ export default function FilterInput({
             matchMode === "contains"
               ? "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
               : matchMode === "exact"
-                ? "bg-indigo-600 text-white border-indigo-600"
+                ? "bg-primary-500 text-white border-primary-500"
                 : "bg-amber-500 text-white border-amber-500"
           }`}
           title={`${MODE_LABELS[matchMode]} match — click to cycle`}

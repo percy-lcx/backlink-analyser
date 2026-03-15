@@ -18,7 +18,7 @@ export default function DrDistribution({ data, maxCount, onBarClick, onViewAll }
           <Tooltip text={METRICS.dr_distribution.short}>DR Distribution</Tooltip>
         </h3>
         {onViewAll && (
-          <button onClick={onViewAll} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          <button onClick={onViewAll} className="text-xs text-primary-500 hover:text-primary-700 font-medium">
             View all &rarr;
           </button>
         )}

@@ -20,7 +20,7 @@ export default function FilterPanel({ children, activeCount, defaultOpen = true,
           <span className="flex items-center gap-2">
             Filters
             {activeCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+              <span className="inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
                 {activeCount} active
               </span>
             )}

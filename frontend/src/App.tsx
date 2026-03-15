@@ -83,7 +83,7 @@ function Dashboard() {
           {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
           <p className="text-sm mt-2">Ingest some backlink data first, then restart the backend.</p>
           <button
-            className="mt-4 px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="mt-4 px-3 py-1.5 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
             onClick={handleIngest}
             disabled={ingesting}
           >
@@ -146,7 +146,7 @@ function Dashboard() {
               key={t.key}
               className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === t.key
-                  ? "border-indigo-500 text-indigo-600"
+                  ? "border-primary-500 text-primary-500"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
               onClick={() => handleTabClick(t.key)}

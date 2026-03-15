@@ -12,7 +12,7 @@ export default function TopDomainsTable({ domains, onViewAll }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700">Top Referring Domains</h3>
         {onViewAll && (
-          <button onClick={onViewAll} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          <button onClick={onViewAll} className="text-xs text-primary-500 hover:text-primary-700 font-medium">
             View all &rarr;
           </button>
         )}
@@ -27,8 +27,8 @@ export default function TopDomainsTable({ domains, onViewAll }: Props) {
           </tr>
         </thead>
         <tbody>
-          {top.map((d) => (
-            <tr key={d.referring_domain} className="border-b border-gray-50 last:border-0">
+          {top.map((d, i) => (
+            <tr key={d.referring_domain} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-row-alt" : ""}`}>
               <td className="py-2 text-gray-800 truncate max-w-[200px]" title={d.referring_domain}>
                 {d.referring_domain}
               </td>
