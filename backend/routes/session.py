@@ -9,7 +9,7 @@ from session import get_or_create_session, get_filters, set_filters
 
 router = APIRouter()
 
-VALID_TABS = {"links", "anchors", "domains", "pages"}
+VALID_TABS = {"links", "anchors", "domains", "pages", "compare", "intersect"}
 
 
 class SaveFiltersBody(BaseModel):
