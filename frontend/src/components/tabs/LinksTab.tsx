@@ -71,7 +71,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
 
   // Apply drilldown from parent
-  const prevDrilldown = useRef(drilldown);
+  const prevDrilldown = useRef<LinksDrilldown | null | undefined>(undefined);
   useEffect(() => {
     if (drilldown === prevDrilldown.current) return;
     prevDrilldown.current = drilldown;
