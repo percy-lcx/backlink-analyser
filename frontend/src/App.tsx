@@ -165,8 +165,12 @@ function Dashboard() {
         {tab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
         {tab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
         {tab === "quality" && <QualityTab profile={selected} />}
-        {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
-        {tab === "intersect" && <IntersectTab onGapRowClick={handleGapRowClick} />}
+        <div style={{ display: tab === "compare" ? undefined : "none" }}>
+          <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
+        </div>
+        <div style={{ display: tab === "intersect" ? undefined : "none" }}>
+          <IntersectTab onGapRowClick={handleGapRowClick} />
+        </div>
         {tab === "broken" && <BrokenLinksTab />}
         {tab === "terminology" && <TerminologyTab />}
       </main>
