@@ -57,23 +57,13 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
   const [data, setData] = useState<IntersectResponse | null>(null);
   const [filterCount, setFilterCount] = useState<number | null>(null);
 
-  // Default base to first profile
+  // Default base to TMGM if available, otherwise first profile
   useEffect(() => {
     if (profiles.length > 0 && !baseProfile) {
-      setBaseProfile(profiles[0].profile_label);
+      const tmgm = profiles.find((p) => p.profile_label === "TMGM");
+      setBaseProfile(tmgm ? tmgm.profile_label : profiles[0].profile_label);
     }
   }, [profiles, baseProfile]);
-
-  // Default competitors to all other profiles
-  useEffect(() => {
-    if (baseProfile && profiles.length > 1 && selectedCompetitors.length === 0) {
-      setSelectedCompetitors(
-        profiles
-          .filter((p) => p.profile_label !== baseProfile)
-          .map((p) => p.profile_label),
-      );
-    }
-  }, [baseProfile, profiles, selectedCompetitors.length]);
 
   // Clear competitors that match new base
   useEffect(() => {
@@ -229,9 +219,27 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
 
         {/* Competitor checkboxes */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">
-            Competitors
-          </label>
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-xs font-medium text-gray-500">
+              Competitors
+            </label>
+            <button
+              className="text-xs text-indigo-600 hover:text-indigo-800"
+              onClick={() => {
+                const others = profiles
+                  .filter((p) => p.profile_label !== baseProfile)
+                  .map((p) => p.profile_label);
+                setSelectedCompetitors(
+                  selectedCompetitors.length === others.length ? [] : others,
+                );
+              }}
+            >
+              {selectedCompetitors.length ===
+              profiles.filter((p) => p.profile_label !== baseProfile).length
+                ? "Clear"
+                : "Select all"}
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {profiles
               .filter((p) => p.profile_label !== baseProfile)
