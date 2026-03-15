@@ -691,8 +691,12 @@ function Dashboard() {
                 <AlertCard
                   label="Redirect Issues"
                   value={ovRedirects ? ovRedirects.total_with_redirects.toLocaleString() : "—"}
-                  subtitle={ovRedirects ? `${ovRedirects.pct_with_redirects.toFixed(1)}% of links` : undefined}
-                  status={!ovRedirects || ovRedirects.total_with_redirects === 0 ? "ok" : ovRedirects.pct_with_redirects > 10 ? "danger" : "warning"}
+                  subtitle={ovRedirects && overview.total_backlinks ? `${((ovRedirects.total_with_redirects / overview.total_backlinks) * 100).toFixed(1)}% of links` : undefined}
+                  status={(() => {
+                    if (!ovRedirects || ovRedirects.total_with_redirects === 0) return "ok";
+                    const pct = overview.total_backlinks ? (ovRedirects.total_with_redirects / overview.total_backlinks) * 100 : 0;
+                    return pct > 10 ? "danger" : "warning";
+                  })()}
                   tooltip={METRICS.redirect_alert.short}
                 />
                 <AlertCard
