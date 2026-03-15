@@ -256,6 +256,27 @@ export interface IntersectResponse {
   domains: IntersectDomain[];
 }
 
+export interface BrokenLinksSummary {
+  total_broken: number;
+  count_4xx: number;
+  count_5xx: number;
+  unique_domains_affected: number;
+}
+
+export interface HttpCodeBucket {
+  http_code: number;
+  count: number;
+}
+
+export interface BrokenLinksResponse {
+  summary: BrokenLinksSummary;
+  distribution: HttpCodeBucket[];
+  items: LinkRecord[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 /* ---- Endpoints (matching actual backend routes) ---- */
 
 export interface LinkParams {
@@ -379,6 +400,26 @@ export function fetchLinkIntersect(
 
 export function fetchTargetPaths(profile: string): Promise<TargetPath[]> {
   return get<TargetPath[]>(`${BASE}/target-paths`, { profile });
+}
+
+export function fetchBrokenLinks(
+  profile: string,
+  params?: {
+    page?: number;
+    per_page?: number;
+    sort?: string;
+    domain_search?: string;
+    domain_mode?: string;
+    domain_exclude?: boolean;
+    http_code?: string;
+    dr_min?: number;
+    dr_max?: number;
+  },
+): Promise<BrokenLinksResponse> {
+  return get<BrokenLinksResponse>(`${BASE}/broken-links`, {
+    profile,
+    ...params,
+  } as Record<string, string | number | boolean | undefined>);
 }
 
 export function triggerIngest(): Promise<{ status: string }> {

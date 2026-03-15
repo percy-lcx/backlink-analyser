@@ -9,6 +9,7 @@ import TopPagesChart from "./components/charts/TopPagesChart";
 import CompareTab from "./components/CompareTab";
 import IntersectTab from "./components/IntersectTab";
 import TerminologyTab from "./components/TerminologyTab";
+import BrokenLinksTab from "./components/BrokenLinksTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
 import FilterInput from "./components/FilterInput";
@@ -143,7 +144,7 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "terminology";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -498,6 +499,7 @@ function Dashboard() {
     { key: "quality", label: "Quality" },
     { key: "compare", label: "Compare" },
     { key: "intersect", label: "Intersect" },
+    { key: "broken", label: "Broken Links" },
     { key: "terminology", label: "Terminology" },
   ];
 
@@ -950,6 +952,8 @@ function Dashboard() {
         {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
 
         {tab === "intersect" && <IntersectTab onGapRowClick={handleGapRowClick} />}
+
+        {tab === "broken" && <BrokenLinksTab />}
 
         {tab === "terminology" && <TerminologyTab />}
       </main>
