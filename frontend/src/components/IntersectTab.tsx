@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useProfile } from "./ProfileContext";
 import DataTable from "./tables/DataTable";
+import ExportButton from "./tables/ExportButton";
 import {
   fetchLinkIntersect,
   type IntersectDomain,
@@ -436,15 +437,31 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
 
           {/* Domain table */}
           <div className="bg-white rounded-lg shadow p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-1">
-              Gap Domains
-              {filterCount !== null && (
-                <span className="text-indigo-600 font-normal ml-2">
-                  (linking to {filterCount} competitor
-                  {filterCount > 1 ? "s" : ""})
-                </span>
-              )}
-            </h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Gap Domains
+                {filterCount !== null && (
+                  <span className="text-indigo-600 font-normal ml-2">
+                    (linking to {filterCount} competitor
+                    {filterCount > 1 ? "s" : ""})
+                  </span>
+                )}
+              </h3>
+              <ExportButton
+                data={filteredDomains.map((d) => {
+                  const row: Record<string, unknown> = {
+                    referring_domain: d.referring_domain,
+                    max_dr: d.max_dr,
+                    competitor_count: d.competitor_count,
+                  };
+                  data!.competitors.forEach((comp, i) => {
+                    row[comp] = d.competitor_flags[i] ? "Yes" : "No";
+                  });
+                  return row;
+                })}
+                filename="intersect-domains.csv"
+              />
+            </div>
             <p className="text-xs text-gray-400 mb-3">
               Referring domains linking to competitors but not to{" "}
               <strong>{baseProfile}</strong>. Sorted by intersection count, then
