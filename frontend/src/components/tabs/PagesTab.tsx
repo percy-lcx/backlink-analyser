@@ -45,6 +45,13 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
 
   const setPathFilterCb = useCallback((v: string | null) => setPathFilter(v), []);
 
+  const clearFilters = useCallback(() => {
+    setPathInput(""); setPathFilter(null); setPathExclude(false); setPathMode("contains");
+    setCategoryFilter(""); setLinksMin(""); setLinksMax("");
+    setDomainsMin(""); setDomainsMax(""); setDrMin(""); setDrMax("");
+    setDofollowMin(""); setDofollowMax("");
+  }, []);
+
   // Session filter persistence
   const getFilters = useCallback(() => ({
     pathInput, pathMode, pathExclude: String(pathExclude),
@@ -121,7 +128,7 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
 
   return (
     <div>
-      <FilterPanel activeCount={activeCount}>
+      <FilterPanel activeCount={activeCount} onClear={clearFilters}>
         <FilterGroup label="Search">
           <FilterInput
             value={pathInput}

@@ -36,6 +36,12 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
 
   const setDomainSearchCb = useCallback((v: string | null) => setDomainSearch(v), []);
 
+  const clearFilters = useCallback(() => {
+    setDomainInput(""); setDomainSearch(null); setDomainMode("contains"); setDomainExclude(false);
+    setDrMin(""); setDrMax(""); setTrafficMin(""); setTrafficMax("");
+    setLinksMin(""); setLinksMax(""); setSitewideFilter("");
+  }, []);
+
   // Session filter persistence
   const getFilters = useCallback(() => ({
     domainInput, domainMode, domainExclude: String(domainExclude),
@@ -90,7 +96,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
 
   return (
     <div>
-      <FilterPanel activeCount={activeCount}>
+      <FilterPanel activeCount={activeCount} onClear={clearFilters}>
         <div className="flex items-center gap-3 flex-wrap">
           <FilterInput
             value={domainInput}

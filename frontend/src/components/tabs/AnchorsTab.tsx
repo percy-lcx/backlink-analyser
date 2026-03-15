@@ -32,6 +32,11 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
 
   const setSearchFilterCb = useCallback((v: string | null) => setSearchFilter(v), []);
 
+  const clearFilters = useCallback(() => {
+    setSearchInput(""); setSearchFilter(null); setSearchMode("contains"); setSearchExclude(false);
+    setCategoryFilter(""); setCountMin(""); setCountMax("");
+  }, []);
+
   // Session filter persistence
   const getFilters = useCallback(() => ({
     searchInput, searchMode, searchExclude: String(searchExclude),
@@ -82,7 +87,7 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
 
   return (
     <div>
-      <FilterPanel activeCount={activeCount}>
+      <FilterPanel activeCount={activeCount} onClear={clearFilters}>
         <div className="flex items-center gap-3 flex-wrap">
           <FilterInput
             value={searchInput}
