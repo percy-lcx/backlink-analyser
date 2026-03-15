@@ -57,11 +57,10 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
   const [data, setData] = useState<IntersectResponse | null>(null);
   const [filterCount, setFilterCount] = useState<number | null>(null);
 
-  // Default base to TMGM if available, otherwise first profile
+  // Default base to first profile
   useEffect(() => {
     if (profiles.length > 0 && !baseProfile) {
-      const tmgm = profiles.find((p) => p.profile_label === "TMGM");
-      setBaseProfile(tmgm ? tmgm.profile_label : profiles[0].profile_label);
+      setBaseProfile(profiles[0].profile_label);
     }
   }, [profiles, baseProfile]);
 
