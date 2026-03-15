@@ -464,7 +464,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
 
           {/* Domain table */}
           <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex items-center justify-between mb-1">
+            <div className="mb-1">
               <h3 className="text-sm font-semibold text-gray-700">
                 Gap Domains
                 {filterCount !== null && (
@@ -474,20 +474,6 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                   </span>
                 )}
               </h3>
-              <ExportButton
-                data={filteredDomains.map((d) => {
-                  const row: Record<string, unknown> = {
-                    referring_domain: d.referring_domain,
-                    max_dr: d.max_dr,
-                    competitor_count: d.competitor_count,
-                  };
-                  data!.competitors.forEach((comp, i) => {
-                    row[comp] = d.competitor_flags[i] ? "Yes" : "No";
-                  });
-                  return row;
-                })}
-                filename="intersect-domains.csv"
-              />
             </div>
             <p className="text-xs text-gray-400 mb-3">
               Referring domains linking to competitors but not to{" "}
@@ -503,6 +489,22 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                   ? (row) =>
                       onGapRowClick(baseProfile, row.referring_domain)
                   : undefined
+              }
+              toolbar={
+                <ExportButton
+                  data={filteredDomains.map((d) => {
+                    const row: Record<string, unknown> = {
+                      referring_domain: d.referring_domain,
+                      max_dr: d.max_dr,
+                      competitor_count: d.competitor_count,
+                    };
+                    data!.competitors.forEach((comp, i) => {
+                      row[comp] = d.competitor_flags[i] ? "Yes" : "No";
+                    });
+                    return row;
+                  })}
+                  filename="intersect-domains.csv"
+                />
               }
             />
           </div>
