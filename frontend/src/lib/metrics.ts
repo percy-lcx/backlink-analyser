@@ -299,6 +299,32 @@ export const METRICS: Record<string, MetricDef> = {
     category: "Compare",
   },
 
+  // ── Overview Health ──────────────────────────────────────
+  broken_links_alert: {
+    label: "Broken Links",
+    short: "Backlinks returning HTTP 4xx/5xx errors.",
+    full: "The number of backlinks that return HTTP error status codes (4xx client errors or 5xx server errors). Broken links waste link equity and provide a poor user experience. Fixing broken incoming links by setting up redirects or reaching out to webmasters can recover lost SEO value.",
+    category: "Overview",
+  },
+  sitewide_alert: {
+    label: "Sitewide Links",
+    short: "Links appearing across an entire referring site.",
+    full: "Links that appear on most or all pages of a referring domain (e.g., footer, sidebar, header). While they generate high volume, each individual sitewide link carries reduced value. A high sitewide ratio can indicate unnatural link patterns.",
+    category: "Overview",
+  },
+  redirect_alert: {
+    label: "Redirect Issues",
+    short: "Backlinks passing through redirects.",
+    full: "The number of backlinks that pass through one or more redirects before reaching the target page. Redirect chains dilute link equity and slow page load times. Fixing redirect issues can improve both SEO value and user experience.",
+    category: "Overview",
+  },
+  anchor_categories: {
+    label: "Anchor Categories",
+    short: "Distribution of anchor text types across all backlinks.",
+    full: "A donut chart showing the proportion of anchor text categories: branded, exact-match, partial-match, generic, image, naked URL, and other. A natural profile has diverse categories with branded anchors dominating. Excessive exact-match anchors (>40%) may trigger algorithmic penalties.",
+    category: "Overview",
+  },
+
   // ── Charts ────────────────────────────────────────────────
   dr_distribution: {
     label: "DR Distribution",
