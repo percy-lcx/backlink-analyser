@@ -25,23 +25,23 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const [linkPage, setLinkPage] = useState(0);
   const [linkPageSize, setLinkPageSize] = useState(100);
 
-  // Text filters
-  const [targetPathInput, setTargetPathInput] = useState("");
-  const [drilldownPath, setDrilldownPath] = useState<string | null>(null);
+  // Text filters – initialise from drilldown so the first fetch is already filtered
+  const [targetPathInput, setTargetPathInput] = useState(drilldown?.targetPath ?? "");
+  const [drilldownPath, setDrilldownPath] = useState<string | null>(drilldown?.targetPath ?? null);
   const [targetPathExclude, setTargetPathExclude] = useState(false);
-  const [targetPathMode, setTargetPathMode] = useState<MatchMode>("contains");
-  const [domainInput, setDomainInput] = useState("");
-  const [domainFilter, setDomainFilter] = useState<string | null>(null);
+  const [targetPathMode, setTargetPathMode] = useState<MatchMode>(drilldown?.targetPathMode ?? "contains");
+  const [domainInput, setDomainInput] = useState(drilldown?.domain ?? "");
+  const [domainFilter, setDomainFilter] = useState<string | null>(drilldown?.domain ?? null);
   const [domainExclude, setDomainExclude] = useState(false);
-  const [domainMode, setDomainMode] = useState<MatchMode>("contains");
+  const [domainMode, setDomainMode] = useState<MatchMode>(drilldown?.domainMode ?? "contains");
   const [urlInput, setUrlInput] = useState("");
   const [urlFilter, setUrlFilter] = useState<string | null>(null);
   const [urlExclude, setUrlExclude] = useState(false);
   const [urlMode, setUrlMode] = useState<MatchMode>("contains");
-  const [anchorInput, setAnchorInput] = useState("");
-  const [anchorFilter, setAnchorFilter] = useState<string | null>(null);
+  const [anchorInput, setAnchorInput] = useState(drilldown?.anchor ?? "");
+  const [anchorFilter, setAnchorFilter] = useState<string | null>(drilldown?.anchor ?? null);
   const [anchorExclude, setAnchorExclude] = useState(false);
-  const [anchorMode, setAnchorMode] = useState<MatchMode>("contains");
+  const [anchorMode, setAnchorMode] = useState<MatchMode>(drilldown?.anchorMode ?? "contains");
 
   // Property filters
   const [linkTypeFilter, setLinkTypeFilter] = useState("");
@@ -55,8 +55,8 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const httpCodeFilterKey = httpCodeFilter.join(",");
 
   // Range filters
-  const [drMin, setDrMin] = useState("");
-  const [drMax, setDrMax] = useState("");
+  const [drMin, setDrMin] = useState(drilldown?.drMin ?? "");
+  const [drMax, setDrMax] = useState(drilldown?.drMax ?? "");
   const [trafficMin, setTrafficMin] = useState("");
   const [trafficMax, setTrafficMax] = useState("");
   const [firstSeenFrom, setFirstSeenFrom] = useState("");
@@ -71,7 +71,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
 
   // Apply drilldown from parent
-  const prevDrilldown = useRef<LinksDrilldown | null | undefined>(undefined);
+  const prevDrilldown = useRef(drilldown);
   useEffect(() => {
     if (drilldown === prevDrilldown.current) return;
     prevDrilldown.current = drilldown;
