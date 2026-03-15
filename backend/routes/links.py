@@ -55,6 +55,11 @@ def list_links(
     target_path_exact: Optional[bool] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
     target_path_mode: Optional[str] = Query(None),
+    lost_date_from: Optional[str] = Query(None),
+    lost_date_to: Optional[str] = Query(None),
+    lost_status_search: Optional[str] = Query(None),
+    lost_status_exclude: Optional[bool] = Query(None),
+    lost_status_mode: Optional[str] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -140,6 +145,23 @@ def list_links(
             conditions, params, idx, "referring_url", url_search,
             mode=url_mode or "contains",
             exclude=bool(url_exclude),
+        )
+
+    if lost_date_from is not None:
+        conditions.append(f"lost_date >= ${idx}")
+        params.append(lost_date_from)
+        idx += 1
+
+    if lost_date_to is not None:
+        conditions.append(f"lost_date <= ${idx}")
+        params.append(lost_date_to)
+        idx += 1
+
+    if lost_status_search is not None:
+        idx = apply_text_filter(
+            conditions, params, idx, "lost_status", lost_status_search,
+            mode=lost_status_mode or "contains",
+            exclude=bool(lost_status_exclude),
         )
 
     if target_path_search is not None:

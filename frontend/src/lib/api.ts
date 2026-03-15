@@ -288,6 +288,11 @@ export interface LinkParams {
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
   target_path_mode?: string;
+  lost_date_from?: string;
+  lost_date_to?: string;
+  lost_status_search?: string;
+  lost_status_exclude?: boolean;
+  lost_status_mode?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
