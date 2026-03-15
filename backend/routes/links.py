@@ -18,6 +18,7 @@ SORTABLE_COLUMNS = {
     "link_type",
     "http_code",
     "is_nofollow",
+    "is_sponsored",
     "is_spam",
 }
 
@@ -29,7 +30,10 @@ def list_links(
     per_page: int = Query(100, ge=1, le=1000),
     sort: str = Query("domain_rating:desc"),
     is_nofollow: Optional[bool] = Query(None),
+    is_sponsored: Optional[bool] = Query(None),
     is_spam: Optional[bool] = Query(None),
+    http_code_min: Optional[int] = Query(None),
+    http_code_max: Optional[int] = Query(None),
     link_type: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
@@ -61,6 +65,21 @@ def list_links(
     if is_nofollow is not None:
         conditions.append(f"is_nofollow = ${idx}")
         params.append(is_nofollow)
+        idx += 1
+
+    if is_sponsored is not None:
+        conditions.append(f"is_sponsored = ${idx}")
+        params.append(is_sponsored)
+        idx += 1
+
+    if http_code_min is not None:
+        conditions.append(f"http_code >= ${idx}")
+        params.append(http_code_min)
+        idx += 1
+
+    if http_code_max is not None:
+        conditions.append(f"http_code <= ${idx}")
+        params.append(http_code_max)
         idx += 1
 
     if is_spam is not None:
