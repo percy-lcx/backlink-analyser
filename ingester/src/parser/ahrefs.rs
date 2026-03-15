@@ -76,12 +76,10 @@ struct AhrefsColumns {
     is_sponsored: Option<usize>,
     is_rendered: Option<usize>,
     is_raw: Option<usize>,
-    lost_status: Option<usize>,
     drop_reason: Option<usize>,
     discovered_status: Option<usize>,
     first_seen: Option<usize>,
     last_seen: Option<usize>,
-    lost_date: Option<usize>,
     author: Option<usize>,
     page_type: Option<usize>,
     page_category: Option<usize>,
@@ -133,12 +131,10 @@ impl AhrefsColumns {
             is_sponsored: find("Sponsored").or_else(|| find("Is sponsored")),
             is_rendered: find("Rendered").or_else(|| find("Is rendered")),
             is_raw: find("Raw").or_else(|| find("Is raw")),
-            lost_status: find("Lost status"),
             drop_reason: find("Drop reason"),
             discovered_status: find("Discovered status"),
             first_seen: find("First seen"),
             last_seen: find("Last seen"),
-            lost_date: find("Lost date").or_else(|| find("Lost")),
             author: find("Author"),
             page_type: find("Page type"),
             page_category: find("Page category"),
@@ -194,8 +190,6 @@ pub fn parse_ahrefs_file(
 
         let first_seen_str = cols.get(&row, cols.first_seen);
         let last_seen_str = cols.get(&row, cols.last_seen);
-        let lost_date_str = cols.get(&row, cols.lost_date);
-
         records.push(BacklinkRecord {
             referring_page_title: cols.get(&row, cols.referring_page_title).to_string(),
             referring_url,
@@ -227,12 +221,10 @@ pub fn parse_ahrefs_file(
             is_sponsored: parse_bool(cols.get(&row, cols.is_sponsored)),
             is_rendered: parse_bool(cols.get(&row, cols.is_rendered)),
             is_raw: parse_bool(cols.get(&row, cols.is_raw)),
-            lost_status: cols.get(&row, cols.lost_status).to_string(),
             drop_reason: cols.get(&row, cols.drop_reason).to_string(),
             discovered_status: cols.get(&row, cols.discovered_status).to_string(),
             first_seen: parse_datetime(first_seen_str).unwrap_or_else(default_datetime),
             last_seen: parse_datetime(last_seen_str).unwrap_or_else(default_datetime),
-            lost_date: parse_datetime(lost_date_str),
             author: cols.get(&row, cols.author).to_string(),
             page_type: cols.get(&row, cols.page_type).to_string(),
             page_category: cols.get(&row, cols.page_category).to_string(),

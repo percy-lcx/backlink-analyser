@@ -138,19 +138,6 @@ export const METRICS: Record<string, MetricDef> = {
     full: "The date when the backlink was first detected by the crawler. This helps track link acquisition over time, identify link building campaigns, and understand the velocity at which new backlinks are being gained.",
     category: "Links",
   },
-  lost_date: {
-    label: "Lost",
-    short: "Date when the backlink was lost.",
-    full: "The date when the backlink was no longer detected by the crawler. A null value means the link is still active.",
-    category: "Links",
-  },
-  lost_status: {
-    label: "Lost Status",
-    short: "Reason the backlink was lost.",
-    full: "Indicates why the backlink was lost, such as the page being removed, the link being dropped, or a redirect change.",
-    category: "Links",
-  },
-
   // ── Domains ───────────────────────────────────────────────
   domain: {
     label: "Domain",
@@ -308,8 +295,8 @@ export const METRICS: Record<string, MetricDef> = {
   },
   link_velocity: {
     label: "Link Velocity",
-    short: "Rate of new and lost backlinks over time.",
-    full: "A line chart tracking the number of new backlinks gained, links lost, and the net change over successive time periods. Positive net velocity indicates growing link momentum. Sudden spikes may indicate viral content or link building campaigns, while drops may signal content removal or link cleanup.",
+    short: "Rate of new backlinks over time.",
+    full: "A line chart tracking the number of new backlinks gained over successive time periods. Sudden spikes may indicate viral content or link building campaigns.",
     category: "Charts",
   },
   profile_comparison: {

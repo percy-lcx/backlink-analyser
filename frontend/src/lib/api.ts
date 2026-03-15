@@ -67,8 +67,6 @@ export interface LinkRecord {
   domain_traffic: number;
   first_seen: string;
   last_seen: string;
-  lost_date: string | null;
-  lost_status: string;
 }
 
 export interface LinksResponse {
@@ -141,8 +139,6 @@ export interface DrDistributionResponse {
 export interface VelocityPoint {
   period: string;
   new_count: number;
-  lost_count: number;
-  net: number;
 }
 
 export interface PageRow {
@@ -312,9 +308,6 @@ export interface LinkParams {
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
   target_path_mode?: string;
-  lost_date_from?: string;
-  lost_date_to?: string;
-  lost_status?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
@@ -331,10 +324,6 @@ export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksR
 
 export function fetchHttpCodes(profile: string): Promise<{ codes: number[] }> {
   return get<{ codes: number[] }>(`${BASE}/http-codes`, { profile });
-}
-
-export function fetchLostStatuses(profile: string): Promise<{ statuses: string[] }> {
-  return get<{ statuses: string[] }>(`${BASE}/lost-statuses`, { profile });
 }
 
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
