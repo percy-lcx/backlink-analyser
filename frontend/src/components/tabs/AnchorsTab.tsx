@@ -5,6 +5,7 @@ import {
   type MatchMode,
   type LinksDrilldown,
 } from "../../lib/api";
+import { useSessionFilters } from "../../lib/useSessionFilters";
 import { anchorColumns } from "../../lib/columns";
 import DataTable from "../tables/DataTable";
 import ExportButton from "../tables/ExportButton";
@@ -31,7 +32,28 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
 
   const setSearchFilterCb = useCallback((v: string | null) => setSearchFilter(v), []);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    searchInput, searchMode, searchExclude: String(searchExclude),
+    categoryFilter, countMin, countMax,
+  }), [searchInput, searchMode, searchExclude, categoryFilter, countMin, countMax]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.searchInput) { setSearchInput(f.searchInput); setSearchFilter(f.searchInput); }
+    if (f.searchMode) setSearchMode(f.searchMode as MatchMode);
+    if (f.searchExclude) setSearchExclude(f.searchExclude === "true");
+    if (f.categoryFilter) setCategoryFilter(f.categoryFilter);
+    if (f.countMin) setCountMin(f.countMin);
+    if (f.countMax) setCountMax(f.countMax);
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    profile, "anchors", getFilters, applyFilters,
+  );
+
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     setLoading(true);
     const params: Record<string, string | number | boolean | undefined> = {};
     if (searchFilter) {
@@ -50,7 +72,7 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
       })
       .catch(() => setAnchors([]))
       .finally(() => setLoading(false));
-  }, [profile, searchFilter, searchMode, searchExclude, categoryFilter, countMin, countMax]);
+  }, [profile, searchFilter, searchMode, searchExclude, categoryFilter, countMin, countMax, sessionLoaded, saveSession]);
 
   const handleRowClick = (row: AnchorRecord) => {
     onDrilldown({ anchor: row.anchor });

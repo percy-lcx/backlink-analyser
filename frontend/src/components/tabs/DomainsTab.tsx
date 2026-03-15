@@ -5,6 +5,7 @@ import {
   type MatchMode,
   type LinksDrilldown,
 } from "../../lib/api";
+import { useSessionFilters } from "../../lib/useSessionFilters";
 import { domainColumns } from "../../lib/columns";
 import DataTable from "../tables/DataTable";
 import ExportButton from "../tables/ExportButton";
@@ -35,7 +36,32 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
 
   const setDomainSearchCb = useCallback((v: string | null) => setDomainSearch(v), []);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    domainInput, domainMode, domainExclude: String(domainExclude),
+    drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter,
+  }), [domainInput, domainMode, domainExclude, drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.domainInput) { setDomainInput(f.domainInput); setDomainSearch(f.domainInput); }
+    if (f.domainMode) setDomainMode(f.domainMode as MatchMode);
+    if (f.domainExclude) setDomainExclude(f.domainExclude === "true");
+    if (f.drMin) setDrMin(f.drMin);
+    if (f.drMax) setDrMax(f.drMax);
+    if (f.trafficMin) setTrafficMin(f.trafficMin);
+    if (f.trafficMax) setTrafficMax(f.trafficMax);
+    if (f.linksMin) setLinksMin(f.linksMin);
+    if (f.linksMax) setLinksMax(f.linksMax);
+    if (f.sitewideFilter) setSitewideFilter(f.sitewideFilter);
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    profile, "domains", getFilters, applyFilters,
+  );
+
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     setLoading(true);
     const params: Record<string, string | number | boolean | undefined> = {};
     if (domainSearch) {
@@ -54,7 +80,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
       .then(setDomains)
       .catch(() => setDomains([]))
       .finally(() => setLoading(false));
-  }, [profile, domainSearch, domainMode, domainExclude, drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter]);
+  }, [profile, domainSearch, domainMode, domainExclude, drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter, sessionLoaded, saveSession]);
 
   const handleRowClick = (row: ReferringDomain) => {
     onDrilldown({ domain: row.referring_domain });

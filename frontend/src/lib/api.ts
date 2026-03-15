@@ -438,3 +438,27 @@ export function fetchBrokenLinks(
 export function triggerIngest(): Promise<{ status: string }> {
   return post<{ status: string }>(`${BASE}/ingest`);
 }
+
+/* ---- Session filters ---- */
+
+export function loadSessionFilters(
+  profile: string,
+  tab: string,
+): Promise<{ filters: Record<string, string> }> {
+  return get<{ filters: Record<string, string> }>(
+    `${BASE}/session/filters`,
+    { profile, tab },
+  );
+}
+
+export function saveSessionFilters(
+  profile: string,
+  tab: string,
+  filters: Record<string, string>,
+): Promise<{ status: string }> {
+  return post<{ status: string }>(`${BASE}/session/filters`, {
+    profile,
+    tab,
+    filters,
+  });
+}
