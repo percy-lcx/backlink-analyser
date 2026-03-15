@@ -263,7 +263,10 @@ export interface LinkParams {
   per_page?: number;
   sort?: string;
   is_nofollow?: boolean;
+  is_sponsored?: boolean;
   is_spam?: boolean;
+  http_code_min?: number;
+  http_code_max?: number;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
