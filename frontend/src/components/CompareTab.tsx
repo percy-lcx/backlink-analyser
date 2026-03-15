@@ -21,6 +21,7 @@ const gapColumns: ColumnDef<LinkGapDomain, unknown>[] = [
   { accessorKey: "referring_domain", header: "Referring Domain", size: 400, meta: { tooltip: METRICS.referring_domain.short } },
   { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
   { accessorKey: "total_links", header: "Links", meta: { tooltip: METRICS.links.short } },
+  { accessorKey: "total_page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
 ];
 
 interface MetricRow {
