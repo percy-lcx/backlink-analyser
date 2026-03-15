@@ -37,7 +37,7 @@ export default function FilterPanel({ children, activeCount, defaultOpen = true,
         {activeCount > 0 && onClear && (
           <button
             onClick={onClear}
-            className="mr-3 px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            className="mr-3 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
           >
             Clear filters
           </button>
