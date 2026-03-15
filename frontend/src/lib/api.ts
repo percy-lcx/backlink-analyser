@@ -24,6 +24,19 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---- Types ---- */
 
+export type MatchMode = "contains" | "exact" | "regex";
+
+export interface LinksDrilldown {
+  domain?: string;
+  domainMode?: MatchMode;
+  anchor?: string;
+  anchorMode?: MatchMode;
+  targetPath?: string;
+  targetPathMode?: MatchMode;
+  drMin?: string;
+  drMax?: string;
+}
+
 export interface Profile {
   profile_label: string;
   total_links: number;
@@ -53,6 +66,7 @@ export interface LinkRecord {
   target_url: string;
   target_path: string;
   anchor: string;
+  http_code: number;
   is_nofollow: boolean;
   is_ugc: boolean;
   is_sponsored: boolean;
@@ -87,6 +101,8 @@ export interface AnchorRecord {
 
 export interface AnchorParams {
   anchor_search?: string;
+  anchor_mode?: string;
+  anchor_exclude?: boolean;
   category?: string;
   count_min?: number;
   count_max?: number;
@@ -110,6 +126,8 @@ export interface ReferringDomain {
 export interface ReferringDomainParams {
   sort?: string;
   domain_search?: string;
+  domain_mode?: string;
+  domain_exclude?: boolean;
   dr_min?: number;
   dr_max?: number;
   traffic_min?: number;
@@ -132,8 +150,6 @@ export interface DrDistributionResponse {
 export interface VelocityPoint {
   period: string;
   new_count: number;
-  lost_count: number;
-  net: number;
 }
 
 export interface PageRow {
@@ -143,6 +159,21 @@ export interface PageRow {
   unique_referring_domains: number;
   avg_dr: number;
   dofollow_ratio: number;
+}
+
+export interface PageBreakdownParams {
+  target_path_search?: string;
+  target_path_exclude?: boolean;
+  target_path_mode?: string;
+  category?: string;
+  link_count_min?: number;
+  link_count_max?: number;
+  ref_domains_min?: number;
+  ref_domains_max?: number;
+  avg_dr_min?: number;
+  avg_dr_max?: number;
+  dofollow_min?: number;
+  dofollow_max?: number;
 }
 
 export interface PageBreakdownResponse {
@@ -220,6 +251,45 @@ export interface RedirectSummary {
   items: RedirectInfo[];
 }
 
+export interface IntersectDomain {
+  referring_domain: string;
+  max_dr: number;
+  competitor_flags: boolean[];
+  competitor_count: number;
+}
+
+export interface IntersectSummary {
+  count: number;
+  domains: number;
+}
+
+export interface IntersectResponse {
+  competitors: string[];
+  summary: IntersectSummary[];
+  domains: IntersectDomain[];
+}
+
+export interface BrokenLinksSummary {
+  total_broken: number;
+  count_4xx: number;
+  count_5xx: number;
+  unique_domains_affected: number;
+}
+
+export interface HttpCodeBucket {
+  http_code: number;
+  count: number;
+}
+
+export interface BrokenLinksResponse {
+  summary: BrokenLinksSummary;
+  distribution: HttpCodeBucket[];
+  items: LinkRecord[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 /* ---- Endpoints (matching actual backend routes) ---- */
 
 export interface LinkParams {
@@ -227,23 +297,29 @@ export interface LinkParams {
   per_page?: number;
   sort?: string;
   is_nofollow?: boolean;
+  is_sponsored?: boolean;
   is_spam?: boolean;
+  http_code?: string;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
   anchor_search?: string;
   anchor_exclude?: boolean;
+  anchor_mode?: string;
   traffic_min?: number;
   traffic_max?: number;
   first_seen_from?: string;
   first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
+  domain_mode?: string;
   url_search?: string;
   url_exclude?: boolean;
+  url_mode?: string;
   target_path_search?: string;
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
+  target_path_mode?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
@@ -256,6 +332,10 @@ export function fetchOverview(profile: string): Promise<OverviewData> {
 
 export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksResponse> {
   return get<LinksResponse>(`${BASE}/links`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
+}
+
+export function fetchHttpCodes(profile: string): Promise<{ codes: number[] }> {
+  return get<{ codes: number[] }>(`${BASE}/http-codes`, { profile });
 }
 
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
@@ -282,8 +362,8 @@ export function fetchVelocity(profile: string, interval?: string): Promise<Veloc
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
-export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
-  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile });
+export function fetchPageBreakdown(profile: string, params?: PageBreakdownParams): Promise<PageBreakdownResponse> {
+  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
@@ -319,8 +399,40 @@ export function fetchLinkGap(
   });
 }
 
+export function fetchLinkIntersect(
+  base: string,
+  competitors: string[],
+  minDr?: number,
+): Promise<IntersectResponse> {
+  return get<IntersectResponse>(`${BASE}/link-intersect`, {
+    base,
+    competitors: competitors.join(","),
+    min_dr: minDr,
+  });
+}
+
 export function fetchTargetPaths(profile: string): Promise<TargetPath[]> {
   return get<TargetPath[]>(`${BASE}/target-paths`, { profile });
+}
+
+export function fetchBrokenLinks(
+  profile: string,
+  params?: {
+    page?: number;
+    per_page?: number;
+    sort?: string;
+    domain_search?: string;
+    domain_mode?: string;
+    domain_exclude?: boolean;
+    http_code?: string;
+    dr_min?: number;
+    dr_max?: number;
+  },
+): Promise<BrokenLinksResponse> {
+  return get<BrokenLinksResponse>(`${BASE}/broken-links`, {
+    profile,
+    ...params,
+  } as Record<string, string | number | boolean | undefined>);
 }
 
 export function triggerIngest(): Promise<{ status: string }> {

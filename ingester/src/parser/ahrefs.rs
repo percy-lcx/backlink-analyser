@@ -1,7 +1,8 @@
-use crate::normalize::{extract_domain, extract_path, BacklinkRecord};
+use crate::normalize::{extract_domain, extract_domain_and_path, BacklinkRecord};
 use crate::parser::detector::Delimiter;
 use anyhow::Result;
 use chrono::NaiveDateTime;
+use std::collections::HashMap;
 use std::path::Path;
 
 fn parse_bool(val: &str) -> bool {
@@ -34,6 +35,7 @@ fn parse_datetime(val: &str) -> Option<NaiveDateTime> {
     // Try common Ahrefs formats
     NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S")
         .or_else(|_| NaiveDateTime::parse_from_str(val, "%Y-%m-%d %H:%M:%S"))
+        .or_else(|_| NaiveDateTime::parse_from_str(val, "%m/%d/%Y %H:%M"))
         .or_else(|_| {
             chrono::NaiveDate::parse_from_str(val, "%Y-%m-%d")
                 .map(|d| d.and_hms_opt(0, 0, 0).unwrap())
@@ -74,12 +76,10 @@ struct AhrefsColumns {
     is_sponsored: Option<usize>,
     is_rendered: Option<usize>,
     is_raw: Option<usize>,
-    lost_status: Option<usize>,
     drop_reason: Option<usize>,
     discovered_status: Option<usize>,
     first_seen: Option<usize>,
     last_seen: Option<usize>,
-    lost_date: Option<usize>,
     author: Option<usize>,
     page_type: Option<usize>,
     page_category: Option<usize>,
@@ -88,12 +88,14 @@ struct AhrefsColumns {
 
 impl AhrefsColumns {
     fn from_headers(headers: &csv::StringRecord) -> Self {
+        // Build HashMap for O(1) lookups instead of O(h) linear search per column
+        let header_map: HashMap<String, usize> = headers
+            .iter()
+            .enumerate()
+            .map(|(i, h)| (h.trim().trim_matches('"').to_lowercase(), i))
+            .collect();
         let find = |name: &str| -> Option<usize> {
-            headers.iter().position(|h| {
-                h.trim()
-                    .trim_matches('"')
-                    .eq_ignore_ascii_case(name)
-            })
+            header_map.get(&name.to_lowercase()).copied()
         };
 
         AhrefsColumns {
@@ -101,7 +103,10 @@ impl AhrefsColumns {
             referring_url: find("Referring page URL").or_else(|| find("Referring page url")),
             language: find("Language"),
             platform: find("Platform"),
-            http_code: find("HTTP code"),
+            http_code: find("Referring page HTTP code")
+                .or_else(|| find("HTTP code"))
+                .or_else(|| find("Status code"))
+                .or_else(|| find("HTTP Status")),
             domain_rating: find("Domain rating").or_else(|| find("Domain Rating")),
             url_rating: find("URL rating").or_else(|| find("URL Rating").or_else(|| find("UR"))),
             domain_traffic: find("Domain traffic").or_else(|| find("Domain organic traffic")),
@@ -126,12 +131,10 @@ impl AhrefsColumns {
             is_sponsored: find("Sponsored").or_else(|| find("Is sponsored")),
             is_rendered: find("Rendered").or_else(|| find("Is rendered")),
             is_raw: find("Raw").or_else(|| find("Is raw")),
-            lost_status: find("Lost status"),
             drop_reason: find("Drop reason"),
             discovered_status: find("Discovered status"),
             first_seen: find("First seen"),
             last_seen: find("Last seen"),
-            lost_date: find("Lost date"),
             author: find("Author"),
             page_type: find("Page type"),
             page_category: find("Page category"),
@@ -183,13 +186,10 @@ pub fn parse_ahrefs_file(
         let target_url = cols.get(&row, cols.target_url).to_string();
 
         let referring_domain = extract_domain(&referring_url);
-        let target_domain = extract_domain(&target_url);
-        let target_path = extract_path(&target_url);
+        let (target_domain, target_path) = extract_domain_and_path(&target_url);
 
         let first_seen_str = cols.get(&row, cols.first_seen);
         let last_seen_str = cols.get(&row, cols.last_seen);
-        let lost_date_str = cols.get(&row, cols.lost_date);
-
         records.push(BacklinkRecord {
             referring_page_title: cols.get(&row, cols.referring_page_title).to_string(),
             referring_url,
@@ -221,12 +221,10 @@ pub fn parse_ahrefs_file(
             is_sponsored: parse_bool(cols.get(&row, cols.is_sponsored)),
             is_rendered: parse_bool(cols.get(&row, cols.is_rendered)),
             is_raw: parse_bool(cols.get(&row, cols.is_raw)),
-            lost_status: cols.get(&row, cols.lost_status).to_string(),
             drop_reason: cols.get(&row, cols.drop_reason).to_string(),
             discovered_status: cols.get(&row, cols.discovered_status).to_string(),
             first_seen: parse_datetime(first_seen_str).unwrap_or_else(default_datetime),
             last_seen: parse_datetime(last_seen_str).unwrap_or_else(default_datetime),
-            lost_date: parse_datetime(lost_date_str),
             author: cols.get(&row, cols.author).to_string(),
             page_type: cols.get(&row, cols.page_type).to_string(),
             page_category: cols.get(&row, cols.page_category).to_string(),

@@ -48,9 +48,14 @@ def link_gap(
 
     rows = conn.execute(
         f"""
+        WITH base_domains AS (
+            SELECT DISTINCT referring_domain
+            FROM backlinks
+            WHERE profile_label = $1{base_path_clause}
+        )
         SELECT
-            referring_domain,
-            MAX(domain_rating) AS max_dr,
+            b.referring_domain,
+            MAX(b.domain_rating) AS max_dr,
             COUNT(*) AS total_links,
             SUM(COALESCE(page_traffic, 0)) AS total_traffic,
             LIST(DISTINCT profile_label) AS profiles_linking

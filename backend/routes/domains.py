@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 from db import get_conn
+from routes._filters import apply_text_filter
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ def referring_domains(
     profile: str = Query(...),
     sort: str = Query("link_count:desc"),
     domain_search: Optional[str] = Query(None),
+    domain_mode: Optional[str] = Query(None),
+    domain_exclude: Optional[bool] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
     traffic_min: Optional[float] = Query(None),
@@ -39,9 +42,11 @@ def referring_domains(
     idx = 2
 
     if domain_search:
-        conditions.append(f"referring_domain ILIKE ${idx}")
-        params.append(f"%{domain_search}%")
-        idx += 1
+        idx = apply_text_filter(
+            conditions, params, idx, "referring_domain", domain_search,
+            mode=domain_mode or "contains",
+            exclude=bool(domain_exclude),
+        )
 
     where = " AND ".join(conditions)
 

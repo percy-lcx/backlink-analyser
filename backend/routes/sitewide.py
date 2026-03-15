@@ -32,26 +32,7 @@ def sitewide(
     cols = ["referring_domain", "link_count", "dr", "anchor_pattern", "max_links_in_group"]
     sitewide_domains = [dict(zip(cols, row)) for row in sitewide_rows]
 
-    # Aggregate stats: with vs without sitewide
-    stats = conn.execute(
-        f"""
-        SELECT
-            CASE WHEN MAX(COALESCE(links_in_group, 0)) > {threshold}
-                THEN 'sitewide' ELSE 'non_sitewide' END AS category,
-            COUNT(*) AS link_count,
-            COUNT(DISTINCT referring_domain) AS unique_domains,
-            AVG(domain_rating) AS avg_dr
-        FROM backlinks
-        WHERE profile_label = $1
-        GROUP BY
-            CASE WHEN MAX(COALESCE(links_in_group, 0)) > {threshold}
-                THEN 'sitewide' ELSE 'non_sitewide' END
-        """,
-        [profile],
-    ).fetchall()
-
-    # The above GROUP BY doesn't work directly, let's do it properly
-    # with a subquery
+    # Aggregate stats: with vs without sitewide (CTE-based)
     stats = conn.execute(
         f"""
         WITH domain_sitewide AS (
