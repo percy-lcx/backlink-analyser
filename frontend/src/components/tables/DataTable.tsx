@@ -217,7 +217,7 @@ export default function DataTable<T>({
       <div className="overflow-x-auto">
         <table
           className="text-sm"
-          style={{ width: table.getCenterTotalSize(), tableLayout: "fixed" }}
+          style={{ minWidth: table.getCenterTotalSize(), width: '100%', tableLayout: "fixed" }}
         >
           <thead>
             {table.getHeaderGroups().map((hg) => (
