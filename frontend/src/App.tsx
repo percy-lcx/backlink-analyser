@@ -44,6 +44,7 @@ import {
   type BrokenLinksSummary,
   type RedirectSummary,
   type MatchMode,
+  type LinksDrilldown,
 } from "./lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { METRICS } from "./lib/metrics";
@@ -158,7 +159,7 @@ type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
-  const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
+
 
   // Ingest state
   const [ingesting, setIngesting] = useState(false);
@@ -419,13 +420,36 @@ function Dashboard() {
   };
 
   const handleDrilldown = (d: LinksDrilldown) => {
-    setDrilldown(d);
+    if (d.domain) {
+      setDomainInput(d.domain);
+      setDomainFilter(d.domain);
+      if (d.domainMode) setDomainMode(d.domainMode);
+    }
+    if (d.anchor) {
+      setAnchorInput(d.anchor);
+      setAnchorFilter(d.anchor);
+      if (d.anchorMode) setAnchorMode(d.anchorMode);
+    }
+    if (d.targetPath) {
+      setTargetPathInput(d.targetPath);
+      setDrilldownPath(d.targetPath);
+      if (d.targetPathMode) setTargetPathMode(d.targetPathMode);
+    }
+    if (d.drMin) setDrMin(d.drMin);
+    if (d.drMax) setDrMax(d.drMax);
     setTab("links");
   };
 
-  const handleTabClick = (t: Tab) => {
-    if (t === "links") setDrilldown(null);
-    setTab(t);
+  const handleDomainRowClick = (row: ReferringDomain) => {
+    handleDrilldown({ domain: row.referring_domain });
+  };
+
+  const handleAnchorRowClick = (row: AnchorRecord) => {
+    handleDrilldown({ anchor: row.anchor });
+  };
+
+  const handlePageRowClick = (row: PageRow) => {
+    handleDrilldown({ targetPath: row.target_path, targetPathMode: "exact" });
   };
 
   const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
