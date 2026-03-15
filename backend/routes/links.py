@@ -20,8 +20,6 @@ SORTABLE_COLUMNS = {
     "is_nofollow",
     "is_sponsored",
     "is_spam",
-    "lost_date",
-    "lost_status",
 }
 
 
@@ -55,9 +53,6 @@ def list_links(
     target_path_exact: Optional[bool] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
     target_path_mode: Optional[str] = Query(None),
-    lost_date_from: Optional[str] = Query(None),
-    lost_date_to: Optional[str] = Query(None),
-    lost_status: Optional[str] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -145,24 +140,6 @@ def list_links(
             exclude=bool(url_exclude),
         )
 
-    if lost_date_from is not None:
-        conditions.append(f"lost_date >= ${idx}")
-        params.append(lost_date_from)
-        idx += 1
-
-    if lost_date_to is not None:
-        conditions.append(f"lost_date <= ${idx}")
-        params.append(lost_date_to)
-        idx += 1
-
-    if lost_status is not None:
-        statuses = [s.strip() for s in lost_status.split(",") if s.strip()]
-        if statuses:
-            placeholders = ", ".join(f"${idx + i}" for i in range(len(statuses)))
-            conditions.append(f"lost_status IN ({placeholders})")
-            params.extend(statuses)
-            idx += len(statuses)
-
     if target_path_search is not None:
         # Backward compat: target_path_exact=true → mode="exact"
         tp_mode = target_path_mode or ("exact" if target_path_exact else "contains")
@@ -221,14 +198,3 @@ def list_http_codes(profile: str = Query(...)):
     return {"codes": [row[0] for row in rows]}
 
 
-@router.get("/api/lost-statuses")
-def list_lost_statuses(profile: str = Query(...)):
-    """Return distinct lost_status values present in the dataset for a profile."""
-    conn = get_conn()
-    rows = conn.execute(
-        "SELECT DISTINCT lost_status FROM backlinks "
-        "WHERE profile_label = $1 AND lost_status IS NOT NULL AND lost_status != '' "
-        "ORDER BY lost_status",
-        [profile],
-    ).fetchall()
-    return {"statuses": [row[0] for row in rows]}
