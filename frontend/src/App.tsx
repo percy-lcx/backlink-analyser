@@ -9,6 +9,7 @@ import TopPagesChart from "./components/charts/TopPagesChart";
 import CompareTab from "./components/CompareTab";
 import IntersectTab from "./components/IntersectTab";
 import TerminologyTab from "./components/TerminologyTab";
+import BrokenLinksTab from "./components/BrokenLinksTab";
 import DataTable, { type SortingState } from "./components/tables/DataTable";
 import ExportButton from "./components/tables/ExportButton";
 import FilterInput from "./components/FilterInput";
@@ -163,7 +164,7 @@ const pageColumns: ColumnDef<PageRow, unknown>[] = [
   },
 ];
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "terminology";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -235,6 +236,7 @@ function Dashboard() {
   const [domLinksMax, setDomLinksMax] = useState("");
   const [domSitewideFilter, setDomSitewideFilter] = useState<string>("");
   const [domDomainMode, setDomDomainMode] = useState<MatchMode>("contains");
+  const [domDomainExclude, setDomDomainExclude] = useState(false);
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
@@ -244,6 +246,7 @@ function Dashboard() {
   const [anchorCountMin, setAnchorCountMin] = useState("");
   const [anchorCountMax, setAnchorCountMax] = useState("");
   const [anchorTabMode, setAnchorTabMode] = useState<MatchMode>("contains");
+  const [anchorTabExclude, setAnchorTabExclude] = useState(false);
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
@@ -251,6 +254,7 @@ function Dashboard() {
   const [pagePathInput, setPagePathInput] = useState("");
   const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
   const [pagePathExclude, setPagePathExclude] = useState(false);
+  const [pagePathMode, setPagePathMode] = useState<MatchMode>("contains");
   const [pageCategoryFilter, setPageCategoryFilter] = useState("");
   const [pageLinksMin, setPageLinksMin] = useState("");
   const [pageLinksMax, setPageLinksMax] = useState("");
@@ -335,6 +339,7 @@ function Dashboard() {
       if (domDomainSearch) {
         domParams.domain_search = domDomainSearch;
         if (domDomainMode !== "contains") domParams.domain_mode = domDomainMode;
+        if (domDomainExclude) domParams.domain_exclude = true;
       }
       if (domDrMin) domParams.dr_min = parseFloat(domDrMin);
       if (domDrMax) domParams.dr_max = parseFloat(domDrMax);
@@ -349,6 +354,7 @@ function Dashboard() {
       if (anchorTabSearchFilter) {
         anchorParams.anchor_search = anchorTabSearchFilter;
         if (anchorTabMode !== "contains") anchorParams.anchor_mode = anchorTabMode;
+        if (anchorTabExclude) anchorParams.anchor_exclude = true;
       }
       if (anchorCategoryFilter) anchorParams.category = anchorCategoryFilter;
       if (anchorCountMin) anchorParams.count_min = parseInt(anchorCountMin);
@@ -363,6 +369,7 @@ function Dashboard() {
       if (pagePathFilter) {
         pageParams.target_path_search = pagePathFilter;
         if (pagePathExclude) pageParams.target_path_exclude = true;
+        if (pagePathMode !== "contains") pageParams.target_path_mode = pagePathMode;
       }
       if (pageCategoryFilter) pageParams.category = pageCategoryFilter;
       if (pageLinksMin) pageParams.link_count_min = parseInt(pageLinksMin);
@@ -537,6 +544,7 @@ function Dashboard() {
     { key: "quality", label: "Quality" },
     { key: "compare", label: "Compare" },
     { key: "intersect", label: "Intersect" },
+    { key: "broken", label: "Broken Links" },
     { key: "terminology", label: "Terminology" },
   ];
 
@@ -803,6 +811,8 @@ function Dashboard() {
                 value={domDomainInput}
                 onChange={setDomDomainInput}
                 placeholder="Filter by domain..."
+                exclude={domDomainExclude}
+                onExcludeChange={setDomDomainExclude}
                 matchMode={domDomainMode}
                 onMatchModeChange={setDomDomainMode}
                 onDebouncedChange={setDomDomainSearchCb}
@@ -855,6 +865,8 @@ function Dashboard() {
                 value={anchorTabSearch}
                 onChange={setAnchorTabSearch}
                 placeholder="Filter by anchor text..."
+                exclude={anchorTabExclude}
+                onExcludeChange={setAnchorTabExclude}
                 matchMode={anchorTabMode}
                 onMatchModeChange={setAnchorTabMode}
                 onDebouncedChange={setAnchorTabSearchFilterCb}
@@ -903,6 +915,8 @@ function Dashboard() {
                 excludePlaceholder="Exclude target URL..."
                 exclude={pagePathExclude}
                 onExcludeChange={setPagePathExclude}
+                matchMode={pagePathMode}
+                onMatchModeChange={setPagePathMode}
                 onDebouncedChange={setPagePathFilterCb}
               />
               <select
@@ -1006,6 +1020,8 @@ function Dashboard() {
         {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
 
         {tab === "intersect" && <IntersectTab onGapRowClick={handleGapRowClick} />}
+
+        {tab === "broken" && <BrokenLinksTab />}
 
         {tab === "terminology" && <TerminologyTab />}
       </main>

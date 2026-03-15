@@ -7,8 +7,9 @@ import {
   type ColumnDef,
   type SortingState,
   type ColumnSizingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Tooltip from "../Tooltip";
 
 export type { SortingState };
@@ -50,6 +51,9 @@ export default function DataTable<T>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [localPageSize, setLocalPageSize] = useState(pageSize);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const effectivePageSize = manualPagination ? pageSize : localPageSize;
 
@@ -89,6 +93,18 @@ export default function DataTable<T>({
     setColumnSizing({});
   }, [data]);
 
+  // Close column picker on outside click
+  useEffect(() => {
+    if (!showColumnPicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowColumnPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showColumnPicker]);
+
   // Merge: user-adjusted sizes override computed initial sizes
   const effectiveColumnSizing = useMemo(() => {
     return { ...initialColumnSizing, ...columnSizing };
@@ -113,12 +129,14 @@ export default function DataTable<T>({
     state: {
       sorting,
       columnSizing: effectiveColumnSizing,
+      columnVisibility,
       ...(manualPagination
         ? { pagination: { pageIndex: pageIndex ?? 0, pageSize: effectivePageSize } }
         : {}),
     },
     onSortingChange: handleSortingChange,
     onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     ...(manualSorting ? { manualSorting: true } : { getSortedRowModel: getSortedRowModel() }),
     ...(manualPagination
@@ -141,8 +159,53 @@ export default function DataTable<T>({
     }
   };
 
+  const allColumns = table.getAllLeafColumns();
+  const hiddenCount = allColumns.filter((c) => !c.getIsVisible()).length;
+
   return (
     <div className={isResizing ? "cursor-col-resize" : ""}>
+      <div className="flex justify-end mb-2 relative" ref={pickerRef}>
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
+          onClick={() => setShowColumnPicker((v) => !v)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+          </svg>
+          Columns{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+        </button>
+        {showColumnPicker && (
+          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[200px] max-h-[320px] overflow-y-auto">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+              <span className="text-xs font-semibold text-gray-500 uppercase">Toggle columns</span>
+              <button
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+                onClick={() => setColumnVisibility({})}
+              >
+                Show all
+              </button>
+            </div>
+            {allColumns.map((column) => {
+              const header = column.columnDef.header;
+              const label = typeof header === "string" ? header : column.id;
+              return (
+                <label
+                  key={column.id}
+                  className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={column.getIsVisible()}
+                    onChange={column.getToggleVisibilityHandler()}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  {label}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
       <div className="overflow-x-auto">
         <table
           className="text-sm"
