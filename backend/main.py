@@ -25,6 +25,7 @@ from routes import (
     intersect,
     target_paths,
     broken,
+    session,
 )
 
 
@@ -62,6 +63,7 @@ app.include_router(gap.router)
 app.include_router(intersect.router)
 app.include_router(target_paths.router)
 app.include_router(broken.router)
+app.include_router(session.router)
 
 
 @app.post("/api/ingest")

@@ -6,6 +6,7 @@ import {
   type LinksDrilldown,
   type MatchMode,
 } from "../../lib/api";
+import { useSessionFilters } from "../../lib/useSessionFilters";
 import { pageColumns } from "../../lib/columns";
 import DataTable from "../tables/DataTable";
 import ExportButton from "../tables/ExportButton";
@@ -44,6 +45,32 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
 
   const setPathFilterCb = useCallback((v: string | null) => setPathFilter(v), []);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    pathInput, pathMode, pathExclude: String(pathExclude),
+    categoryFilter, linksMin, linksMax, domainsMin, domainsMax,
+    drMin, drMax, dofollowMin, dofollowMax,
+  }), [pathInput, pathMode, pathExclude, categoryFilter, linksMin, linksMax, domainsMin, domainsMax, drMin, drMax, dofollowMin, dofollowMax]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.pathInput) { setPathInput(f.pathInput); setPathFilter(f.pathInput); }
+    if (f.pathMode) setPathMode(f.pathMode as MatchMode);
+    if (f.pathExclude) setPathExclude(f.pathExclude === "true");
+    if (f.categoryFilter) setCategoryFilter(f.categoryFilter);
+    if (f.linksMin) setLinksMin(f.linksMin);
+    if (f.linksMax) setLinksMax(f.linksMax);
+    if (f.domainsMin) setDomainsMin(f.domainsMin);
+    if (f.domainsMax) setDomainsMax(f.domainsMax);
+    if (f.drMin) setDrMin(f.drMin);
+    if (f.drMax) setDrMax(f.drMax);
+    if (f.dofollowMin) setDofollowMin(f.dofollowMin);
+    if (f.dofollowMax) setDofollowMax(f.dofollowMax);
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    profile, "pages", getFilters, applyFilters, !!initialCategory,
+  );
+
   // Apply initial category from Overview drilldown
   const prevInitialCategory = useRef(initialCategory);
   useEffect(() => {
@@ -57,6 +84,8 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
   }, [initialCategory]);
 
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     setLoading(true);
     const params: Record<string, string | number | boolean | undefined> = {};
     if (pathFilter) {
@@ -81,7 +110,7 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
       })
       .catch(() => { setPages([]); setPageCategories({}); })
       .finally(() => setLoading(false));
-  }, [profile, pathFilter, pathExclude, pathMode, categoryFilter, linksMin, linksMax, domainsMin, domainsMax, drMin, drMax, dofollowMin, dofollowMax]);
+  }, [profile, pathFilter, pathExclude, pathMode, categoryFilter, linksMin, linksMax, domainsMin, domainsMax, drMin, drMax, dofollowMin, dofollowMax, sessionLoaded, saveSession]);
 
   const handleRowClick = (row: PageRow) => {
     onDrilldown({ targetPath: row.target_path, targetPathMode: "exact" });

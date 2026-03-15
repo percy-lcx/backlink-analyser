@@ -6,6 +6,7 @@ import {
   type MatchMode,
   type LinksDrilldown,
 } from "../../lib/api";
+import { useSessionFilters } from "../../lib/useSessionFilters";
 import { linkColumns } from "../../lib/columns";
 import DataTable, { type SortingState } from "../tables/DataTable";
 import ExportButton from "../tables/ExportButton";
@@ -70,6 +71,47 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const setUrlFilterCb = useCallback((v: string | null) => setUrlFilter(v), []);
   const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    targetPathInput, targetPathMode, targetPathExclude: String(targetPathExclude),
+    domainInput, domainMode, domainExclude: String(domainExclude),
+    urlInput, urlMode, urlExclude: String(urlExclude),
+    anchorInput, anchorMode, anchorExclude: String(anchorExclude),
+    linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter,
+    httpCodeFilter: httpCodeFilter.join(","),
+    drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo,
+  }), [targetPathInput, targetPathMode, targetPathExclude, domainInput, domainMode, domainExclude, urlInput, urlMode, urlExclude, anchorInput, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.targetPathInput) { setTargetPathInput(f.targetPathInput); setDrilldownPath(f.targetPathInput); }
+    if (f.targetPathMode) setTargetPathMode(f.targetPathMode as MatchMode);
+    if (f.targetPathExclude) setTargetPathExclude(f.targetPathExclude === "true");
+    if (f.domainInput) { setDomainInput(f.domainInput); setDomainFilter(f.domainInput); }
+    if (f.domainMode) setDomainMode(f.domainMode as MatchMode);
+    if (f.domainExclude) setDomainExclude(f.domainExclude === "true");
+    if (f.urlInput) { setUrlInput(f.urlInput); setUrlFilter(f.urlInput); }
+    if (f.urlMode) setUrlMode(f.urlMode as MatchMode);
+    if (f.urlExclude) setUrlExclude(f.urlExclude === "true");
+    if (f.anchorInput) { setAnchorInput(f.anchorInput); setAnchorFilter(f.anchorInput); }
+    if (f.anchorMode) setAnchorMode(f.anchorMode as MatchMode);
+    if (f.anchorExclude) setAnchorExclude(f.anchorExclude === "true");
+    if (f.linkTypeFilter) setLinkTypeFilter(f.linkTypeFilter);
+    if (f.nofollowFilter) setNofollowFilter(f.nofollowFilter);
+    if (f.sponsoredFilter) setSponsoredFilter(f.sponsoredFilter);
+    if (f.spamFilter) setSpamFilter(f.spamFilter);
+    if (f.httpCodeFilter) setHttpCodeFilter(f.httpCodeFilter.split(",").filter(Boolean));
+    if (f.drMin) setDrMin(f.drMin);
+    if (f.drMax) setDrMax(f.drMax);
+    if (f.trafficMin) setTrafficMin(f.trafficMin);
+    if (f.trafficMax) setTrafficMax(f.trafficMax);
+    if (f.firstSeenFrom) setFirstSeenFrom(f.firstSeenFrom);
+    if (f.firstSeenTo) setFirstSeenTo(f.firstSeenTo);
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    profile, "links", getFilters, applyFilters, !!drilldown,
+  );
+
   // Apply drilldown from parent
   const prevDrilldown = useRef(drilldown);
   useEffect(() => {
@@ -125,6 +167,8 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
 
   // Fetch data
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     setLoading(true);
     const params: Record<string, unknown> = { page: linkPage + 1, per_page: linkPageSize, sort: sortParam };
     if (drilldownPath) {
@@ -162,7 +206,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
       .then(setLinksData)
       .catch(() => setLinksData(null))
       .finally(() => setLoading(false));
-  }, [profile, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
+  }, [profile, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sessionLoaded, saveSession]);
 
   // Reset page on filter change
   useEffect(() => {
