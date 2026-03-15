@@ -33,6 +33,7 @@ interface Props<T> {
   manualSorting?: boolean;
   onSortChange?: (sorting: SortingState) => void;
   toolbar?: ReactNode;
+  statusText?: ReactNode;
 }
 
 export default function DataTable<T>({
@@ -49,6 +50,7 @@ export default function DataTable<T>({
   manualSorting,
   onSortChange,
   toolbar,
+  statusText,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [localPageSize, setLocalPageSize] = useState(pageSize);
@@ -166,17 +168,20 @@ export default function DataTable<T>({
 
   return (
     <div className={isResizing ? "cursor-col-resize" : ""}>
-      <div className="flex justify-end items-center gap-2 mb-2 relative" ref={pickerRef}>
-        {toolbar}
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
-          onClick={() => setShowColumnPicker((v) => !v)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-            <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
-          </svg>
-          Columns{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
-        </button>
+      <div className="flex items-center gap-2 mb-2 relative" ref={pickerRef}>
+        {statusText}
+        <div className="flex items-center gap-2 ml-auto">
+          {toolbar}
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
+            onClick={() => setShowColumnPicker((v) => !v)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+              <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+            </svg>
+            Columns{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+          </button>
+        </div>
         {showColumnPicker && (
           <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[200px] max-h-[320px] overflow-y-auto">
             <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
