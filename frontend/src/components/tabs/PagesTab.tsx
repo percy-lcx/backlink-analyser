@@ -200,11 +200,7 @@ export default function PagesTab({ profile, onDrilldown, initialCategory }: Page
           </div>
 
           <div className="bg-white rounded-lg shadow p-5">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3>
-              <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p>
-            </div>
-            <DataTable data={pages} columns={pageColumns} onRowClick={handleRowClick} toolbar={<ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />} />
+            <DataTable data={pages} columns={pageColumns} onRowClick={handleRowClick} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Backlinks by Target Page</h3><p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks pointing to that URL.</p></div>} toolbar={<ExportButton data={pages as unknown as Record<string, unknown>[]} filename="pages.csv" />} />
           </div>
         </div>
       )}
