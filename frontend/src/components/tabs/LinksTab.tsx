@@ -363,12 +363,6 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
         </FilterGroup>
       </FilterPanel>
 
-      {linksData && (
-        <div className="mb-3 text-sm text-gray-400">
-          {linksData.total.toLocaleString()} backlinks
-        </div>
-      )}
-
       {loading ? (
         <LoadingSpinner message="Loading backlinks..." />
       ) : !linksData || linksData.items.length === 0 ? (
@@ -376,6 +370,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
       ) : (
         <div className="bg-white rounded-lg shadow p-5">
           <DataTable
+            statusText={<span className="text-sm text-gray-400">{linksData.total.toLocaleString()} backlinks</span>}
             toolbar={<ExportButton data={(linksData.items) as unknown as Record<string, unknown>[]} filename="backlinks.csv" />}
             data={linksData.items}
             columns={linkColumns}
