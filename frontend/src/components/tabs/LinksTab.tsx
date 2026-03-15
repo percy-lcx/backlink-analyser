@@ -71,6 +71,16 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   const setUrlFilterCb = useCallback((v: string | null) => setUrlFilter(v), []);
   const setAnchorFilterCb = useCallback((v: string | null) => setAnchorFilter(v), []);
 
+  const clearFilters = useCallback(() => {
+    setTargetPathInput(""); setDrilldownPath(null); setTargetPathExclude(false); setTargetPathMode("contains");
+    setDomainInput(""); setDomainFilter(null); setDomainExclude(false); setDomainMode("contains");
+    setUrlInput(""); setUrlFilter(null); setUrlExclude(false); setUrlMode("contains");
+    setAnchorInput(""); setAnchorFilter(null); setAnchorExclude(false); setAnchorMode("contains");
+    setLinkTypeFilter(""); setNofollowFilter(""); setSponsoredFilter(""); setSpamFilter(""); setHttpCodeFilter([]);
+    setDrMin(""); setDrMax(""); setTrafficMin(""); setTrafficMax("");
+    setFirstSeenFrom(""); setFirstSeenTo("");
+  }, []);
+
   // Session filter persistence
   const getFilters = useCallback(() => ({
     targetPathInput, targetPathMode, targetPathExclude: String(targetPathExclude),
@@ -119,14 +129,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
     prevDrilldown.current = drilldown;
 
     if (drilldown === null) {
-      // Clear all filters when clicking Links tab directly
-      setTargetPathInput(""); setDrilldownPath(null); setTargetPathExclude(false); setTargetPathMode("contains");
-      setDomainInput(""); setDomainFilter(null); setDomainExclude(false); setDomainMode("contains");
-      setUrlInput(""); setUrlFilter(null); setUrlExclude(false); setUrlMode("contains");
-      setAnchorInput(""); setAnchorFilter(null); setAnchorExclude(false); setAnchorMode("contains");
-      setLinkTypeFilter(""); setNofollowFilter(""); setSponsoredFilter(""); setSpamFilter(""); setHttpCodeFilter([]);
-      setDrMin(""); setDrMax(""); setTrafficMin(""); setTrafficMax("");
-      setFirstSeenFrom(""); setFirstSeenTo("");
+      clearFilters();
       return;
     }
 
@@ -231,7 +234,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
 
   return (
     <div>
-      <FilterPanel activeCount={activeCount}>
+      <FilterPanel activeCount={activeCount} onClear={clearFilters}>
         <FilterGroup label="Text Search">
           <FilterInput
             value={domainInput}
