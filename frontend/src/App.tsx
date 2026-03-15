@@ -19,6 +19,7 @@ import {
   fetchVelocity,
   fetchLinks,
   fetchHttpCodes,
+  fetchLostStatuses,
   fetchReferringDomains,
   fetchAnchors,
   fetchQualityMatrix,
@@ -218,10 +219,11 @@ function Dashboard() {
   const [firstSeenTo, setFirstSeenTo] = useState("");
   const [lostDateFrom, setLostDateFrom] = useState("");
   const [lostDateTo, setLostDateTo] = useState("");
-  const [lostStatusInput, setLostStatusInput] = useState("");
-  const [lostStatusFilter, setLostStatusFilter] = useState<string | null>(null);
-  const [lostStatusExclude, setLostStatusExclude] = useState(false);
-  const [lostStatusMode, setLostStatusMode] = useState<MatchMode>("contains");
+  const [lostStatusFilter, setLostStatusFilter] = useState<string[]>([]);
+  const [lostStatuses, setLostStatuses] = useState<string[]>([]);
+  const [lostStatusDropdownOpen, setLostStatusDropdownOpen] = useState(false);
+  const lostStatusDropdownRef = useRef<HTMLDivElement>(null);
+  const lostStatusFilterKey = lostStatusFilter.join(",");
   const [sortParam, setSortParam] = useState("domain_rating:desc");
 
   // Domains state
@@ -272,6 +274,7 @@ function Dashboard() {
   useEffect(() => {
     if (!selected) return;
     fetchHttpCodes(selected).then((r) => setHttpCodes(r.codes ?? [])).catch(() => setHttpCodes([]));
+    fetchLostStatuses(selected).then((r) => setLostStatuses(r.statuses ?? [])).catch(() => setLostStatuses([]));
   }, [selected]);
 
   // Close HTTP dropdown on outside click
@@ -279,6 +282,9 @@ function Dashboard() {
     const handler = (e: MouseEvent) => {
       if (httpDropdownRef.current && !httpDropdownRef.current.contains(e.target as Node)) {
         setHttpDropdownOpen(false);
+      }
+      if (lostStatusDropdownRef.current && !lostStatusDropdownRef.current.contains(e.target as Node)) {
+        setLostStatusDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -326,11 +332,7 @@ function Dashboard() {
       if (firstSeenTo) params.first_seen_to = firstSeenTo;
       if (lostDateFrom) params.lost_date_from = lostDateFrom;
       if (lostDateTo) params.lost_date_to = lostDateTo;
-      if (lostStatusFilter) {
-        params.lost_status_search = lostStatusFilter;
-        if (lostStatusMode !== "contains") params.lost_status_mode = lostStatusMode;
-        if (lostStatusExclude) params.lost_status_exclude = true;
-      }
+      if (lostStatusFilter.length > 0) params.lost_status = lostStatusFilter.join(",");
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
@@ -388,12 +390,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilter, lostStatusMode, lostStatusExclude, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilterKey, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilter, sortParam]);
+  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilterKey, sortParam]);
 
   // Stable callbacks for FilterInput debounce handlers
   const setDrilldownPathCb = useCallback((v: string | null) => setDrilldownPath(v), []);
@@ -403,7 +405,6 @@ function Dashboard() {
   const setDomDomainSearchCb = useCallback((v: string | null) => setDomDomainSearch(v), []);
   const setAnchorTabSearchFilterCb = useCallback((v: string | null) => setAnchorTabSearchFilter(v), []);
   const setPagePathFilterCb = useCallback((v: string | null) => setPagePathFilter(v), []);
-  const setLostStatusFilterCb = useCallback((v: string | null) => setLostStatusFilter(v), []);
 
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
@@ -504,9 +505,7 @@ function Dashboard() {
       setFirstSeenTo("");
       setLostDateFrom("");
       setLostDateTo("");
-      setLostStatusInput("");
-      setLostStatusFilter(null);
-      setLostStatusExclude(false);
+      setLostStatusFilter([]);
     }
     setTab(t);
   };
@@ -772,17 +771,40 @@ function Dashboard() {
                 <span className="text-gray-400">–</span>
                 <input type="date" value={lostDateTo} onChange={(e) => setLostDateTo(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
-              <FilterInput
-                value={lostStatusInput}
-                onChange={setLostStatusInput}
-                placeholder="Filter by lost status..."
-                excludePlaceholder="Exclude lost status..."
-                exclude={lostStatusExclude}
-                onExcludeChange={setLostStatusExclude}
-                matchMode={lostStatusMode}
-                onMatchModeChange={setLostStatusMode}
-                onDebouncedChange={setLostStatusFilterCb}
-              />
+              <div className="relative" ref={lostStatusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setLostStatusDropdownOpen((o) => !o)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-1"
+                >
+                  {lostStatusFilter.length === 0 ? "Lost Status: All" : `Lost Status: ${lostStatusFilter.join(", ")}`}
+                  <svg className="w-3 h-3 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {lostStatusDropdownOpen && (
+                  <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto min-w-[180px]">
+                    {lostStatuses.map((status) => (
+                      <label key={status} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={lostStatusFilter.includes(status)}
+                          onChange={(e) => {
+                            setLostStatusFilter((prev) =>
+                              e.target.checked
+                                ? [...prev, status]
+                                : prev.filter((s) => s !== status)
+                            );
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        {status}
+                      </label>
+                    ))}
+                    {lostStatuses.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-gray-400">No lost statuses</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <div className="flex justify-end mb-3">

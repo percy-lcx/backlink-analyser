@@ -314,9 +314,7 @@ export interface LinkParams {
   target_path_mode?: string;
   lost_date_from?: string;
   lost_date_to?: string;
-  lost_status_search?: string;
-  lost_status_exclude?: boolean;
-  lost_status_mode?: string;
+  lost_status?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
@@ -333,6 +331,10 @@ export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksR
 
 export function fetchHttpCodes(profile: string): Promise<{ codes: number[] }> {
   return get<{ codes: number[] }>(`${BASE}/http-codes`, { profile });
+}
+
+export function fetchLostStatuses(profile: string): Promise<{ statuses: string[] }> {
+  return get<{ statuses: string[] }>(`${BASE}/lost-statuses`, { profile });
 }
 
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
