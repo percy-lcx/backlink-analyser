@@ -6,7 +6,6 @@ import {
   fetchBrokenLinks,
   fetchSitewide,
   fetchRedirects,
-  fetchAnchors,
   fetchPageBreakdown,
   fetchReferringDomains,
   type OverviewData,
@@ -14,6 +13,7 @@ import {
   type VelocityPoint,
   type BrokenLinksSummary,
   type RedirectSummary,
+  type LinksDrilldown,
   type PageBreakdownResponse,
   type PageRow,
   type ReferringDomain,
@@ -22,7 +22,6 @@ import SummaryCard from "../SummaryCard";
 import AlertCard from "../AlertCard";
 import DrDistribution from "../charts/DrDistribution";
 import VelocityChart from "../charts/VelocityChart";
-import AnchorCategoryDonut from "../charts/AnchorCategoryDonut";
 import PageCategoryChart from "../charts/PageCategoryChart";
 import TopDomainsTable from "../TopDomainsTable";
 import TopPagesTable from "../TopPagesTable";
@@ -32,9 +31,11 @@ import { METRICS } from "../../lib/metrics";
 interface OverviewTabProps {
   profile: string;
   onTabClick?: (tab: string) => void;
+  onDrilldown?: (d: LinksDrilldown) => void;
+  onPageCategory?: (category: string) => void;
 }
 
-export default function OverviewTab({ profile, onTabClick }: OverviewTabProps) {
+export default function OverviewTab({ profile, onTabClick, onDrilldown, onPageCategory }: OverviewTabProps) {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [drDist, setDrDist] = useState<DrBucket[]>([]);
   const [velocity, setVelocity] = useState<VelocityPoint[]>([]);
@@ -42,7 +43,6 @@ export default function OverviewTab({ profile, onTabClick }: OverviewTabProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [sitewide, setSitewide] = useState<any>(null);
   const [redirects, setRedirects] = useState<RedirectSummary | null>(null);
-  const [anchorCats, setAnchorCats] = useState<Record<string, number>>({});
   const [pageCats, setPageCats] = useState<PageBreakdownResponse["categories"]>({});
   const [topPages, setTopPages] = useState<PageRow[]>([]);
   const [topDomains, setTopDomains] = useState<ReferringDomain[]>([]);
@@ -57,18 +57,16 @@ export default function OverviewTab({ profile, onTabClick }: OverviewTabProps) {
       fetchBrokenLinks(profile, { per_page: 1 }).then((r) => r.summary).catch(() => null),
       fetchSitewide(profile).catch(() => null),
       fetchRedirects(profile).catch(() => null),
-      fetchAnchors(profile).then((r) => r.categories ?? {}).catch(() => ({})),
       fetchPageBreakdown(profile).catch(() => ({ pages: [], categories: {} } as PageBreakdownResponse)),
       fetchReferringDomains(profile, { sort: "max_dr:desc" }).catch(() => []),
     ])
-      .then(([ov, dr, vel, brk, sw, redir, aCats, pageData, doms]) => {
+      .then(([ov, dr, vel, brk, sw, redir, pageData, doms]) => {
         setOverview(ov);
         setDrDist(dr);
         setVelocity(vel);
         setBroken(brk as BrokenLinksSummary | null);
         setSitewide(sw);
         setRedirects(redir as RedirectSummary | null);
-        setAnchorCats(aCats as Record<string, number>);
         const pd = pageData as PageBreakdownResponse;
         setPageCats(pd.categories ?? {});
         setTopPages(pd.pages ?? []);
@@ -173,17 +171,27 @@ export default function OverviewTab({ profile, onTabClick }: OverviewTabProps) {
         </div>
       </div>
 
-      {/* Anchor & Page category charts */}
+      {/* Page category & DR Distribution charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnchorCategoryDonut categories={anchorCats} />
         <PageCategoryChart
           data={Object.entries(pageCats).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+          onBarClick={onPageCategory ? (category) => onPageCategory(category) : undefined}
+          onViewAll={onTabClick ? () => onTabClick("pages") : undefined}
+        />
+        <DrDistribution
+          data={drDist}
+          onBarClick={onDrilldown ? (bucket) => {
+            const match = bucket.match(/^(\d+)-(\d+)$/);
+            if (match) {
+              onDrilldown({ drMin: match[1], drMax: match[2] });
+            }
+          } : undefined}
+          onViewAll={onTabClick ? () => onTabClick("links") : undefined}
         />
       </div>
 
-      {/* DR Distribution & Velocity */}
+      {/* Velocity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DrDistribution data={drDist} />
         <VelocityChart data={velocity} />
       </div>
 

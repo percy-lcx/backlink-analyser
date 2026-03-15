@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchPageBreakdown,
   type PageRow,
@@ -21,9 +21,10 @@ import { METRICS } from "../../lib/metrics";
 interface PagesTabProps {
   profile: string;
   onDrilldown: (d: LinksDrilldown) => void;
+  initialCategory?: string | null;
 }
 
-export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
+export default function PagesTab({ profile, onDrilldown, initialCategory }: PagesTabProps) {
   const [pages, setPages] = useState<PageRow[]>([]);
   const [pageCategories, setPageCategories] = useState<PageBreakdownResponse["categories"]>({});
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
   const [pathFilter, setPathFilter] = useState<string | null>(null);
   const [pathExclude, setPathExclude] = useState(false);
   const [pathMode, setPathMode] = useState<MatchMode>("contains");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(initialCategory ?? "");
   const [linksMin, setLinksMin] = useState("");
   const [linksMax, setLinksMax] = useState("");
   const [domainsMin, setDomainsMin] = useState("");
@@ -42,6 +43,18 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
   const [dofollowMax, setDofollowMax] = useState("");
 
   const setPathFilterCb = useCallback((v: string | null) => setPathFilter(v), []);
+
+  // Apply initial category from Overview drilldown
+  const prevInitialCategory = useRef(initialCategory);
+  useEffect(() => {
+    if (initialCategory === prevInitialCategory.current) return;
+    prevInitialCategory.current = initialCategory;
+    if (initialCategory) {
+      setCategoryFilter(initialCategory);
+    } else {
+      setCategoryFilter("");
+    }
+  }, [initialCategory]);
 
   useEffect(() => {
     setLoading(true);
