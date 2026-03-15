@@ -16,7 +16,9 @@ SORTABLE_COLUMNS = {
     "anchor",
     "target_path",
     "link_type",
+    "http_code",
     "is_nofollow",
+    "is_sponsored",
     "is_spam",
 }
 
@@ -28,7 +30,9 @@ def list_links(
     per_page: int = Query(100, ge=1, le=1000),
     sort: str = Query("domain_rating:desc"),
     is_nofollow: Optional[bool] = Query(None),
+    is_sponsored: Optional[bool] = Query(None),
     is_spam: Optional[bool] = Query(None),
+    http_code: Optional[str] = Query(None),
     link_type: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
@@ -61,6 +65,19 @@ def list_links(
         conditions.append(f"is_nofollow = ${idx}")
         params.append(is_nofollow)
         idx += 1
+
+    if is_sponsored is not None:
+        conditions.append(f"is_sponsored = ${idx}")
+        params.append(is_sponsored)
+        idx += 1
+
+    if http_code is not None:
+        codes = [int(c) for c in http_code.split(",") if c.strip().isdigit()]
+        if codes:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(codes)))
+            conditions.append(f"http_code IN ({placeholders})")
+            params.extend(codes)
+            idx += len(codes)
 
     if is_spam is not None:
         conditions.append(f"is_spam = ${idx}")
@@ -166,3 +183,18 @@ def list_links(
         "page": page,
         "per_page": per_page,
     }
+
+
+@router.get("/api/http-codes")
+def list_http_codes(profile: str = Query(...)):
+    """Return distinct HTTP status codes present in the dataset for a profile."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT http_code FROM backlinks "
+        "WHERE profile_label = $1 AND http_code IS NOT NULL AND http_code > 0 "
+        "ORDER BY http_code",
+        [profile],
+    ).fetchall()
+    return {"codes": [row[0] for row in rows]}
+
+

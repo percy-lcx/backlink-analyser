@@ -29,12 +29,4 @@ def categorise_page(target_path: Optional[str]) -> str:
             if pat.search(target_path):
                 return category
 
-    # Fallback heuristics
-    if target_path == "/" or target_path.startswith("/index"):
-        return "homepage"
-
-    for prefix in ("/blog/", "/education/", "/news/"):
-        if prefix in target_path:
-            return "content"
-
-    return "money_pages"
+    return "other"

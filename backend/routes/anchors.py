@@ -37,6 +37,7 @@ def anchors(
     target_path: Optional[str] = Query(None),
     anchor_search: Optional[str] = Query(None),
     anchor_mode: Optional[str] = Query(None),
+    anchor_exclude: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
     count_min: Optional[int] = Query(None),
     count_max: Optional[int] = Query(None),
@@ -57,6 +58,7 @@ def anchors(
         idx = apply_text_filter(
             conditions, params, idx, "anchor", anchor_search,
             mode=anchor_mode or "contains",
+            exclude=bool(anchor_exclude),
         )
 
     where = " AND ".join(conditions)

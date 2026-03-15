@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Query
 from db import get_conn
 from analysis.categories import categorise_page
+from routes._filters import apply_text_filter
 
 router = APIRouter()
 
@@ -12,6 +13,7 @@ def page_breakdown(
     profile: str = Query(...),
     target_path_search: Optional[str] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
+    target_path_mode: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     link_count_min: Optional[int] = Query(None),
     link_count_max: Optional[int] = Query(None),
@@ -30,10 +32,11 @@ def page_breakdown(
     idx = 2
 
     if target_path_search is not None:
-        op = "NOT ILIKE" if target_path_exclude else "ILIKE"
-        conditions.append(f"target_path {op} ${idx}")
-        params.append(f"%{target_path_search}%")
-        idx += 1
+        idx = apply_text_filter(
+            conditions, params, idx, "target_path", target_path_search,
+            mode=target_path_mode or "contains",
+            exclude=bool(target_path_exclude),
+        )
 
     where = " AND ".join(conditions)
 

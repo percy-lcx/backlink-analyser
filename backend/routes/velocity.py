@@ -83,13 +83,13 @@ def velocity(
     profile: str = Query(...),
     interval: str = Query("week"),
 ):
-    """Link velocity: new vs lost links grouped by week or month."""
+    """Link velocity: new links grouped by week or month."""
     if interval not in ("week", "month"):
         interval = "week"
 
     conn = get_conn()
 
-    # Single CTE query combining new, new-by-status, and lost — 1 scan instead of 3
+    # Single CTE query combining new and new-by-status
     rows = conn.execute(
         f"""
         WITH new AS (
@@ -108,31 +108,15 @@ def velocity(
             FROM backlinks
             WHERE profile_label = $1 AND first_seen IS NOT NULL
             GROUP BY period, discovered_status
-        ),
-        lost AS (
-            SELECT
-                DATE_TRUNC('{interval}', lost_date) AS period,
-                COUNT(*) AS lost_count
-            FROM backlinks
-            WHERE profile_label = $1 AND lost_date IS NOT NULL
-            GROUP BY period
-        ),
-        periods AS (
-            SELECT period FROM new
-            UNION
-            SELECT period FROM lost
         )
         SELECT
-            p.period,
-            COALESCE(n.new_count, 0) AS new_count,
-            COALESCE(l.lost_count, 0) AS lost_count,
+            n.period,
+            n.new_count,
             ns.discovered_status,
             COALESCE(ns.count, 0) AS status_count
-        FROM periods p
-        LEFT JOIN new n ON p.period = n.period
-        LEFT JOIN lost l ON p.period = l.period
-        LEFT JOIN new_by_status ns ON p.period = ns.period
-        ORDER BY p.period, ns.discovered_status
+        FROM new n
+        LEFT JOIN new_by_status ns ON n.period = ns.period
+        ORDER BY n.period, ns.discovered_status
         """,
         [profile],
     ).fetchall()
@@ -142,17 +126,13 @@ def velocity(
     for r in rows:
         period_key = str(r[0])
         if period_key not in timeline:
-            new_count = r[1]
-            lost_count = r[2]
             timeline[period_key] = {
                 "period": period_key,
-                "new_count": new_count,
-                "lost_count": lost_count,
-                "net": new_count - lost_count,
+                "new_count": r[1],
                 "new_by_status": {},
             }
-        status = r[3]
-        status_count = r[4]
+        status = r[2]
+        status_count = r[3]
         if status is not None and status_count:
             timeline[period_key]["new_by_status"][status or "unknown"] = status_count
 

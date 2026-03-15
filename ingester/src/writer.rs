@@ -42,12 +42,10 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
     let mut is_sponsored = Vec::with_capacity(len);
     let mut is_rendered = Vec::with_capacity(len);
     let mut is_raw = Vec::with_capacity(len);
-    let mut lost_status = Vec::with_capacity(len);
     let mut drop_reason = Vec::with_capacity(len);
     let mut discovered_status = Vec::with_capacity(len);
     let mut first_seen = Vec::with_capacity(len);
     let mut last_seen = Vec::with_capacity(len);
-    let mut lost_date = Vec::with_capacity(len);
     let mut author = Vec::with_capacity(len);
     let mut page_type = Vec::with_capacity(len);
     let mut page_category = Vec::with_capacity(len);
@@ -86,12 +84,10 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         is_sponsored.push(r.is_sponsored);
         is_rendered.push(r.is_rendered);
         is_raw.push(r.is_raw);
-        lost_status.push(r.lost_status.as_str());
         drop_reason.push(r.drop_reason.as_str());
         discovered_status.push(r.discovered_status.as_str());
         first_seen.push(r.first_seen.and_utc().timestamp_millis());
         last_seen.push(r.last_seen.and_utc().timestamp_millis());
-        lost_date.push(r.lost_date.map(|d| d.and_utc().timestamp_millis()));
         author.push(r.author.as_str());
         page_type.push(r.page_type.as_str());
         page_category.push(r.page_category.as_str());
@@ -131,12 +127,10 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         Column::new("is_sponsored".into(), &is_sponsored),
         Column::new("is_rendered".into(), &is_rendered),
         Column::new("is_raw".into(), &is_raw),
-        Column::new("lost_status".into(), &lost_status),
         Column::new("drop_reason".into(), &drop_reason),
         Column::new("discovered_status".into(), &discovered_status),
         Series::new("first_seen".into(), &first_seen).cast(&DataType::Datetime(TimeUnit::Milliseconds, None)).unwrap().into(),
         Series::new("last_seen".into(), &last_seen).cast(&DataType::Datetime(TimeUnit::Milliseconds, None)).unwrap().into(),
-        Series::new("lost_date".into(), &lost_date).cast(&DataType::Datetime(TimeUnit::Milliseconds, None)).unwrap().into(),
         Column::new("author".into(), &author),
         Column::new("page_type".into(), &page_type),
         Column::new("page_category".into(), &page_category),
@@ -145,13 +139,14 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         Column::new("profile_label".into(), &profile_label),
     ])?;
 
-    // Merge with existing parquet if present
+    // Merge with existing parquet if present, dedup on natural key columns
     if output_path.exists() {
         let existing_file = std::fs::File::open(output_path)?;
         let existing_df = ParquetReader::new(existing_file).finish()?;
         let new_count = df.height();
         let mut combined = existing_df.vstack(&df)?;
-        combined = combined.unique_stable(None, UniqueKeepStrategy::First, None)?;
+        let key_cols = vec!["referring_url".into(), "target_url".into(), "anchor".into()];
+        combined = combined.unique_stable(Some(&key_cols), UniqueKeepStrategy::Last, None)?;
         println!("    Merge: {} existing + {} new -> {} after dedup",
             existing_df.height(), new_count, combined.height());
         df = combined;

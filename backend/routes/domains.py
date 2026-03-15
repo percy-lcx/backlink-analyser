@@ -20,6 +20,7 @@ def referring_domains(
     sort: str = Query("link_count:desc"),
     domain_search: Optional[str] = Query(None),
     domain_mode: Optional[str] = Query(None),
+    domain_exclude: Optional[bool] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
     traffic_min: Optional[float] = Query(None),
@@ -44,6 +45,7 @@ def referring_domains(
         idx = apply_text_filter(
             conditions, params, idx, "referring_domain", domain_search,
             mode=domain_mode or "contains",
+            exclude=bool(domain_exclude),
         )
 
     where = " AND ".join(conditions)
