@@ -150,8 +150,9 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         let existing_file = std::fs::File::open(output_path)?;
         let existing_df = ParquetReader::new(existing_file).finish()?;
         let new_count = df.height();
-        let mut combined = df.vstack(&existing_df)?;
-        combined = combined.unique_stable(None, UniqueKeepStrategy::First, None)?;
+        let mut combined = existing_df.vstack(&df)?;
+        let key_cols = vec!["referring_url".into(), "target_url".into(), "anchor".into()];
+        combined = combined.unique_stable(Some(&key_cols), UniqueKeepStrategy::Last, None)?;
         println!("    Merge: {} existing + {} new -> {} after dedup",
             existing_df.height(), new_count, combined.height());
         df = combined;
