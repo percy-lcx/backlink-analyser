@@ -9,7 +9,7 @@ import {
   type ColumnSizingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import Tooltip from "../Tooltip";
 
 export type { SortingState };
@@ -32,6 +32,7 @@ interface Props<T> {
   getRowClassName?: (row: T) => string;
   manualSorting?: boolean;
   onSortChange?: (sorting: SortingState) => void;
+  toolbar?: ReactNode;
 }
 
 export default function DataTable<T>({
@@ -47,6 +48,7 @@ export default function DataTable<T>({
   getRowClassName,
   manualSorting,
   onSortChange,
+  toolbar,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [localPageSize, setLocalPageSize] = useState(pageSize);
@@ -164,7 +166,8 @@ export default function DataTable<T>({
 
   return (
     <div className={isResizing ? "cursor-col-resize" : ""}>
-      <div className="flex justify-end mb-2 relative" ref={pickerRef}>
+      <div className="flex justify-end items-center gap-2 mb-2 relative" ref={pickerRef}>
+        {toolbar}
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
           onClick={() => setShowColumnPicker((v) => !v)}
