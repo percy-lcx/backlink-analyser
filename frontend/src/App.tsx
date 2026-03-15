@@ -17,6 +17,7 @@ import {
   fetchDrDistribution,
   fetchVelocity,
   fetchLinks,
+  fetchHttpCodes,
   fetchReferringDomains,
   fetchAnchors,
   fetchQualityMatrix,
@@ -183,8 +184,8 @@ function Dashboard() {
   const [nofollowFilter, setNofollowFilter] = useState<string>("");
   const [sponsoredFilter, setSponsoredFilter] = useState<string>("");
   const [spamFilter, setSpamFilter] = useState<string>("");
-  const [httpCodeMin, setHttpCodeMin] = useState("");
-  const [httpCodeMax, setHttpCodeMax] = useState("");
+  const [httpCodeFilter, setHttpCodeFilter] = useState("");
+  const [httpCodes, setHttpCodes] = useState<number[]>([]);
   const [drMin, setDrMin] = useState("");
   const [drMax, setDrMax] = useState("");
   const [trafficMin, setTrafficMin] = useState("");
@@ -234,6 +235,12 @@ function Dashboard() {
   // Quality state
   const [quality, setQuality] = useState<QualityPoint[]>([]);
 
+  // Fetch available HTTP status codes when profile changes
+  useEffect(() => {
+    if (!selected) return;
+    fetchHttpCodes(selected).then((r) => setHttpCodes(r.codes ?? [])).catch(() => setHttpCodes([]));
+  }, [selected]);
+
   useEffect(() => {
     if (!selected) return;
     if (tab === "overview") {
@@ -266,8 +273,7 @@ function Dashboard() {
       if (nofollowFilter) params.is_nofollow = nofollowFilter === "yes";
       if (sponsoredFilter) params.is_sponsored = sponsoredFilter === "yes";
       if (spamFilter) params.is_spam = spamFilter === "yes";
-      if (httpCodeMin) params.http_code_min = parseInt(httpCodeMin);
-      if (httpCodeMax) params.http_code_max = parseInt(httpCodeMax);
+      if (httpCodeFilter) params.http_code = parseInt(httpCodeFilter);
       if (drMin) params.dr_min = parseFloat(drMin);
       if (drMax) params.dr_max = parseFloat(drMax);
       if (trafficMin) params.traffic_min = parseFloat(trafficMin);
@@ -328,12 +334,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeMin, httpCodeMax, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeMin, httpCodeMax, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
+  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
 
   // Stable callbacks for FilterInput debounce handlers
   const setDrilldownPathCb = useCallback((v: string | null) => setDrilldownPath(v), []);
@@ -434,8 +440,7 @@ function Dashboard() {
       setNofollowFilter("");
       setSponsoredFilter("");
       setSpamFilter("");
-      setHttpCodeMin("");
-      setHttpCodeMax("");
+      setHttpCodeFilter("");
       setDrMin("");
       setDrMax("");
       setTrafficMin("");
@@ -648,12 +653,16 @@ function Dashboard() {
                 <option value="yes">Spam: Yes</option>
                 <option value="no">Spam: No</option>
               </select>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">HTTP</span>
-                <input type="number" placeholder="Min" value={httpCodeMin} onChange={(e) => setHttpCodeMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <span className="text-gray-400">–</span>
-                <input type="number" placeholder="Max" value={httpCodeMax} onChange={(e) => setHttpCodeMax(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              </div>
+              <select
+                value={httpCodeFilter}
+                onChange={(e) => setHttpCodeFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Status: All</option>
+                {httpCodes.map((code) => (
+                  <option key={code} value={String(code)}>Status: {code}</option>
+                ))}
+              </select>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500">DR</span>
                 <input type="number" placeholder="Min" value={drMin} onChange={(e) => setDrMin(e.target.value)} className="w-16 border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />

@@ -32,8 +32,7 @@ def list_links(
     is_nofollow: Optional[bool] = Query(None),
     is_sponsored: Optional[bool] = Query(None),
     is_spam: Optional[bool] = Query(None),
-    http_code_min: Optional[int] = Query(None),
-    http_code_max: Optional[int] = Query(None),
+    http_code: Optional[int] = Query(None),
     link_type: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
@@ -72,14 +71,9 @@ def list_links(
         params.append(is_sponsored)
         idx += 1
 
-    if http_code_min is not None:
-        conditions.append(f"http_code >= ${idx}")
-        params.append(http_code_min)
-        idx += 1
-
-    if http_code_max is not None:
-        conditions.append(f"http_code <= ${idx}")
-        params.append(http_code_max)
+    if http_code is not None:
+        conditions.append(f"http_code = ${idx}")
+        params.append(http_code)
         idx += 1
 
     if is_spam is not None:
@@ -186,3 +180,16 @@ def list_links(
         "page": page,
         "per_page": per_page,
     }
+
+
+@router.get("/api/http-codes")
+def list_http_codes(profile: str = Query(...)):
+    """Return distinct HTTP status codes present in the dataset for a profile."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT http_code FROM backlinks "
+        "WHERE profile_label = $1 AND http_code IS NOT NULL AND http_code > 0 "
+        "ORDER BY http_code",
+        [profile],
+    ).fetchall()
+    return {"codes": [row[0] for row in rows]}
