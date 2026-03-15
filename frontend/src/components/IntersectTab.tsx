@@ -464,22 +464,6 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
 
           {/* Domain table */}
           <div className="bg-white rounded-lg shadow p-5">
-            <div className="mb-1">
-              <h3 className="text-sm font-semibold text-gray-700">
-                Gap Domains
-                {filterCount !== null && (
-                  <span className="text-primary-500 font-normal ml-2">
-                    (linking to {filterCount} competitor
-                    {filterCount > 1 ? "s" : ""})
-                  </span>
-                )}
-              </h3>
-            </div>
-            <p className="text-xs text-gray-400 mb-3">
-              Referring domains linking to competitors but not to{" "}
-              <strong>{baseProfile}</strong>. Sorted by intersection count, then
-              DR.
-            </p>
             <DataTable
               data={filteredDomains}
               columns={columns}
@@ -489,6 +473,24 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                   ? (row) =>
                       onGapRowClick(baseProfile, row.referring_domain)
                   : undefined
+              }
+              statusText={
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Gap Domains
+                    {filterCount !== null && (
+                      <span className="text-primary-500 font-normal ml-2">
+                        (linking to {filterCount} competitor
+                        {filterCount > 1 ? "s" : ""})
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Referring domains linking to competitors but not to{" "}
+                    <strong>{baseProfile}</strong>. Sorted by intersection count, then
+                    DR.
+                  </p>
+                </div>
               }
               toolbar={
                 <ExportButton
