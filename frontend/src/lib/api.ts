@@ -26,6 +26,17 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 export type MatchMode = "contains" | "exact" | "regex";
 
+export interface LinksDrilldown {
+  domain?: string;
+  domainMode?: MatchMode;
+  anchor?: string;
+  anchorMode?: MatchMode;
+  targetPath?: string;
+  targetPathMode?: MatchMode;
+  drMin?: string;
+  drMax?: string;
+}
+
 export interface Profile {
   profile_label: string;
   total_links: number;

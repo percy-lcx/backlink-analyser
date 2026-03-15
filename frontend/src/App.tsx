@@ -158,6 +158,7 @@ type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
+  const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
 
   // Ingest state
   const [ingesting, setIngesting] = useState(false);
@@ -417,44 +418,25 @@ function Dashboard() {
     }
   };
 
-  // Click a page row → drilldown into its backlinks (exact match)
-  const handlePageRowClick = (row: PageRow) => {
-    setTargetPathInput(row.target_path);
-    setDrilldownPath(row.target_path);
-    setTargetPathMode("exact");
+  const handleDrilldown = (d: LinksDrilldown) => {
+    setDrilldown(d);
     setTab("links");
   };
 
-  // Click a domain row → drilldown into its backlinks
-  const handleDomainRowClick = (row: ReferringDomain) => {
-    setDomainInput(row.referring_domain);
-    setDomainFilter(row.referring_domain);
-    setTab("links");
+  const handleTabClick = (t: Tab) => {
+    if (t === "links") setDrilldown(null);
+    setTab(t);
   };
 
-  // Click an anchor row → drilldown into its backlinks
-  const handleAnchorRowClick = (row: AnchorRecord) => {
-    setAnchorInput(row.anchor);
-    setAnchorFilter(row.anchor);
-    setTab("links");
-  };
-
-  // Click a link gap row in Compare → drilldown into that profile's links filtered by domain
   const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
-    handleTabClick("links");
     setSelected(profileLabel);
-    setDomainInput(referringDomain);
-    setDomainFilter(referringDomain);
-    if (targetPath) {
-      setTargetPathInput(targetPath);
-      setDrilldownPath(targetPath);
-      setTargetPathMode("exact");
-    }
+    handleDrilldown({
+      domain: referringDomain,
+      ...(targetPath ? { targetPath, targetPathMode: "exact" as const } : {}),
+    });
   };
 
-  // Click a DR distribution bar in Compare → drilldown into links with DR range
   const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => {
-    handleTabClick("links");
     setSelected(profileLabel);
     setDrMin(String(drMin));
     setDrMax(String(drMax));
