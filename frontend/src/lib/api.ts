@@ -24,6 +24,8 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 /* ---- Types ---- */
 
+export type MatchMode = "contains" | "exact" | "regex";
+
 export interface Profile {
   profile_label: string;
   total_links: number;
@@ -53,6 +55,7 @@ export interface LinkRecord {
   target_url: string;
   target_path: string;
   anchor: string;
+  http_code: number;
   is_nofollow: boolean;
   is_ugc: boolean;
   is_sponsored: boolean;
@@ -61,6 +64,7 @@ export interface LinkRecord {
   domain_rating: number;
   url_rating: number;
   page_traffic: number;
+  domain_traffic: number;
   first_seen: string;
   last_seen: string;
 }
@@ -84,6 +88,14 @@ export interface AnchorRecord {
   pct: number;
 }
 
+export interface AnchorParams {
+  anchor_search?: string;
+  anchor_mode?: string;
+  category?: string;
+  count_min?: number;
+  count_max?: number;
+}
+
 export interface AnchorContext {
   left_context: string;
   anchor: string;
@@ -97,7 +109,19 @@ export interface ReferringDomain {
   max_dr: number;
   total_traffic: number;
   is_sitewide: boolean;
-  dominant_anchor: string;
+}
+
+export interface ReferringDomainParams {
+  sort?: string;
+  domain_search?: string;
+  domain_mode?: string;
+  dr_min?: number;
+  dr_max?: number;
+  traffic_min?: number;
+  traffic_max?: number;
+  links_min?: number;
+  links_max?: number;
+  is_sitewide?: boolean;
 }
 
 export interface DrBucket {
@@ -124,6 +148,20 @@ export interface PageRow {
   unique_referring_domains: number;
   avg_dr: number;
   dofollow_ratio: number;
+}
+
+export interface PageBreakdownParams {
+  target_path_search?: string;
+  target_path_exclude?: boolean;
+  category?: string;
+  link_count_min?: number;
+  link_count_max?: number;
+  ref_domains_min?: number;
+  ref_domains_max?: number;
+  avg_dr_min?: number;
+  avg_dr_max?: number;
+  dofollow_min?: number;
+  dofollow_max?: number;
 }
 
 export interface PageBreakdownResponse {
@@ -163,9 +201,13 @@ export interface CompareProfile {
   total_links: number;
   referring_domains: number;
   avg_dr: number;
+  median_dr: number;
   dofollow_ratio: number;
   spam_ratio: number;
   anchor_diversity: number;
+  links_per_domain: number;
+  sitewide_ratio: number;
+  image_link_ratio: number;
 }
 
 export interface LinkGapDomain {
@@ -196,6 +238,24 @@ export interface RedirectSummary {
   items: RedirectInfo[];
 }
 
+export interface IntersectDomain {
+  referring_domain: string;
+  max_dr: number;
+  competitor_flags: boolean[];
+  competitor_count: number;
+}
+
+export interface IntersectSummary {
+  count: number;
+  domains: number;
+}
+
+export interface IntersectResponse {
+  competitors: string[];
+  summary: IntersectSummary[];
+  domains: IntersectDomain[];
+}
+
 /* ---- Endpoints (matching actual backend routes) ---- */
 
 export interface LinkParams {
@@ -203,23 +263,29 @@ export interface LinkParams {
   per_page?: number;
   sort?: string;
   is_nofollow?: boolean;
+  is_sponsored?: boolean;
   is_spam?: boolean;
+  http_code?: string;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
   anchor_search?: string;
   anchor_exclude?: boolean;
+  anchor_mode?: string;
   traffic_min?: number;
   traffic_max?: number;
   first_seen_from?: string;
   first_seen_to?: string;
   domain_search?: string;
   domain_exclude?: boolean;
+  domain_mode?: string;
   url_search?: string;
   url_exclude?: boolean;
+  url_mode?: string;
   target_path_search?: string;
   target_path_exact?: boolean;
   target_path_exclude?: boolean;
+  target_path_mode?: string;
 }
 
 export function fetchProfiles(): Promise<Profile[]> {
@@ -234,20 +300,24 @@ export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksR
   return get<LinksResponse>(`${BASE}/links`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
+export function fetchHttpCodes(profile: string): Promise<{ codes: number[] }> {
+  return get<{ codes: number[] }>(`${BASE}/http-codes`, { profile });
+}
+
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
   return get<LinkAttribute[]>(`${BASE}/link-attributes`, { profile });
 }
 
-export function fetchAnchors(profile: string, targetPath?: string): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
-  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, target_path: targetPath });
+export function fetchAnchors(profile: string, params?: AnchorParams & { target_path?: string }): Promise<{ items: AnchorRecord[]; categories: Record<string, number> }> {
+  return get<{ items: AnchorRecord[]; categories: Record<string, number> }>(`${BASE}/anchors`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchAnchorsContext(profile: string, anchor: string): Promise<AnchorContext[]> {
   return get<AnchorContext[]>(`${BASE}/anchors-context`, { profile, anchor });
 }
 
-export function fetchReferringDomains(profile: string, sort?: string): Promise<ReferringDomain[]> {
-  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, sort });
+export function fetchReferringDomains(profile: string, params?: ReferringDomainParams): Promise<ReferringDomain[]> {
+  return get<ReferringDomain[]>(`${BASE}/referring-domains`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchDrDistribution(profile: string, targetPath?: string): Promise<DrDistributionResponse> {
@@ -258,8 +328,8 @@ export function fetchVelocity(profile: string, interval?: string): Promise<Veloc
   return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
 }
 
-export function fetchPageBreakdown(profile: string): Promise<PageBreakdownResponse> {
-  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile });
+export function fetchPageBreakdown(profile: string, params?: PageBreakdownParams): Promise<PageBreakdownResponse> {
+  return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
 export function fetchRedirects(profile: string): Promise<RedirectSummary> {
@@ -292,6 +362,18 @@ export function fetchLinkGap(
     competitors: competitors.join(","),
     base_target_path: baseTargetPath,
     competitor_target_path: competitorTargetPath,
+  });
+}
+
+export function fetchLinkIntersect(
+  base: string,
+  competitors: string[],
+  minDr?: number,
+): Promise<IntersectResponse> {
+  return get<IntersectResponse>(`${BASE}/link-intersect`, {
+    base,
+    competitors: competitors.join(","),
+    min_dr: minDr,
   });
 }
 

@@ -14,11 +14,13 @@ import {
   type TargetPath,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
+import Tooltip from "./Tooltip";
+import { METRICS, getMetricByLabel } from "../lib/metrics";
 
 const gapColumns: ColumnDef<LinkGapDomain, unknown>[] = [
-  { accessorKey: "referring_domain", header: "Referring Domain" },
-  { accessorKey: "max_dr", header: "DR" },
-  { accessorKey: "total_links", header: "Links" },
+  { accessorKey: "referring_domain", header: "Referring Domain", size: 400, meta: { tooltip: METRICS.referring_domain.short } },
+  { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  { accessorKey: "total_links", header: "Links", meta: { tooltip: METRICS.links.short } },
 ];
 
 interface MetricRow {
@@ -34,6 +36,7 @@ interface MetricRow {
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 const num = (v: number) => v.toLocaleString();
 const dec1 = (v: number) => v.toFixed(1);
+const dec2 = (v: number) => v.toFixed(2);
 
 function buildMetrics(a: CompareProfile, b: CompareProfile): MetricRow[] {
   const defs: {
@@ -45,9 +48,13 @@ function buildMetrics(a: CompareProfile, b: CompareProfile): MetricRow[] {
     { metric: "Total Links", key: "total_links", higherIsBetter: true, format: num },
     { metric: "Referring Domains", key: "referring_domains", higherIsBetter: true, format: num },
     { metric: "Avg DR", key: "avg_dr", higherIsBetter: true, format: dec1 },
+    { metric: "Median DR", key: "median_dr", higherIsBetter: true, format: dec1 },
     { metric: "Dofollow %", key: "dofollow_ratio", higherIsBetter: true, format: pct },
     { metric: "Spam %", key: "spam_ratio", higherIsBetter: false, format: pct },
     { metric: "Anchor Diversity", key: "anchor_diversity", higherIsBetter: true, format: num },
+    { metric: "Links / Domain", key: "links_per_domain", higherIsBetter: false, format: dec2 },
+    { metric: "Sitewide %", key: "sitewide_ratio", higherIsBetter: false, format: pct },
+    { metric: "Image Link %", key: "image_link_ratio", higherIsBetter: false, format: pct },
   ];
   return defs.map((d) => {
     const va = Number(a[d.key]) || 0;
@@ -138,7 +145,12 @@ function PathCombobox({
 
 /* ---- Main component ---- */
 
-export default function CompareTab() {
+interface CompareTabProps {
+  onDrBarClick?: (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => void;
+  onGapRowClick?: (profileLabel: string, referringDomain: string, targetPath?: string) => void;
+}
+
+export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabProps) {
   const { profiles } = useProfile();
   const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
@@ -230,6 +242,12 @@ export default function CompareTab() {
 
   const labelA = mode === "url" && pathA ? `${profileA} ${pathA}` : profileA;
   const labelB = mode === "url" && pathB ? `${profileB} ${pathB}` : profileB;
+
+  const drMaxCount = Math.max(
+    ...drDistA.map((d) => d.count),
+    ...drDistB.map((d) => d.count),
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -340,7 +358,9 @@ export default function CompareTab() {
                 <tbody>
                   {metrics.map((row) => (
                     <tr key={row.metric} className="border-b border-gray-100">
-                      <td className="py-2 text-gray-700">{row.metric}</td>
+                      <td className="py-2 text-gray-700">
+                        <Tooltip text={getMetricByLabel(row.metric)?.short ?? ""}>{row.metric}</Tooltip>
+                      </td>
                       <td className="py-2">{row.format(row.a)}</td>
                       <td className="py-2">{row.format(row.b)}</td>
                       <td className={`py-2 font-medium ${deltaColor(row)}`}>
@@ -363,7 +383,7 @@ export default function CompareTab() {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelB} but not {labelA}
               </p>
-              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-1">
@@ -372,7 +392,7 @@ export default function CompareTab() {
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelA} but not {labelB}
               </p>
-              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} />
+              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} />
             </div>
           </div>
 
@@ -380,11 +400,17 @@ export default function CompareTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA} — DR Distribution</h3>
-              <DrDistribution data={drDistA} />
+              <DrDistribution data={drDistA} maxCount={drMaxCount} onBarClick={onDrBarClick ? (bucket) => {
+                const [min, max] = bucket.split("-").map(Number);
+                onDrBarClick(profileA, min, max, mode === "url" ? pathA : undefined);
+              } : undefined} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB} — DR Distribution</h3>
-              <DrDistribution data={drDistB} />
+              <DrDistribution data={drDistB} maxCount={drMaxCount} onBarClick={onDrBarClick ? (bucket) => {
+                const [min, max] = bucket.split("-").map(Number);
+                onDrBarClick(profileB, min, max, mode === "url" ? pathB : undefined);
+              } : undefined} />
             </div>
           </div>
         </>

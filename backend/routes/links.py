@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 from db import get_conn
+from routes._filters import apply_text_filter
 
 router = APIRouter()
 
@@ -8,13 +9,16 @@ SORTABLE_COLUMNS = {
     "domain_rating",
     "url_rating",
     "page_traffic",
+    "domain_traffic",
     "first_seen",
     "last_seen",
     "referring_domain",
     "anchor",
     "target_path",
     "link_type",
+    "http_code",
     "is_nofollow",
+    "is_sponsored",
     "is_spam",
 }
 
@@ -26,23 +30,29 @@ def list_links(
     per_page: int = Query(100, ge=1, le=1000),
     sort: str = Query("domain_rating:desc"),
     is_nofollow: Optional[bool] = Query(None),
+    is_sponsored: Optional[bool] = Query(None),
     is_spam: Optional[bool] = Query(None),
+    http_code: Optional[str] = Query(None),
     link_type: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
     anchor_search: Optional[str] = Query(None),
     anchor_exclude: Optional[bool] = Query(None),
+    anchor_mode: Optional[str] = Query(None),
     traffic_min: Optional[float] = Query(None),
     traffic_max: Optional[float] = Query(None),
     first_seen_from: Optional[str] = Query(None),
     first_seen_to: Optional[str] = Query(None),
     domain_search: Optional[str] = Query(None),
     domain_exclude: Optional[bool] = Query(None),
+    domain_mode: Optional[str] = Query(None),
     url_search: Optional[str] = Query(None),
     url_exclude: Optional[bool] = Query(None),
+    url_mode: Optional[str] = Query(None),
     target_path_search: Optional[str] = Query(None),
     target_path_exact: Optional[bool] = Query(None),
     target_path_exclude: Optional[bool] = Query(None),
+    target_path_mode: Optional[str] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -55,6 +65,19 @@ def list_links(
         conditions.append(f"is_nofollow = ${idx}")
         params.append(is_nofollow)
         idx += 1
+
+    if is_sponsored is not None:
+        conditions.append(f"is_sponsored = ${idx}")
+        params.append(is_sponsored)
+        idx += 1
+
+    if http_code is not None:
+        codes = [int(c) for c in http_code.split(",") if c.strip().isdigit()]
+        if codes:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(codes)))
+            conditions.append(f"http_code IN ({placeholders})")
+            params.extend(codes)
+            idx += len(codes)
 
     if is_spam is not None:
         conditions.append(f"is_spam = ${idx}")
@@ -77,10 +100,11 @@ def list_links(
         idx += 1
 
     if anchor_search is not None:
-        op = "NOT ILIKE" if anchor_exclude else "ILIKE"
-        conditions.append(f"anchor {op} ${idx}")
-        params.append(f"%{anchor_search}%")
-        idx += 1
+        idx = apply_text_filter(
+            conditions, params, idx, "anchor", anchor_search,
+            mode=anchor_mode or "contains",
+            exclude=bool(anchor_exclude),
+        )
 
     if traffic_min is not None:
         conditions.append(f"page_traffic >= ${idx}")
@@ -103,27 +127,27 @@ def list_links(
         idx += 1
 
     if domain_search is not None:
-        op = "NOT ILIKE" if domain_exclude else "ILIKE"
-        conditions.append(f"referring_domain {op} ${idx}")
-        params.append(f"%{domain_search}%")
-        idx += 1
+        idx = apply_text_filter(
+            conditions, params, idx, "referring_domain", domain_search,
+            mode=domain_mode or "contains",
+            exclude=bool(domain_exclude),
+        )
 
     if url_search is not None:
-        op = "NOT ILIKE" if url_exclude else "ILIKE"
-        conditions.append(f"referring_url {op} ${idx}")
-        params.append(f"%{url_search}%")
-        idx += 1
+        idx = apply_text_filter(
+            conditions, params, idx, "referring_url", url_search,
+            mode=url_mode or "contains",
+            exclude=bool(url_exclude),
+        )
 
     if target_path_search is not None:
-        if target_path_exact:
-            op = "!=" if target_path_exclude else "="
-            conditions.append(f"target_path {op} ${idx}")
-            params.append(target_path_search)
-        else:
-            op = "NOT ILIKE" if target_path_exclude else "ILIKE"
-            conditions.append(f"target_path {op} ${idx}")
-            params.append(f"%{target_path_search}%")
-        idx += 1
+        # Backward compat: target_path_exact=true → mode="exact"
+        tp_mode = target_path_mode or ("exact" if target_path_exact else "contains")
+        idx = apply_text_filter(
+            conditions, params, idx, "target_path", target_path_search,
+            mode=tp_mode,
+            exclude=bool(target_path_exclude),
+        )
 
     where = " AND ".join(conditions)
 
@@ -159,3 +183,16 @@ def list_links(
         "page": page,
         "per_page": per_page,
     }
+
+
+@router.get("/api/http-codes")
+def list_http_codes(profile: str = Query(...)):
+    """Return distinct HTTP status codes present in the dataset for a profile."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT http_code FROM backlinks "
+        "WHERE profile_label = $1 AND http_code IS NOT NULL AND http_code > 0 "
+        "ORDER BY http_code",
+        [profile],
+    ).fetchall()
+    return {"codes": [row[0] for row in rows]}

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 from db import get_conn
-from analysis.anchors import categorise_anchor, summarise_categories
+from analysis.anchors import categorise_anchor, summarise_categories_weighted
+from routes._filters import apply_text_filter
 
 router = APIRouter()
 
@@ -34,18 +35,44 @@ def link_attributes(profile: str = Query(...)):
 def anchors(
     profile: str = Query(...),
     target_path: Optional[str] = Query(None),
+    anchor_search: Optional[str] = Query(None),
+    anchor_mode: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    count_min: Optional[int] = Query(None),
+    count_max: Optional[int] = Query(None),
 ):
     """Group by anchor, count, and categorise."""
     conn = get_conn()
 
     conditions = ["profile_label = $1"]
     params: list = [profile]
+    idx = 2
 
     if target_path is not None:
-        conditions.append("target_path = $2")
+        conditions.append(f"target_path = ${idx}")
         params.append(target_path)
+        idx += 1
+
+    if anchor_search is not None:
+        idx = apply_text_filter(
+            conditions, params, idx, "anchor", anchor_search,
+            mode=anchor_mode or "contains",
+        )
 
     where = " AND ".join(conditions)
+
+    # HAVING clauses for count range
+    having_parts: list[str] = []
+    if count_min is not None:
+        having_parts.append(f"COUNT(*) >= ${idx}")
+        params.append(count_min)
+        idx += 1
+    if count_max is not None:
+        having_parts.append(f"COUNT(*) <= ${idx}")
+        params.append(count_max)
+        idx += 1
+
+    having = f"HAVING {' AND '.join(having_parts)}" if having_parts else ""
 
     rows = conn.execute(
         f"""
@@ -56,6 +83,7 @@ def anchors(
         FROM backlinks
         WHERE {where}
         GROUP BY anchor, link_type
+        {having}
         ORDER BY count DESC
         """,
         params,
@@ -72,9 +100,12 @@ def anchors(
             "category": cat,
         })
 
-    # Build summary
-    all_rows = [{"anchor": r["anchor"], "link_type": r["link_type"], "category": r["category"]} for r in items for _ in range(r["count"])]
-    summary = summarise_categories(all_rows)
+    # Post-query filter by category (computed at query time, not a DB column)
+    if category:
+        items = [item for item in items if item["category"] == category]
+
+    # Build summary from grouped counts — O(M) not O(N)
+    summary = summarise_categories_weighted(items)
 
     return {
         "items": items,
