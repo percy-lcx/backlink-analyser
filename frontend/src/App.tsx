@@ -98,6 +98,26 @@ const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   { accessorKey: "first_seen", header: "First Seen", meta: { tooltip: METRICS.first_seen.short } },
+  {
+    accessorKey: "lost_date",
+    header: "Lost",
+    meta: { tooltip: "Date when the backlink was lost." },
+    cell: ({ getValue }) => {
+      const val = getValue() as string | null;
+      if (!val) return <span className="text-gray-400">—</span>;
+      return val;
+    },
+  },
+  {
+    accessorKey: "lost_status",
+    header: "Lost Status",
+    meta: { tooltip: "Reason the backlink was lost." },
+    cell: ({ getValue }) => {
+      const val = getValue() as string;
+      if (!val) return <span className="text-gray-400">—</span>;
+      return val;
+    },
+  },
 ];
 
 const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
