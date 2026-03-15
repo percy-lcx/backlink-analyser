@@ -173,10 +173,10 @@ export default function DataTable<T>({
         <div className="flex items-center gap-2 ml-auto">
           {toolbar}
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600"
             onClick={() => setShowColumnPicker((v) => !v)}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
             </svg>
             Columns{hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
@@ -306,7 +306,7 @@ export default function DataTable<T>({
         </div>
         <div className="flex gap-2">
           <button
-            className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={() => {
               if (manualPagination) onPageChange?.(currentPage - 1);
               else table.previousPage();
@@ -316,7 +316,7 @@ export default function DataTable<T>({
             Previous
           </button>
           <button
-            className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={() => {
               if (manualPagination) onPageChange?.(currentPage + 1);
               else table.nextPage();
