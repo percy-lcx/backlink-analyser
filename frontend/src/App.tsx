@@ -210,6 +210,7 @@ function Dashboard() {
   const [domLinksMax, setDomLinksMax] = useState("");
   const [domSitewideFilter, setDomSitewideFilter] = useState<string>("");
   const [domDomainMode, setDomDomainMode] = useState<MatchMode>("contains");
+  const [domDomainExclude, setDomDomainExclude] = useState(false);
 
   // Anchors state
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
@@ -219,6 +220,7 @@ function Dashboard() {
   const [anchorCountMin, setAnchorCountMin] = useState("");
   const [anchorCountMax, setAnchorCountMax] = useState("");
   const [anchorTabMode, setAnchorTabMode] = useState<MatchMode>("contains");
+  const [anchorTabExclude, setAnchorTabExclude] = useState(false);
 
   // Pages state
   const [pages, setPages] = useState<PageRow[]>([]);
@@ -226,6 +228,7 @@ function Dashboard() {
   const [pagePathInput, setPagePathInput] = useState("");
   const [pagePathFilter, setPagePathFilter] = useState<string | null>(null);
   const [pagePathExclude, setPagePathExclude] = useState(false);
+  const [pagePathMode, setPagePathMode] = useState<MatchMode>("contains");
   const [pageCategoryFilter, setPageCategoryFilter] = useState("");
   const [pageLinksMin, setPageLinksMin] = useState("");
   const [pageLinksMax, setPageLinksMax] = useState("");
@@ -303,6 +306,7 @@ function Dashboard() {
       if (domDomainSearch) {
         domParams.domain_search = domDomainSearch;
         if (domDomainMode !== "contains") domParams.domain_mode = domDomainMode;
+        if (domDomainExclude) domParams.domain_exclude = true;
       }
       if (domDrMin) domParams.dr_min = parseFloat(domDrMin);
       if (domDrMax) domParams.dr_max = parseFloat(domDrMax);
@@ -317,6 +321,7 @@ function Dashboard() {
       if (anchorTabSearchFilter) {
         anchorParams.anchor_search = anchorTabSearchFilter;
         if (anchorTabMode !== "contains") anchorParams.anchor_mode = anchorTabMode;
+        if (anchorTabExclude) anchorParams.anchor_exclude = true;
       }
       if (anchorCategoryFilter) anchorParams.category = anchorCategoryFilter;
       if (anchorCountMin) anchorParams.count_min = parseInt(anchorCountMin);
@@ -331,6 +336,7 @@ function Dashboard() {
       if (pagePathFilter) {
         pageParams.target_path_search = pagePathFilter;
         if (pagePathExclude) pageParams.target_path_exclude = true;
+        if (pagePathMode !== "contains") pageParams.target_path_mode = pagePathMode;
       }
       if (pageCategoryFilter) pageParams.category = pageCategoryFilter;
       if (pageLinksMin) pageParams.link_count_min = parseInt(pageLinksMin);
@@ -349,7 +355,7 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDomainExclude, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorTabExclude, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pagePathMode, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
@@ -749,6 +755,8 @@ function Dashboard() {
                 value={domDomainInput}
                 onChange={setDomDomainInput}
                 placeholder="Filter by domain..."
+                exclude={domDomainExclude}
+                onExcludeChange={setDomDomainExclude}
                 matchMode={domDomainMode}
                 onMatchModeChange={setDomDomainMode}
                 onDebouncedChange={setDomDomainSearchCb}
@@ -801,6 +809,8 @@ function Dashboard() {
                 value={anchorTabSearch}
                 onChange={setAnchorTabSearch}
                 placeholder="Filter by anchor text..."
+                exclude={anchorTabExclude}
+                onExcludeChange={setAnchorTabExclude}
                 matchMode={anchorTabMode}
                 onMatchModeChange={setAnchorTabMode}
                 onDebouncedChange={setAnchorTabSearchFilterCb}
@@ -849,6 +859,8 @@ function Dashboard() {
                 excludePlaceholder="Exclude target URL..."
                 exclude={pagePathExclude}
                 onExcludeChange={setPagePathExclude}
+                matchMode={pagePathMode}
+                onMatchModeChange={setPagePathMode}
                 onDebouncedChange={setPagePathFilterCb}
               />
               <select
