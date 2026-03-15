@@ -18,6 +18,7 @@ function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
   const [tab, setTab] = useState<Tab>("overview");
   const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
+  const [pageCategory, setPageCategory] = useState<string | null>(null);
 
   // Ingest state
   const [ingesting, setIngesting] = useState(false);
@@ -44,7 +45,13 @@ function Dashboard() {
 
   const handleTabClick = (t: Tab) => {
     if (t === "links") setDrilldown(null);
+    if (t === "pages") setPageCategory(null);
     setTab(t);
+  };
+
+  const handlePageCategory = (category: string) => {
+    setPageCategory(category);
+    setTab("pages");
   };
 
   const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
@@ -152,11 +159,11 @@ function Dashboard() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {tab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} />}
+        {tab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} onDrilldown={handleDrilldown} onPageCategory={handlePageCategory} />}
         {tab === "links" && <LinksTab profile={selected} drilldown={drilldown} />}
         {tab === "domains" && <DomainsTab profile={selected} onDrilldown={handleDrilldown} />}
         {tab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
-        {tab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} />}
+        {tab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
         {tab === "quality" && <QualityTab profile={selected} />}
         {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
         {tab === "intersect" && <IntersectTab onGapRowClick={handleGapRowClick} />}
