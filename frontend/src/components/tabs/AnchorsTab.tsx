@@ -123,14 +123,11 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
         <EmptyState title="No anchor text data found" description="Try adjusting your filters." />
       ) : (
         <div className="bg-white rounded-lg shadow p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3>
-              <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks with that anchor text.</p>
-            </div>
-            <ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3>
+            <p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks with that anchor text.</p>
           </div>
-          <DataTable data={anchors} columns={anchorColumns} onRowClick={handleRowClick} />
+          <DataTable data={anchors} columns={anchorColumns} onRowClick={handleRowClick} toolbar={<ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />} />
         </div>
       )}
     </div>
