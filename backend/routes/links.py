@@ -32,7 +32,7 @@ def list_links(
     is_nofollow: Optional[bool] = Query(None),
     is_sponsored: Optional[bool] = Query(None),
     is_spam: Optional[bool] = Query(None),
-    http_code: Optional[int] = Query(None),
+    http_code: Optional[str] = Query(None),
     link_type: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
@@ -72,9 +72,12 @@ def list_links(
         idx += 1
 
     if http_code is not None:
-        conditions.append(f"http_code = ${idx}")
-        params.append(http_code)
-        idx += 1
+        codes = [int(c) for c in http_code.split(",") if c.strip().isdigit()]
+        if codes:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(codes)))
+            conditions.append(f"http_code IN ({placeholders})")
+            params.extend(codes)
+            idx += len(codes)
 
     if is_spam is not None:
         conditions.append(f"is_spam = ${idx}")
