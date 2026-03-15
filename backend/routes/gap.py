@@ -52,6 +52,7 @@ def link_gap(
             referring_domain,
             MAX(domain_rating) AS max_dr,
             COUNT(*) AS total_links,
+            SUM(COALESCE(page_traffic, 0)) AS total_traffic,
             LIST(DISTINCT profile_label) AS profiles_linking
         FROM backlinks
         WHERE profile_label IN ({placeholders}){comp_path_clause}
@@ -67,5 +68,5 @@ def link_gap(
         params,
     ).fetchall()
 
-    cols = ["referring_domain", "max_dr", "total_links", "profiles_linking"]
+    cols = ["referring_domain", "max_dr", "total_links", "total_traffic", "profiles_linking"]
     return [dict(zip(cols, row)) for row in rows]
