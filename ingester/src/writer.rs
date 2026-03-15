@@ -145,7 +145,7 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         Column::new("profile_label".into(), &profile_label),
     ])?;
 
-    // Merge with existing parquet if present
+    // Merge with existing parquet if present, dedup on natural key columns
     if output_path.exists() {
         let existing_file = std::fs::File::open(output_path)?;
         let existing_df = ParquetReader::new(existing_file).finish()?;
