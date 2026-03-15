@@ -35,6 +35,7 @@ fn parse_datetime(val: &str) -> Option<NaiveDateTime> {
     // Try common Ahrefs formats
     NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S")
         .or_else(|_| NaiveDateTime::parse_from_str(val, "%Y-%m-%d %H:%M:%S"))
+        .or_else(|_| NaiveDateTime::parse_from_str(val, "%m/%d/%Y %H:%M"))
         .or_else(|_| {
             chrono::NaiveDate::parse_from_str(val, "%Y-%m-%d")
                 .map(|d| d.and_hms_opt(0, 0, 0).unwrap())
@@ -137,7 +138,7 @@ impl AhrefsColumns {
             discovered_status: find("Discovered status"),
             first_seen: find("First seen"),
             last_seen: find("Last seen"),
-            lost_date: find("Lost date"),
+            lost_date: find("Lost date").or_else(|| find("Lost")),
             author: find("Author"),
             page_type: find("Page type"),
             page_category: find("Page category"),

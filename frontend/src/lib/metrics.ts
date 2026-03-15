@@ -138,6 +138,18 @@ export const METRICS: Record<string, MetricDef> = {
     full: "The date when the backlink was first detected by the crawler. This helps track link acquisition over time, identify link building campaigns, and understand the velocity at which new backlinks are being gained.",
     category: "Links",
   },
+  lost_date: {
+    label: "Lost",
+    short: "Date when the backlink was lost.",
+    full: "The date when the backlink was no longer detected by the crawler. A null value means the link is still active.",
+    category: "Links",
+  },
+  lost_status: {
+    label: "Lost Status",
+    short: "Reason the backlink was lost.",
+    full: "Indicates why the backlink was lost, such as the page being removed, the link being dropped, or a redirect change.",
+    category: "Links",
+  },
 
   // ── Domains ───────────────────────────────────────────────
   domain: {

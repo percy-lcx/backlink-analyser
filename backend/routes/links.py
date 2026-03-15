@@ -20,6 +20,8 @@ SORTABLE_COLUMNS = {
     "is_nofollow",
     "is_sponsored",
     "is_spam",
+    "lost_date",
+    "lost_status",
 }
 
 

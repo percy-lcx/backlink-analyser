@@ -67,6 +67,8 @@ export interface LinkRecord {
   domain_traffic: number;
   first_seen: string;
   last_seen: string;
+  lost_date: string | null;
+  lost_status: string;
 }
 
 export interface LinksResponse {
