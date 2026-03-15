@@ -216,6 +216,12 @@ function Dashboard() {
   const [trafficMax, setTrafficMax] = useState("");
   const [firstSeenFrom, setFirstSeenFrom] = useState("");
   const [firstSeenTo, setFirstSeenTo] = useState("");
+  const [lostDateFrom, setLostDateFrom] = useState("");
+  const [lostDateTo, setLostDateTo] = useState("");
+  const [lostStatusInput, setLostStatusInput] = useState("");
+  const [lostStatusFilter, setLostStatusFilter] = useState<string | null>(null);
+  const [lostStatusExclude, setLostStatusExclude] = useState(false);
+  const [lostStatusMode, setLostStatusMode] = useState<MatchMode>("contains");
   const [sortParam, setSortParam] = useState("domain_rating:desc");
 
   // Domains state
@@ -318,6 +324,13 @@ function Dashboard() {
       if (trafficMax) params.traffic_max = parseFloat(trafficMax);
       if (firstSeenFrom) params.first_seen_from = firstSeenFrom;
       if (firstSeenTo) params.first_seen_to = firstSeenTo;
+      if (lostDateFrom) params.lost_date_from = lostDateFrom;
+      if (lostDateTo) params.lost_date_to = lostDateTo;
+      if (lostStatusFilter) {
+        params.lost_status_search = lostStatusFilter;
+        if (lostStatusMode !== "contains") params.lost_status_mode = lostStatusMode;
+        if (lostStatusExclude) params.lost_status_exclude = true;
+      }
       fetchLinks(selected, params as Parameters<typeof fetchLinks>[1])
         .then(setLinksData)
         .catch(() => setLinksData(null));
@@ -375,12 +388,12 @@ function Dashboard() {
     } else if (tab === "quality") {
       fetchQualityMatrix(selected).then((r) => setQuality(r.items)).catch(() => setQuality([]));
     }
-  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, domDomainSearch, domDomainMode, domDomainExclude, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorTabExclude, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pagePathMode, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
+  }, [selected, tab, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilter, lostStatusMode, lostStatusExclude, domDomainSearch, domDomainMode, domDrMin, domDrMax, domTrafficMin, domTrafficMax, domLinksMin, domLinksMax, domSitewideFilter, anchorTabSearchFilter, anchorTabMode, anchorCategoryFilter, anchorCountMin, anchorCountMax, pagePathFilter, pagePathExclude, pageCategoryFilter, pageLinksMin, pageLinksMax, pageDomainsMin, pageDomainsMax, pageDrMin, pageDrMax, pageDofollowMin, pageDofollowMax]);
 
   // Reset link page when any filter changes
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
+  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, lostDateFrom, lostDateTo, lostStatusFilter, sortParam]);
 
   // Stable callbacks for FilterInput debounce handlers
   const setDrilldownPathCb = useCallback((v: string | null) => setDrilldownPath(v), []);
@@ -390,6 +403,7 @@ function Dashboard() {
   const setDomDomainSearchCb = useCallback((v: string | null) => setDomDomainSearch(v), []);
   const setAnchorTabSearchFilterCb = useCallback((v: string | null) => setAnchorTabSearchFilter(v), []);
   const setPagePathFilterCb = useCallback((v: string | null) => setPagePathFilter(v), []);
+  const setLostStatusFilterCb = useCallback((v: string | null) => setLostStatusFilter(v), []);
 
   // Convert TanStack sorting state to backend sort param
   const handleSortChange = (sorting: SortingState) => {
@@ -488,6 +502,11 @@ function Dashboard() {
       setTrafficMax("");
       setFirstSeenFrom("");
       setFirstSeenTo("");
+      setLostDateFrom("");
+      setLostDateTo("");
+      setLostStatusInput("");
+      setLostStatusFilter(null);
+      setLostStatusExclude(false);
     }
     setTab(t);
   };
@@ -747,6 +766,23 @@ function Dashboard() {
                 <span className="text-gray-400">–</span>
                 <input type="date" value={firstSeenTo} onChange={(e) => setFirstSeenTo(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Lost</span>
+                <input type="date" value={lostDateFrom} onChange={(e) => setLostDateFrom(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-gray-400">–</span>
+                <input type="date" value={lostDateTo} onChange={(e) => setLostDateTo(e.target.value)} className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <FilterInput
+                value={lostStatusInput}
+                onChange={setLostStatusInput}
+                placeholder="Filter by lost status..."
+                excludePlaceholder="Exclude lost status..."
+                exclude={lostStatusExclude}
+                onExcludeChange={setLostStatusExclude}
+                matchMode={lostStatusMode}
+                onMatchModeChange={setLostStatusMode}
+                onDebouncedChange={setLostStatusFilterCb}
+              />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
               <div className="flex justify-end mb-3">
