@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useProfile } from "./ProfileContext";
+import { useSessionFilters } from "../lib/useSessionFilters";
 import DataTable from "./tables/DataTable";
 import ExportButton from "./tables/ExportButton";
 import {
@@ -57,6 +58,23 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
   const [data, setData] = useState<IntersectResponse | null>(null);
   const [filterCount, setFilterCount] = useState<number | null>(null);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    baseProfile,
+    selectedCompetitors: selectedCompetitors.join(","),
+    minDr: minDr !== undefined ? String(minDr) : "",
+  }), [baseProfile, selectedCompetitors, minDr]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.baseProfile) setBaseProfile(f.baseProfile);
+    if (f.selectedCompetitors) setSelectedCompetitors(f.selectedCompetitors.split(",").filter(Boolean));
+    if (f.minDr) setMinDr(Number(f.minDr));
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    "_global", "intersect", getFilters, applyFilters,
+  );
+
   // Default base to first profile
   useEffect(() => {
     if (profiles.length > 0 && !baseProfile) {
@@ -73,6 +91,8 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
 
   // Fetch data
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     if (!baseProfile || selectedCompetitors.length === 0) {
       setData(null);
       return;
@@ -85,7 +105,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
       })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [baseProfile, selectedCompetitors, minDr]);
+  }, [baseProfile, selectedCompetitors, minDr, sessionLoaded, saveSession]);
 
   const toggleCompetitor = (label: string) => {
     setSelectedCompetitors((prev) =>

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useProfile } from "./ProfileContext";
+import { useSessionFilters } from "../lib/useSessionFilters";
 import RadarCompare from "./charts/RadarCompare";
 import DrDistribution from "./charts/DrDistribution";
 import DataTable from "./tables/DataTable";
@@ -169,6 +170,23 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
   const [drDistA, setDrDistA] = useState<DrBucket[]>([]);
   const [drDistB, setDrDistB] = useState<DrBucket[]>([]);
 
+  // Session filter persistence
+  const getFilters = useCallback(() => ({
+    profileA, profileB, mode, pathA, pathB,
+  }), [profileA, profileB, mode, pathA, pathB]);
+
+  const applyFilters = useCallback((f: Record<string, string>) => {
+    if (f.profileA) setProfileA(f.profileA);
+    if (f.profileB) setProfileB(f.profileB);
+    if (f.mode === "site" || f.mode === "url") setMode(f.mode);
+    if (f.pathA) setPathA(f.pathA);
+    if (f.pathB) setPathB(f.pathB);
+  }, []);
+
+  const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
+    "_global", "compare", getFilters, applyFilters,
+  );
+
   // Default to first two profiles
   useEffect(() => {
     if (profiles.length >= 2) {
@@ -198,6 +216,8 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
 
   // Fetch data when both profiles are selected and different
   useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession();
     if (!profileA || !profileB || profileA === profileB) return;
     if (mode === "url" && (!pathA || !pathB)) return;
     setLoading(true);
@@ -227,7 +247,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
         setDrDistB([]);
       })
       .finally(() => setLoading(false));
-  }, [profileA, profileB, mode, pathA, pathB]);
+  }, [profileA, profileB, mode, pathA, pathB, sessionLoaded, saveSession]);
 
   if (profiles.length < 2) {
     return (
