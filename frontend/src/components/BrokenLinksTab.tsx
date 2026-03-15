@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useProfile } from "./ProfileContext";
 import SummaryCard from "./SummaryCard";
 import DataTable, { type SortingState } from "./tables/DataTable";
+import ExportButton from "./tables/ExportButton";
 import FilterInput from "./FilterInput";
 import {
   fetchBrokenLinks,
@@ -292,6 +293,10 @@ export default function BrokenLinksTab() {
         </div>
       )}
       {data && data.summary.total_broken > 0 && (
+        <>
+        <div className="flex justify-end mb-3">
+          <ExportButton data={data.items as unknown as Record<string, unknown>[]} filename="broken-links.csv" />
+        </div>
         <DataTable
           data={data.items}
           columns={columns}
@@ -304,6 +309,7 @@ export default function BrokenLinksTab() {
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />
+        </>
       )}
     </div>
   );

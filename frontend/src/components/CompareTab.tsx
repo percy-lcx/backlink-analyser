@@ -3,6 +3,7 @@ import { useProfile } from "./ProfileContext";
 import RadarCompare from "./charts/RadarCompare";
 import DrDistribution from "./charts/DrDistribution";
 import DataTable from "./tables/DataTable";
+import ExportButton from "./tables/ExportButton";
 import {
   fetchCompare,
   fetchLinkGap,
@@ -346,7 +347,18 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
 
             {/* Metrics comparison table */}
             <div className="bg-white rounded-lg shadow p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Key Metrics</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700">Key Metrics</h3>
+                <ExportButton
+                  data={metrics.map((row) => ({
+                    metric: row.metric,
+                    [labelA]: row.format(row.a),
+                    [labelB]: row.format(row.b),
+                    delta: row.format(row.delta),
+                  }))}
+                  filename="compare-metrics.csv"
+                />
+              </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-gray-500">
@@ -378,18 +390,24 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
           {/* Link gap analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                Opportunities for {labelA}
-              </h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Opportunities for {labelA}
+                </h3>
+                <ExportButton data={gapAtoB as unknown as Record<string, unknown>[]} filename="gap-opportunities-a.csv" />
+              </div>
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelB} but not {labelA}
               </p>
               <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                Opportunities for {labelB}
-              </h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Opportunities for {labelB}
+                </h3>
+                <ExportButton data={gapBtoA as unknown as Record<string, unknown>[]} filename="gap-opportunities-b.csv" />
+              </div>
               <p className="text-xs text-gray-400 mb-3">
                 Domains linking to {labelA} but not {labelB}
               </p>
