@@ -57,9 +57,7 @@ def list_links(
     target_path_mode: Optional[str] = Query(None),
     lost_date_from: Optional[str] = Query(None),
     lost_date_to: Optional[str] = Query(None),
-    lost_status_search: Optional[str] = Query(None),
-    lost_status_exclude: Optional[bool] = Query(None),
-    lost_status_mode: Optional[str] = Query(None),
+    lost_status: Optional[str] = Query(None),
 ):
     """Paginated backlink table with filters."""
     conn = get_conn()
@@ -157,12 +155,13 @@ def list_links(
         params.append(lost_date_to)
         idx += 1
 
-    if lost_status_search is not None:
-        idx = apply_text_filter(
-            conditions, params, idx, "lost_status", lost_status_search,
-            mode=lost_status_mode or "contains",
-            exclude=bool(lost_status_exclude),
-        )
+    if lost_status is not None:
+        statuses = [s.strip() for s in lost_status.split(",") if s.strip()]
+        if statuses:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(statuses)))
+            conditions.append(f"lost_status IN ({placeholders})")
+            params.extend(statuses)
+            idx += len(statuses)
 
     if target_path_search is not None:
         # Backward compat: target_path_exact=true → mode="exact"
@@ -220,3 +219,16 @@ def list_http_codes(profile: str = Query(...)):
         [profile],
     ).fetchall()
     return {"codes": [row[0] for row in rows]}
+
+
+@router.get("/api/lost-statuses")
+def list_lost_statuses(profile: str = Query(...)):
+    """Return distinct lost_status values present in the dataset for a profile."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT lost_status FROM backlinks "
+        "WHERE profile_label = $1 AND lost_status IS NOT NULL AND lost_status != '' "
+        "ORDER BY lost_status",
+        [profile],
+    ).fetchall()
+    return {"statuses": [row[0] for row in rows]}
