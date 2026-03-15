@@ -265,8 +265,7 @@ export interface LinkParams {
   is_nofollow?: boolean;
   is_sponsored?: boolean;
   is_spam?: boolean;
-  http_code_min?: number;
-  http_code_max?: number;
+  http_code?: number;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
@@ -299,6 +298,10 @@ export function fetchOverview(profile: string): Promise<OverviewData> {
 
 export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksResponse> {
   return get<LinksResponse>(`${BASE}/links`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
+}
+
+export function fetchHttpCodes(profile: string): Promise<{ codes: number[] }> {
+  return get<{ codes: number[] }>(`${BASE}/http-codes`, { profile });
 }
 
 export function fetchLinkAttributes(profile: string): Promise<LinkAttribute[]> {
