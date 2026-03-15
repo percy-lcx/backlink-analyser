@@ -21,7 +21,7 @@ export default function PageCategoryChart({ data, onBarClick, onViewAll }: Props
           <Tooltip text={METRICS.page_category_chart.short}>Backlinks by Category</Tooltip>
         </h3>
         {onViewAll && (
-          <button onClick={onViewAll} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          <button onClick={onViewAll} className="text-xs text-primary-500 hover:text-primary-700 font-medium">
             View all &rarr;
           </button>
         )}

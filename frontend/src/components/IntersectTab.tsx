@@ -23,7 +23,7 @@ import {
 /* ---- Venn-style colour palette ---- */
 
 const COLORS = [
-  "#6366f1", // indigo
+  "#001489", // primary
   "#f59e0b", // amber
   "#10b981", // emerald
   "#ef4444", // red
@@ -39,8 +39,8 @@ function intersectColor(count: number, total: number): string {
   const ratio = count / total;
   if (ratio >= 1) return "#059669";   // emerald-600 – links to ALL
   if (ratio >= 0.75) return "#10b981"; // emerald-500
-  if (ratio >= 0.5) return "#6366f1";  // indigo
-  return "#a5b4fc";                    // indigo-300
+  if (ratio >= 0.5) return "#001489";  // primary
+  return "#9fa8da";                    // primary-200
 }
 
 /* ---- Main component ---- */
@@ -163,7 +163,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                 count === total
                   ? "bg-emerald-100 text-emerald-800"
                   : count >= total * 0.5
-                    ? "bg-indigo-100 text-indigo-800"
+                    ? "bg-primary-100 text-primary-800"
                     : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -243,7 +243,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
               Competitors
             </label>
             <button
-              className="text-xs text-indigo-600 hover:text-indigo-800"
+              className="text-xs text-primary-500 hover:text-primary-700"
               onClick={() => {
                 const others = profiles
                   .filter((p) => p.profile_label !== baseProfile)
@@ -267,7 +267,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                   key={p.profile_label}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm cursor-pointer transition-colors ${
                     selectedCompetitors.includes(p.profile_label)
-                      ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                      ? "border-primary-400 bg-primary-50 text-primary-700"
                       : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -423,7 +423,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                       key={s.count}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
                         isActive
-                          ? "bg-indigo-100 text-indigo-800 font-medium"
+                          ? "bg-primary-100 text-primary-800 font-medium"
                           : "hover:bg-gray-50 text-gray-700"
                       }`}
                       onClick={() =>
@@ -452,7 +452,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                 })}
                 {filterCount !== null && (
                   <button
-                    className="w-full text-center text-xs text-indigo-600 hover:text-indigo-800 mt-2"
+                    className="w-full text-center text-xs text-primary-500 hover:text-primary-700 mt-2"
                     onClick={() => setFilterCount(null)}
                   >
                     Clear filter
@@ -468,7 +468,7 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
               <h3 className="text-sm font-semibold text-gray-700">
                 Gap Domains
                 {filterCount !== null && (
-                  <span className="text-indigo-600 font-normal ml-2">
+                  <span className="text-primary-500 font-normal ml-2">
                     (linking to {filterCount} competitor
                     {filterCount > 1 ? "s" : ""})
                   </span>

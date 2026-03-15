@@ -16,7 +16,7 @@ export const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-600 hover:underline break-all"
+          className="text-primary-500 hover:underline break-all"
           title={url}
         >
           {url}

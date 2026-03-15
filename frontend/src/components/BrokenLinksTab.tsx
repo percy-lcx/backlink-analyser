@@ -31,7 +31,7 @@ const columns: ColumnDef<LinkRecord, unknown>[] = [
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
-        <a href={url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline truncate block">
+        <a href={url} target="_blank" rel="noreferrer" className="text-primary-500 hover:underline truncate block">
           {url}
         </a>
       );
@@ -191,7 +191,7 @@ export default function BrokenLinksTab() {
             <h3 className="text-sm font-semibold text-gray-700">Status Code Distribution</h3>
             {selectedCodes.length > 0 && (
               <button
-                className="text-xs text-indigo-600 hover:text-indigo-800"
+                className="text-xs text-primary-500 hover:text-primary-700"
                 onClick={() => setSelectedCodes([])}
               >
                 Show all codes
@@ -238,7 +238,7 @@ export default function BrokenLinksTab() {
           <button
             type="button"
             onClick={() => setCodesDropdownOpen((o) => !o)}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-1"
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center gap-1"
           >
             {selectedCodes.length === 0 ? "Status: All" : `Status: ${selectedCodes.join(", ")}`}
             <svg className="w-3 h-3 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>

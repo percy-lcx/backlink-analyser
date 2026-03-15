@@ -8,7 +8,7 @@ interface RangeFilterProps {
 }
 
 export default function RangeFilter({ label, min, max, onMinChange, onMaxChange, inputWidth = "w-16" }: RangeFilterProps) {
-  const inputCls = `${inputWidth} border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500`;
+  const inputCls = `${inputWidth} border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500`;
   return (
     <div className="flex items-center gap-1">
       <span className="text-xs text-gray-500">{label}</span>

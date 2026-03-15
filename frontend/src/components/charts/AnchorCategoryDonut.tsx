@@ -2,7 +2,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import Tooltip from "../Tooltip";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  branded: "#6366f1",
+  branded: "#001489",
   exact_match: "#ef4444",
   partial_match: "#f59e0b",
   generic: "#6b7280",

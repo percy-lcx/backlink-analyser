@@ -15,7 +15,7 @@ export default function EmptyState({ title, description, action }: EmptyStatePro
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-3 px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-md hover:bg-indigo-50"
+          className="mt-3 px-3 py-1.5 text-sm font-medium text-primary-500 border border-primary-300 rounded-md hover:bg-primary-50"
         >
           {action.label}
         </button>
