@@ -24,6 +24,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
   const [domainInput, setDomainInput] = useState("");
   const [domainSearch, setDomainSearch] = useState<string | null>(null);
   const [domainMode, setDomainMode] = useState<MatchMode>("contains");
+  const [domainExclude, setDomainExclude] = useState(false);
   const [drMin, setDrMin] = useState("");
   const [drMax, setDrMax] = useState("");
   const [trafficMin, setTrafficMin] = useState("");
@@ -40,6 +41,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
     if (domainSearch) {
       params.domain_search = domainSearch;
       if (domainMode !== "contains") params.domain_mode = domainMode;
+      if (domainExclude) params.domain_exclude = true;
     }
     if (drMin) params.dr_min = parseFloat(drMin);
     if (drMax) params.dr_max = parseFloat(drMax);
@@ -52,7 +54,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
       .then(setDomains)
       .catch(() => setDomains([]))
       .finally(() => setLoading(false));
-  }, [profile, domainSearch, domainMode, drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter]);
+  }, [profile, domainSearch, domainMode, domainExclude, drMin, drMax, trafficMin, trafficMax, linksMin, linksMax, sitewideFilter]);
 
   const handleRowClick = (row: ReferringDomain) => {
     onDrilldown({ domain: row.referring_domain });
@@ -68,6 +70,8 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
             value={domainInput}
             onChange={setDomainInput}
             placeholder="Filter by domain..."
+            exclude={domainExclude}
+            onExcludeChange={setDomainExclude}
             matchMode={domainMode}
             onMatchModeChange={setDomainMode}
             onDebouncedChange={setDomainSearchCb}

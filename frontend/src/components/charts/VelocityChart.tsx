@@ -30,8 +30,6 @@ export default function VelocityChart({ data }: Props) {
           <RechartsTooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }} />
           <Legend />
           <Line type="monotone" dataKey="new_count" name="New" stroke="#22c55e" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="lost_count" name="Lost" stroke="#ef4444" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="net" name="Net" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -32,9 +32,26 @@ export const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
   { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
   {
+    accessorKey: "http_code",
+    header: "Status",
+    meta: { tooltip: "HTTP status code of the referring page." },
+    cell: ({ getValue }) => {
+      const code = getValue() as number;
+      if (code == null || code === 0) return <span className="text-gray-400">—</span>;
+      const color = code >= 200 && code < 300 ? "text-green-600" : code >= 300 && code < 400 ? "text-yellow-600" : "text-red-600";
+      return <span className={color}>{code}</span>;
+    },
+  },
+  {
     accessorKey: "is_nofollow",
     header: "NF",
     meta: { tooltip: METRICS.nf.short },
+    cell: ({ getValue }) => (getValue() ? "Yes" : ""),
+  },
+  {
+    accessorKey: "is_sponsored",
+    header: "Sponsored",
+    meta: { tooltip: "Whether the link has a rel=\"sponsored\" attribute." },
     cell: ({ getValue }) => (getValue() ? "Yes" : ""),
   },
   {

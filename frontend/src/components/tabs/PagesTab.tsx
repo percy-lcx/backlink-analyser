@@ -4,6 +4,7 @@ import {
   type PageRow,
   type PageBreakdownResponse,
   type LinksDrilldown,
+  type MatchMode,
 } from "../../lib/api";
 import { pageColumns } from "../../lib/columns";
 import DataTable from "../tables/DataTable";
@@ -29,6 +30,7 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
   const [pathInput, setPathInput] = useState("");
   const [pathFilter, setPathFilter] = useState<string | null>(null);
   const [pathExclude, setPathExclude] = useState(false);
+  const [pathMode, setPathMode] = useState<MatchMode>("contains");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [linksMin, setLinksMin] = useState("");
   const [linksMax, setLinksMax] = useState("");
@@ -47,6 +49,7 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
     if (pathFilter) {
       params.target_path_search = pathFilter;
       if (pathExclude) params.target_path_exclude = true;
+      if (pathMode !== "contains") params.target_path_mode = pathMode;
     }
     if (categoryFilter) params.category = categoryFilter;
     if (linksMin) params.link_count_min = parseInt(linksMin);
@@ -65,7 +68,7 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
       })
       .catch(() => { setPages([]); setPageCategories({}); })
       .finally(() => setLoading(false));
-  }, [profile, pathFilter, pathExclude, categoryFilter, linksMin, linksMax, domainsMin, domainsMax, drMin, drMax, dofollowMin, dofollowMax]);
+  }, [profile, pathFilter, pathExclude, pathMode, categoryFilter, linksMin, linksMax, domainsMin, domainsMax, drMin, drMax, dofollowMin, dofollowMax]);
 
   const handleRowClick = (row: PageRow) => {
     onDrilldown({ targetPath: row.target_path, targetPathMode: "exact" });
@@ -85,6 +88,8 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
             excludePlaceholder="Exclude target URL..."
             exclude={pathExclude}
             onExcludeChange={setPathExclude}
+            matchMode={pathMode}
+            onMatchModeChange={setPathMode}
             onDebouncedChange={setPathFilterCb}
           />
           <SelectFilter
@@ -95,6 +100,7 @@ export default function PagesTab({ profile, onDrilldown }: PagesTabProps) {
               { value: "homepage", label: "Homepage" },
               { value: "content", label: "Content" },
               { value: "money_pages", label: "Money Pages" },
+              { value: "branding", label: "Branding" },
               { value: "other", label: "Other" },
             ]}
           />

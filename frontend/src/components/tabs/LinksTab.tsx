@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchLinks,
+  fetchHttpCodes,
   type LinksResponse,
   type MatchMode,
   type LinksDrilldown,
@@ -45,7 +46,13 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
   // Property filters
   const [linkTypeFilter, setLinkTypeFilter] = useState("");
   const [nofollowFilter, setNofollowFilter] = useState("");
+  const [sponsoredFilter, setSponsoredFilter] = useState("");
   const [spamFilter, setSpamFilter] = useState("");
+  const [httpCodeFilter, setHttpCodeFilter] = useState<string[]>([]);
+  const [httpCodes, setHttpCodes] = useState<number[]>([]);
+  const [httpDropdownOpen, setHttpDropdownOpen] = useState(false);
+  const httpDropdownRef = useRef<HTMLDivElement>(null);
+  const httpCodeFilterKey = httpCodeFilter.join(",");
 
   // Range filters
   const [drMin, setDrMin] = useState("");
@@ -75,7 +82,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
       setDomainInput(""); setDomainFilter(null); setDomainExclude(false); setDomainMode("contains");
       setUrlInput(""); setUrlFilter(null); setUrlExclude(false); setUrlMode("contains");
       setAnchorInput(""); setAnchorFilter(null); setAnchorExclude(false); setAnchorMode("contains");
-      setLinkTypeFilter(""); setNofollowFilter(""); setSpamFilter("");
+      setLinkTypeFilter(""); setNofollowFilter(""); setSponsoredFilter(""); setSpamFilter(""); setHttpCodeFilter([]);
       setDrMin(""); setDrMax(""); setTrafficMin(""); setTrafficMax("");
       setFirstSeenFrom(""); setFirstSeenTo("");
       return;
@@ -99,6 +106,22 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
     if (drilldown.drMin) setDrMin(drilldown.drMin);
     if (drilldown.drMax) setDrMax(drilldown.drMax);
   }, [drilldown]);
+
+  // Fetch available HTTP status codes
+  useEffect(() => {
+    fetchHttpCodes(profile).then((r) => setHttpCodes(r.codes ?? [])).catch(() => setHttpCodes([]));
+  }, [profile]);
+
+  // Close HTTP dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (httpDropdownRef.current && !httpDropdownRef.current.contains(e.target as Node)) {
+        setHttpDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -126,7 +149,9 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
     }
     if (linkTypeFilter) params.link_type = linkTypeFilter;
     if (nofollowFilter) params.is_nofollow = nofollowFilter === "yes";
+    if (sponsoredFilter) params.is_sponsored = sponsoredFilter === "yes";
     if (spamFilter) params.is_spam = spamFilter === "yes";
+    if (httpCodeFilter.length > 0) params.http_code = httpCodeFilter.join(",");
     if (drMin) params.dr_min = parseFloat(drMin);
     if (drMax) params.dr_max = parseFloat(drMax);
     if (trafficMin) params.traffic_min = parseFloat(trafficMin);
@@ -137,12 +162,12 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
       .then(setLinksData)
       .catch(() => setLinksData(null))
       .finally(() => setLoading(false));
-  }, [profile, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
+  }, [profile, linkPage, linkPageSize, sortParam, drilldownPath, targetPathMode, targetPathExclude, domainFilter, domainMode, domainExclude, urlFilter, urlMode, urlExclude, anchorFilter, anchorMode, anchorExclude, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo]);
 
   // Reset page on filter change
   useEffect(() => {
     setLinkPage(0);
-  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, spamFilter, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
+  }, [drilldownPath, domainFilter, urlFilter, anchorFilter, linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter, httpCodeFilterKey, drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo, sortParam]);
 
   const handleSortChange = (sorting: SortingState) => {
     if (sorting.length > 0) {
@@ -154,9 +179,10 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
 
   const activeCount = [
     drilldownPath, domainFilter, urlFilter, anchorFilter,
-    linkTypeFilter, nofollowFilter, spamFilter,
+    linkTypeFilter, nofollowFilter, sponsoredFilter, spamFilter,
     drMin, drMax, trafficMin, trafficMax, firstSeenFrom, firstSeenTo,
   ].filter(Boolean).length
+    + (httpCodeFilter.length > 0 ? 1 : 0)
     + (targetPathExclude ? 1 : 0) + (domainExclude ? 1 : 0) + (urlExclude ? 1 : 0) + (anchorExclude ? 1 : 0);
 
   return (
@@ -231,6 +257,15 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
             ]}
           />
           <SelectFilter
+            value={sponsoredFilter}
+            onChange={setSponsoredFilter}
+            allLabel="Sponsored: All"
+            options={[
+              { value: "yes", label: "Sponsored: Yes" },
+              { value: "no", label: "Sponsored: No" },
+            ]}
+          />
+          <SelectFilter
             value={spamFilter}
             onChange={setSpamFilter}
             allLabel="Spam: All"
@@ -239,6 +274,40 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
               { value: "no", label: "Spam: No" },
             ]}
           />
+          <div className="relative" ref={httpDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setHttpDropdownOpen((o) => !o)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-1"
+            >
+              {httpCodeFilter.length === 0 ? "Status: All" : `Status: ${httpCodeFilter.join(", ")}`}
+              <svg className="w-3 h-3 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {httpDropdownOpen && (
+              <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto min-w-[140px]">
+                {httpCodes.map((code) => (
+                  <label key={code} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={httpCodeFilter.includes(String(code))}
+                      onChange={(e) => {
+                        setHttpCodeFilter((prev) =>
+                          e.target.checked
+                            ? [...prev, String(code)]
+                            : prev.filter((c) => c !== String(code))
+                        );
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    {code}
+                  </label>
+                ))}
+                {httpCodes.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-gray-400">No status codes</div>
+                )}
+              </div>
+            )}
+          </div>
         </FilterGroup>
         <FilterGroup label="Metrics">
           <RangeFilter label="DR" min={drMin} max={drMax} onMinChange={setDrMin} onMaxChange={setDrMax} />

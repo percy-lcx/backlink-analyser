@@ -24,6 +24,7 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
   const [searchInput, setSearchInput] = useState("");
   const [searchFilter, setSearchFilter] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<MatchMode>("contains");
+  const [searchExclude, setSearchExclude] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [countMin, setCountMin] = useState("");
   const [countMax, setCountMax] = useState("");
@@ -36,6 +37,7 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
     if (searchFilter) {
       params.anchor_search = searchFilter;
       if (searchMode !== "contains") params.anchor_mode = searchMode;
+      if (searchExclude) params.anchor_exclude = true;
     }
     if (categoryFilter) params.category = categoryFilter;
     if (countMin) params.count_min = parseInt(countMin);
@@ -48,7 +50,7 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
       })
       .catch(() => setAnchors([]))
       .finally(() => setLoading(false));
-  }, [profile, searchFilter, searchMode, categoryFilter, countMin, countMax]);
+  }, [profile, searchFilter, searchMode, searchExclude, categoryFilter, countMin, countMax]);
 
   const handleRowClick = (row: AnchorRecord) => {
     onDrilldown({ anchor: row.anchor });
@@ -64,6 +66,8 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
             value={searchInput}
             onChange={setSearchInput}
             placeholder="Filter by anchor text..."
+            exclude={searchExclude}
+            onExcludeChange={setSearchExclude}
             matchMode={searchMode}
             onMatchModeChange={setSearchMode}
             onDebouncedChange={setSearchFilterCb}

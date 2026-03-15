@@ -7,10 +7,12 @@ import AnchorsTab from "./components/tabs/AnchorsTab";
 import PagesTab from "./components/tabs/PagesTab";
 import QualityTab from "./components/tabs/QualityTab";
 import CompareTab from "./components/CompareTab";
+import IntersectTab from "./components/IntersectTab";
+import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
 import { triggerIngest, type LinksDrilldown } from "./lib/api";
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "terminology";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -94,6 +96,8 @@ function Dashboard() {
     { key: "pages", label: "Pages" },
     { key: "quality", label: "Quality" },
     { key: "compare", label: "Compare" },
+    { key: "intersect", label: "Intersect" },
+    { key: "broken", label: "Broken Links" },
     { key: "terminology", label: "Terminology" },
   ];
 
@@ -148,13 +152,15 @@ function Dashboard() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {tab === "overview" && <OverviewTab profile={selected} />}
+        {tab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} />}
         {tab === "links" && <LinksTab profile={selected} drilldown={drilldown} />}
         {tab === "domains" && <DomainsTab profile={selected} onDrilldown={handleDrilldown} />}
         {tab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
         {tab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} />}
         {tab === "quality" && <QualityTab profile={selected} />}
         {tab === "compare" && <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />}
+        {tab === "intersect" && <IntersectTab onGapRowClick={handleGapRowClick} />}
+        {tab === "broken" && <BrokenLinksTab />}
         {tab === "terminology" && <TerminologyTab />}
       </main>
     </div>
