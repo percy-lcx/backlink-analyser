@@ -265,7 +265,7 @@ export interface LinkParams {
   is_nofollow?: boolean;
   is_sponsored?: boolean;
   is_spam?: boolean;
-  http_code?: number;
+  http_code?: string;
   link_type?: string;
   dr_min?: number;
   dr_max?: number;
