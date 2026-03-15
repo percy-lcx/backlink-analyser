@@ -294,10 +294,8 @@ export default function BrokenLinksTab() {
       )}
       {data && data.summary.total_broken > 0 && (
         <>
-        <div className="flex justify-end mb-3">
-          <ExportButton data={data.items as unknown as Record<string, unknown>[]} filename="broken-links.csv" />
-        </div>
         <DataTable
+          toolbar={<ExportButton data={data.items as unknown as Record<string, unknown>[]} filename="broken-links.csv" />}
           data={data.items}
           columns={columns}
           pageSize={pageSize}

@@ -375,10 +375,8 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
         <EmptyState title="No backlinks found" description="Try adjusting your filters." />
       ) : (
         <div className="bg-white rounded-lg shadow p-5">
-          <div className="flex justify-end mb-3">
-            <ExportButton data={(linksData.items) as unknown as Record<string, unknown>[]} filename="backlinks.csv" />
-          </div>
           <DataTable
+            toolbar={<ExportButton data={(linksData.items) as unknown as Record<string, unknown>[]} filename="backlinks.csv" />}
             data={linksData.items}
             columns={linkColumns}
             pageSize={linkPageSize}
