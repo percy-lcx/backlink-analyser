@@ -57,21 +57,17 @@ def link_gap(
             b.referring_domain,
             MAX(b.domain_rating) AS max_dr,
             COUNT(*) AS total_links,
-            SUM(COALESCE(page_traffic, 0)) AS total_traffic,
-            LIST(DISTINCT profile_label) AS profiles_linking
-        FROM backlinks
-        WHERE profile_label IN ({placeholders}){comp_path_clause}
-          AND COALESCE(is_spam, false) = false
-          AND referring_domain NOT IN (
-              SELECT DISTINCT referring_domain
-              FROM backlinks
-              WHERE profile_label = $1{base_path_clause}
-          )
-        GROUP BY referring_domain
+            LIST(DISTINCT b.profile_label) AS profiles_linking
+        FROM backlinks b
+        LEFT JOIN base_domains bd ON b.referring_domain = bd.referring_domain
+        WHERE b.profile_label IN ({placeholders}){comp_path_clause}
+          AND COALESCE(b.is_spam, false) = false
+          AND bd.referring_domain IS NULL
+        GROUP BY b.referring_domain
         ORDER BY max_dr DESC NULLS LAST
         """,
         params,
     ).fetchall()
 
-    cols = ["referring_domain", "max_dr", "total_links", "total_traffic", "profiles_linking"]
+    cols = ["referring_domain", "max_dr", "total_links", "profiles_linking"]
     return [dict(zip(cols, row)) for row in rows]

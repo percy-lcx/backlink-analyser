@@ -226,7 +226,6 @@ export interface LinkGapDomain {
   referring_domain: string;
   max_dr: number;
   total_links: number;
-  total_traffic: number;
   profiles_linking: string[];
 }
 
