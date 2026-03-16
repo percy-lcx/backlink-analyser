@@ -267,7 +267,7 @@ export default function DataTable<T>({
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className="px-3 py-2 break-words overflow-hidden"
+                    className="px-3 py-2 break-words"
                     style={{ width: cell.column.getSize() }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

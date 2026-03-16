@@ -29,7 +29,7 @@ export default function TopPagesTable({ pages, onViewAll }: Props) {
         <tbody>
           {top.map((p, i) => (
             <tr key={p.target_path} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-row-alt" : ""}`}>
-              <td className="py-2 text-gray-800 truncate max-w-[200px]" title={p.target_path}>
+              <td className="py-2 text-gray-800" title={p.target_path}>
                 {p.target_path}
               </td>
               <td className="py-2 text-right text-gray-600">{p.link_count.toLocaleString()}</td>

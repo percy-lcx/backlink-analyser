@@ -168,7 +168,7 @@ export default function IntersectTab() {
         const url = getValue() as string;
         return (
           <a href={url} target="_blank" rel="noopener noreferrer"
-            className="text-primary-600 hover:underline truncate block max-w-[300px]"
+            className="text-primary-600 hover:underline break-all"
             title={url}
           >{url}</a>
         );
