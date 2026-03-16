@@ -100,16 +100,23 @@ export default function IntersectTab() {
       setData(null);
       return;
     }
+    const controller = new AbortController();
     setLoading(true);
-    fetchLinkIntersect(baseProfile, selectedCompetitors, minDr)
+    fetchLinkIntersect(baseProfile, selectedCompetitors, minDr, controller.signal)
       .then((res) => {
         setData(res);
         setFilterCount(null);
         setExpandedDomain(null);
         setBreakdownData([]);
       })
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setData(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
   }, [baseProfile, selectedCompetitors, minDr, sessionLoaded, saveSession]);
 
   const toggleCompetitor = (label: string) => {

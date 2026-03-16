@@ -1,13 +1,13 @@
 const BASE = "/api";
 
-async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>, signal?: AbortSignal): Promise<T> {
   const url = new URL(path, window.location.origin);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
     });
   }
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
   return res.json();
 }
@@ -420,12 +420,13 @@ export function fetchLinkIntersect(
   base: string,
   competitors: string[],
   minDr?: number,
+  signal?: AbortSignal,
 ): Promise<IntersectResponse> {
   return get<IntersectResponse>(`${BASE}/link-intersect`, {
     base,
     competitors: competitors.join(","),
     min_dr: minDr,
-  });
+  }, signal);
 }
 
 export function fetchGapDomainBreakdown(
