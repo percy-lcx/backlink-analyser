@@ -10,9 +10,10 @@ import CompareTab from "./components/CompareTab";
 import IntersectTab from "./components/IntersectTab";
 import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
+import BlocklistTab from "./components/tabs/BlocklistTab";
 import { triggerIngest, type LinksDrilldown } from "./lib/api";
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "blocklist" | "terminology";
 
 function Dashboard() {
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
@@ -105,6 +106,7 @@ function Dashboard() {
     { key: "compare", label: "Compare" },
     { key: "intersect", label: "Intersect" },
     { key: "broken", label: "Broken Links" },
+    { key: "blocklist", label: "Blocklist" },
     { key: "terminology", label: "Terminology" },
   ];
 
@@ -172,6 +174,7 @@ function Dashboard() {
           <IntersectTab />
         </div>
         {tab === "broken" && <BrokenLinksTab />}
+        {tab === "blocklist" && <BlocklistTab />}
         {tab === "terminology" && <TerminologyTab />}
       </main>
     </div>

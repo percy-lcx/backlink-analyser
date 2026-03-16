@@ -1,4 +1,5 @@
 import type { ReferringDomain } from "../lib/api";
+import { useBlocklist } from "./BlocklistContext";
 
 interface Props {
   domains: ReferringDomain[];
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function TopDomainsTable({ domains, onViewAll }: Props) {
+  const { blocklist } = useBlocklist();
   const top = domains.slice(0, 5);
   return (
     <div className="bg-white rounded-lg shadow p-5">
@@ -28,7 +30,7 @@ export default function TopDomainsTable({ domains, onViewAll }: Props) {
         </thead>
         <tbody>
           {top.map((d, i) => (
-            <tr key={d.referring_domain} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-row-alt" : ""}`}>
+            <tr key={d.referring_domain} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-row-alt" : ""} ${blocklist.has(d.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""}`}>
               <td className="py-2 text-gray-800" title={d.referring_domain}>
                 {d.referring_domain}
               </td>

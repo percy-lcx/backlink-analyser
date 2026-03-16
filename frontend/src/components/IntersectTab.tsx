@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useProfile } from "./ProfileContext";
+import { useBlocklist } from "./BlocklistContext";
 import { useSessionFilters } from "../lib/useSessionFilters";
 import DataTable from "./tables/DataTable";
 import ExportButton from "./tables/ExportButton";
@@ -49,6 +50,7 @@ function intersectColor(count: number, total: number): string {
 
 export default function IntersectTab() {
   const { profiles } = useProfile();
+  const { blocklist } = useBlocklist();
   const [baseProfile, setBaseProfile] = useState("");
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
   const [minDr, setMinDr] = useState<number | undefined>(undefined);
@@ -564,9 +566,12 @@ export default function IntersectTab() {
               columns={columns}
               pageSize={50}
               onRowClick={handleGapRowClick}
-              getRowClassName={(row) =>
-                row.referring_domain === expandedDomain ? "!bg-primary-100" : ""
-              }
+              getRowClassName={(row) => {
+                const classes: string[] = [];
+                if (blocklist.has(row.referring_domain?.toLowerCase())) classes.push("row-blocklisted");
+                if (row.referring_domain === expandedDomain) classes.push("!bg-primary-100");
+                return classes.join(" ");
+              }}
               statusText={
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700">

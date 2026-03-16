@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useProfile } from "./ProfileContext";
+import { useBlocklist } from "./BlocklistContext";
 import SummaryCard from "./SummaryCard";
 import DataTable, { type SortingState } from "./tables/DataTable";
 import ExportButton from "./tables/ExportButton";
@@ -77,6 +78,7 @@ const columns: ColumnDef<LinkRecord, unknown>[] = [
 
 export default function BrokenLinksTab() {
   const { selected } = useProfile();
+  const { blocklist } = useBlocklist();
   const [data, setData] = useState<BrokenLinksResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -306,6 +308,7 @@ export default function BrokenLinksTab() {
           pageIndex={page}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
+          getRowClassName={(row: LinkRecord) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""}
         />
         </>
       )}

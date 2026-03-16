@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useProfile } from "./ProfileContext";
+import { useBlocklist } from "./BlocklistContext";
 import { useSessionFilters } from "../lib/useSessionFilters";
 import RadarCompare from "./charts/RadarCompare";
 import DrDistribution from "./charts/DrDistribution";
@@ -155,6 +156,7 @@ interface CompareTabProps {
 
 export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabProps) {
   const { profiles } = useProfile();
+  const { blocklist } = useBlocklist();
   const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
   const [mode, setMode] = useState<"site" | "url">("site");
@@ -410,10 +412,10 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
           {/* Link gap analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-5">
-              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelA}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelB} but not {labelA}</p></div>} toolbar={<ExportButton data={gapAtoB as unknown as Record<string, unknown>[]} filename="gap-opportunities-a.csv" />} />
+              <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} getRowClassName={(row: LinkGapDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelA}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelB} but not {labelA}</p></div>} toolbar={<ExportButton data={gapAtoB as unknown as Record<string, unknown>[]} filename="gap-opportunities-a.csv" />} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
-              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelB}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelA} but not {labelB}</p></div>} toolbar={<ExportButton data={gapBtoA as unknown as Record<string, unknown>[]} filename="gap-opportunities-b.csv" />} />
+              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} getRowClassName={(row: LinkGapDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelB}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelA} but not {labelB}</p></div>} toolbar={<ExportButton data={gapBtoA as unknown as Record<string, unknown>[]} filename="gap-opportunities-b.csv" />} />
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import {
   type LinksResponse,
   type MatchMode,
   type LinksDrilldown,
+  type LinkRecord,
 } from "../../lib/api";
 import { useSessionFilters } from "../../lib/useSessionFilters";
 import { linkColumns } from "../../lib/columns";
@@ -13,6 +14,7 @@ import ExportButton from "../tables/ExportButton";
 import FilterInput from "../FilterInput";
 import LoadingSpinner from "../LoadingSpinner";
 import EmptyState from "../EmptyState";
+import { useBlocklist } from "../BlocklistContext";
 import { FilterPanel, FilterGroup, RangeFilter, SelectFilter, DateRangeFilter } from "../filters";
 
 interface LinksTabProps {
@@ -21,6 +23,7 @@ interface LinksTabProps {
 }
 
 export default function LinksTab({ profile, drilldown }: LinksTabProps) {
+  const { blocklist } = useBlocklist();
   const [linksData, setLinksData] = useState<LinksResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [linkPage, setLinkPage] = useState(0);
@@ -382,6 +385,7 @@ export default function LinksTab({ profile, drilldown }: LinksTabProps) {
             pageIndex={linkPage}
             onPageChange={setLinkPage}
             onPageSizeChange={setLinkPageSize}
+            getRowClassName={(row: LinkRecord) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""}
           />
         </div>
       )}
