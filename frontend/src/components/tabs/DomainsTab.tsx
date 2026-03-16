@@ -13,6 +13,7 @@ import FilterInput from "../FilterInput";
 import LoadingSpinner from "../LoadingSpinner";
 import EmptyState from "../EmptyState";
 import { FilterPanel, RangeFilter, SelectFilter } from "../filters";
+import { useBlocklist } from "../BlocklistContext";
 
 interface DomainsTabProps {
   profile: string;
@@ -20,6 +21,7 @@ interface DomainsTabProps {
 }
 
 export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
+  const { blocklist } = useBlocklist();
   const [domains, setDomains] = useState<ReferringDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [domainInput, setDomainInput] = useState("");
@@ -129,7 +131,7 @@ export default function DomainsTab({ profile, onDrilldown }: DomainsTabProps) {
         <EmptyState title="No referring domains found" description="Try adjusting your filters." />
       ) : (
         <div className="bg-white rounded-lg shadow p-5">
-          <DataTable data={domains} columns={domainColumns} onRowClick={handleRowClick} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Referring Domains</h3><p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks from that domain.</p></div>} toolbar={<ExportButton data={domains as unknown as Record<string, unknown>[]} filename="referring-domains.csv" />} />
+          <DataTable data={domains} columns={domainColumns} onRowClick={handleRowClick} getRowClassName={(row: ReferringDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Referring Domains</h3><p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks from that domain.</p></div>} toolbar={<ExportButton data={domains as unknown as Record<string, unknown>[]} filename="referring-domains.csv" />} />
         </div>
       )}
     </div>

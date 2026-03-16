@@ -469,6 +469,16 @@ export function triggerIngest(): Promise<{ status: string }> {
   return post<{ status: string }>(`${BASE}/ingest`);
 }
 
+/* ---- Blocklist ---- */
+
+export function fetchBlocklist(): Promise<{ domains: string[] }> {
+  return get<{ domains: string[] }>(`${BASE}/blocklist`);
+}
+
+export function saveBlocklist(domains: string[]): Promise<{ status: string }> {
+  return post<{ status: string }>(`${BASE}/blocklist`, { domains });
+}
+
 /* ---- Session filters ---- */
 
 export function loadSessionFilters(

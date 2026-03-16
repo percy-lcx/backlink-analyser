@@ -33,3 +33,13 @@ body {
   background-color: #f9fafb;
   color: #111827;
 }
+
+/* Blocklisted domain row highlighting */
+tr.row-blocklisted {
+  background-color: #fef2f2 !important;
+  border-left: 4px solid #ef4444;
+}
+
+tr.row-blocklisted:hover {
+  background-color: #fee2e2 !important;
+}
