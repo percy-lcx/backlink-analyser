@@ -127,3 +127,71 @@ def link_intersect(
         "summary": summary,
         "domains": domains,
     }
+
+
+@router.get("/api/gap-domain-breakdown")
+def gap_domain_breakdown(
+    referring_domain: str = Query(..., description="Referring domain to drill into"),
+    base: str = Query(..., description="Your profile label"),
+    competitors: str = Query(
+        ..., description="Comma-separated competitor profile labels"
+    ),
+):
+    """Return individual referring pages for a gap domain.
+
+    Given a referring domain that links to competitors but not the base profile,
+    return all individual backlink rows from that domain across competitors.
+    """
+    conn = get_conn()
+    competitor_list = [c.strip() for c in competitors.split(",") if c.strip()]
+    if not competitor_list:
+        return {"referring_domain": referring_domain, "rows": []}
+
+    # $1 = base, $2 = referring_domain, $3..$N+2 = competitors
+    comp_placeholders = ", ".join(
+        f"${i + 3}" for i in range(len(competitor_list))
+    )
+    params: list = [base, referring_domain] + competitor_list
+
+    sql = f"""
+        WITH base_domains AS (
+            SELECT DISTINCT referring_domain
+            FROM backlinks
+            WHERE profile_label = $1
+        )
+        SELECT
+            b.referring_url,
+            b.target_url,
+            b.profile_label,
+            b.domain_rating,
+            b.page_traffic,
+            b.anchor,
+            b.link_type,
+            b.first_seen
+        FROM backlinks b
+        LEFT JOIN base_domains bd ON b.referring_domain = bd.referring_domain
+        WHERE b.referring_domain = $2
+          AND b.profile_label IN ({comp_placeholders})
+          AND COALESCE(b.is_spam, false) = false
+          AND bd.referring_domain IS NULL
+        ORDER BY b.page_traffic DESC NULLS LAST
+    """
+
+    rows = conn.execute(sql, params).fetchall()
+
+    return {
+        "referring_domain": referring_domain,
+        "rows": [
+            {
+                "referring_url": r[0],
+                "target_url": r[1],
+                "profile_label": r[2],
+                "domain_rating": r[3],
+                "page_traffic": r[4],
+                "anchor": r[5],
+                "link_type": r[6],
+                "first_seen": str(r[7]) if r[7] else None,
+            }
+            for r in rows
+        ],
+    }

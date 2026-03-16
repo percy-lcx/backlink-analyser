@@ -5,8 +5,10 @@ import DataTable from "./tables/DataTable";
 import ExportButton from "./tables/ExportButton";
 import {
   fetchLinkIntersect,
+  fetchGapDomainBreakdown,
   type IntersectDomain,
   type IntersectResponse,
+  type GapDomainBreakdownRow,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -45,11 +47,7 @@ function intersectColor(count: number, total: number): string {
 
 /* ---- Main component ---- */
 
-interface IntersectTabProps {
-  onGapRowClick?: (profileLabel: string, referringDomain: string) => void;
-}
-
-export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
+export default function IntersectTab() {
   const { profiles } = useProfile();
   const [baseProfile, setBaseProfile] = useState("");
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
@@ -57,6 +55,9 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<IntersectResponse | null>(null);
   const [filterCount, setFilterCount] = useState<number | null>(null);
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
 
   // Session filter persistence
   const getFilters = useCallback(() => ({
@@ -102,6 +103,8 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
       .then((res) => {
         setData(res);
         setFilterCount(null);
+        setExpandedDomain(null);
+        setBreakdownData([]);
       })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
@@ -135,6 +138,77 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
     if (filterCount === null) return data.domains;
     return data.domains.filter((d) => d.competitor_count === filterCount);
   }, [data, filterCount]);
+
+  // Reset breakdown when chart filter changes
+  useEffect(() => {
+    setExpandedDomain(null);
+    setBreakdownData([]);
+  }, [filterCount]);
+
+  const handleGapRowClick = useCallback((row: IntersectDomain) => {
+    if (expandedDomain === row.referring_domain) {
+      setExpandedDomain(null);
+      setBreakdownData([]);
+      return;
+    }
+    setExpandedDomain(row.referring_domain);
+    setBreakdownLoading(true);
+    fetchGapDomainBreakdown(row.referring_domain, baseProfile, selectedCompetitors)
+      .then((res) => setBreakdownData(res.rows))
+      .catch(() => setBreakdownData([]))
+      .finally(() => setBreakdownLoading(false));
+  }, [expandedDomain, baseProfile, selectedCompetitors]);
+
+  const breakdownColumns = useMemo((): ColumnDef<GapDomainBreakdownRow, unknown>[] => [
+    {
+      accessorKey: "referring_url",
+      header: "Referring Page",
+      size: 320,
+      cell: ({ getValue }) => {
+        const url = getValue() as string;
+        return (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="text-primary-600 hover:underline truncate block max-w-[300px]"
+            title={url}
+          >{url}</a>
+        );
+      },
+    },
+    {
+      accessorKey: "profile_label",
+      header: "Links To",
+      size: 120,
+    },
+    {
+      accessorKey: "domain_rating",
+      header: "DR",
+      size: 60,
+    },
+    {
+      accessorKey: "page_traffic",
+      header: "Page Traffic",
+      size: 100,
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null;
+        return v != null ? v.toLocaleString() : "-";
+      },
+    },
+    {
+      accessorKey: "anchor",
+      header: "Anchor Text",
+      size: 200,
+    },
+    {
+      accessorKey: "link_type",
+      header: "Link Type",
+      size: 80,
+    },
+    {
+      accessorKey: "first_seen",
+      header: "First Seen",
+      size: 100,
+    },
+  ], []);
 
   // Dynamic columns based on competitors
   const columns = useMemo((): ColumnDef<IntersectDomain, unknown>[] => {
@@ -468,11 +542,9 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
               data={filteredDomains}
               columns={columns}
               pageSize={50}
-              onRowClick={
-                onGapRowClick
-                  ? (row) =>
-                      onGapRowClick(baseProfile, row.referring_domain)
-                  : undefined
+              onRowClick={handleGapRowClick}
+              getRowClassName={(row) =>
+                row.referring_domain === expandedDomain ? "!bg-primary-100" : ""
               }
               statusText={
                 <div>
@@ -487,8 +559,8 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
                     Referring domains linking to competitors but not to{" "}
-                    <strong>{baseProfile}</strong>. Sorted by intersection count, then
-                    DR.
+                    <strong>{baseProfile}</strong>. Click a row to see individual
+                    referring pages.
                   </p>
                 </div>
               }
@@ -510,6 +582,48 @@ export default function IntersectTab({ onGapRowClick }: IntersectTabProps) {
               }
             />
           </div>
+
+          {/* Gap Domain Breakdown */}
+          {expandedDomain && (
+            <div className="bg-white rounded-lg shadow p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Pages from{" "}
+                    <span className="text-primary-600">{expandedDomain}</span>
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Individual referring pages linking to competitors but not to{" "}
+                    <strong>{baseProfile}</strong>
+                  </p>
+                </div>
+                <button
+                  className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
+                  onClick={() => {
+                    setExpandedDomain(null);
+                    setBreakdownData([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+              {breakdownLoading ? (
+                <p className="text-sm text-gray-500 py-4">Loading breakdown...</p>
+              ) : (
+                <DataTable
+                  data={breakdownData}
+                  columns={breakdownColumns}
+                  pageSize={25}
+                  toolbar={
+                    <ExportButton
+                      data={breakdownData as unknown as Record<string, unknown>[]}
+                      filename={`gap-breakdown-${expandedDomain}.csv`}
+                    />
+                  }
+                />
+              )}
+            </div>
+          )}
         </>
       )}
 
