@@ -269,6 +269,22 @@ export interface IntersectResponse {
   domains: IntersectDomain[];
 }
 
+export interface GapDomainBreakdownRow {
+  referring_url: string;
+  target_url: string;
+  profile_label: string;
+  domain_rating: number;
+  page_traffic: number;
+  anchor: string;
+  link_type: string;
+  first_seen: string | null;
+}
+
+export interface GapDomainBreakdownResponse {
+  referring_domain: string;
+  rows: GapDomainBreakdownRow[];
+}
+
 export interface BrokenLinksSummary {
   total_broken: number;
   count_4xx: number;
@@ -408,6 +424,18 @@ export function fetchLinkIntersect(
     base,
     competitors: competitors.join(","),
     min_dr: minDr,
+  });
+}
+
+export function fetchGapDomainBreakdown(
+  referringDomain: string,
+  base: string,
+  competitors: string[],
+): Promise<GapDomainBreakdownResponse> {
+  return get<GapDomainBreakdownResponse>(`${BASE}/gap-domain-breakdown`, {
+    referring_domain: referringDomain,
+    base,
+    competitors: competitors.join(","),
   });
 }
 

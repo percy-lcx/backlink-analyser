@@ -169,7 +169,7 @@ function Dashboard() {
           <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
         </div>
         <div style={{ display: tab === "intersect" ? undefined : "none" }}>
-          <IntersectTab onGapRowClick={handleGapRowClick} />
+          <IntersectTab />
         </div>
         {tab === "broken" && <BrokenLinksTab />}
         {tab === "terminology" && <TerminologyTab />}
