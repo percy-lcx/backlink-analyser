@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useProfile } from "./ProfileContext";
 import { useSessionFilters } from "../lib/useSessionFilters";
 import DataTable from "./tables/DataTable";
@@ -58,6 +58,7 @@ export default function IntersectTab() {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
+  const breakdownRef = useRef<HTMLDivElement>(null);
 
   // Session filter persistence
   const getFilters = useCallback(() => ({
@@ -154,7 +155,10 @@ export default function IntersectTab() {
     setExpandedDomain(row.referring_domain);
     setBreakdownLoading(true);
     fetchGapDomainBreakdown(row.referring_domain, baseProfile, selectedCompetitors)
-      .then((res) => setBreakdownData(res.rows))
+      .then((res) => {
+        setBreakdownData(res.rows);
+        setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      })
       .catch(() => setBreakdownData([]))
       .finally(() => setBreakdownLoading(false));
   }, [expandedDomain, baseProfile, selectedCompetitors]);
@@ -585,7 +589,7 @@ export default function IntersectTab() {
 
           {/* Gap Domain Breakdown */}
           {expandedDomain && (
-            <div className="bg-white rounded-lg shadow p-5">
+            <div ref={breakdownRef} className="bg-white rounded-lg shadow p-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700">
