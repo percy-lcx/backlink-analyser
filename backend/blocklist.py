@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 _STORE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "store"
@@ -21,7 +22,9 @@ def get_blocklist() -> list[str]:
 def set_blocklist(domains: list[str]) -> None:
     """Write the domain blocklist to disk."""
     os.makedirs(_STORE_DIR, exist_ok=True)
-    # Deduplicate and lowercase for consistent matching
-    unique = sorted(set(d.strip().lower() for d in domains if d.strip()))
+    # Strip protocol, trailing slashes, deduplicate and lowercase
+    def _clean(d: str) -> str:
+        return re.sub(r"^https?://", "", d.strip().lower()).rstrip("/")
+    unique = sorted(set(_clean(d) for d in domains if d.strip()))
     with open(_BLOCKLIST_PATH, "w") as f:
         json.dump(unique, f, indent=2)
