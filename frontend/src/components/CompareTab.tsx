@@ -136,7 +136,7 @@ function PathCombobox({
                 setOpen(false);
               }}
             >
-              <span className="truncate">{o.target_path}</span>
+              <span className="break-all">{o.target_path}</span>
               <span className="text-gray-400 ml-2 shrink-0">{o.link_count}</span>
             </li>
           ))}

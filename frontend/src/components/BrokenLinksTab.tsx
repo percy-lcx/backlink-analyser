@@ -31,7 +31,7 @@ const columns: ColumnDef<LinkRecord, unknown>[] = [
     cell: ({ getValue }) => {
       const url = getValue() as string;
       return (
-        <a href={url} target="_blank" rel="noreferrer" className="text-primary-500 hover:underline truncate block">
+        <a href={url} target="_blank" rel="noreferrer" className="text-primary-500 hover:underline break-all">
           {url}
         </a>
       );

@@ -29,7 +29,7 @@ export default function TopDomainsTable({ domains, onViewAll }: Props) {
         <tbody>
           {top.map((d, i) => (
             <tr key={d.referring_domain} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-row-alt" : ""}`}>
-              <td className="py-2 text-gray-800 truncate max-w-[200px]" title={d.referring_domain}>
+              <td className="py-2 text-gray-800" title={d.referring_domain}>
                 {d.referring_domain}
               </td>
               <td className="py-2 text-right text-gray-600">{d.link_count.toLocaleString()}</td>
