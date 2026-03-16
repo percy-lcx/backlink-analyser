@@ -17,6 +17,10 @@ const BlocklistContext = createContext<BlocklistContextValue>({
   refresh: () => {},
 });
 
+function cleanDomain(raw: string): string {
+  return raw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+}
+
 export function BlocklistProvider({ children }: { children: ReactNode }) {
   const [blocklist, setBlocklist] = useState<Set<string>>(new Set());
 
@@ -34,7 +38,7 @@ export function BlocklistProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const add = useCallback((domain: string) => {
-    const d = domain.trim().toLowerCase();
+    const d = cleanDomain(domain);
     if (!d) return;
     setBlocklist((prev) => {
       const next = new Set(prev);
@@ -48,7 +52,7 @@ export function BlocklistProvider({ children }: { children: ReactNode }) {
     setBlocklist((prev) => {
       const next = new Set(prev);
       for (const raw of domains) {
-        const d = raw.trim().toLowerCase();
+        const d = cleanDomain(raw);
         if (d) next.add(d);
       }
       persist(next);
