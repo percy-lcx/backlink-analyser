@@ -165,6 +165,7 @@ def gap_domain_breakdown(
             b.profile_label,
             b.domain_rating,
             b.page_traffic,
+            b.domain_traffic,
             b.anchor,
             b.link_type,
             b.first_seen
@@ -188,9 +189,10 @@ def gap_domain_breakdown(
                 "profile_label": r[2],
                 "domain_rating": r[3],
                 "page_traffic": r[4],
-                "anchor": r[5],
-                "link_type": r[6],
-                "first_seen": str(r[7]) if r[7] else None,
+                "domain_traffic": r[5],
+                "anchor": r[6],
+                "link_type": r[7],
+                "first_seen": str(r[8]) if r[8] else None,
             }
             for r in rows
         ],

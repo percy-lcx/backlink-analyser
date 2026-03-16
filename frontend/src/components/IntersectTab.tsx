@@ -59,6 +59,7 @@ export default function IntersectTab() {
   const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
   const breakdownRef = useRef<HTMLDivElement>(null);
+  const gapTableRef = useRef<HTMLDivElement>(null);
 
   // Session filter persistence
   const getFilters = useCallback(() => ({
@@ -192,6 +193,15 @@ export default function IntersectTab() {
       accessorKey: "page_traffic",
       header: "Page Traffic",
       size: 100,
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null;
+        return v != null ? v.toLocaleString() : "-";
+      },
+    },
+    {
+      accessorKey: "domain_traffic",
+      header: "Domain Traffic",
+      size: 110,
       cell: ({ getValue }) => {
         const v = getValue() as number | null;
         return v != null ? v.toLocaleString() : "-";
@@ -541,7 +551,7 @@ export default function IntersectTab() {
           </div>
 
           {/* Domain table */}
-          <div className="bg-white rounded-lg shadow p-5">
+          <div ref={gapTableRef} className="bg-white rounded-lg shadow p-5">
             <DataTable
               data={filteredDomains}
               columns={columns}
@@ -601,15 +611,23 @@ export default function IntersectTab() {
                     <strong>{baseProfile}</strong>
                   </p>
                 </div>
-                <button
-                  className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
-                  onClick={() => {
-                    setExpandedDomain(null);
-                    setBreakdownData([]);
-                  }}
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="text-xs text-primary-500 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50"
+                    onClick={() => gapTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  >
+                    Back to Gap Domains
+                  </button>
+                  <button
+                    className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
+                    onClick={() => {
+                      setExpandedDomain(null);
+                      setBreakdownData([]);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
               {breakdownLoading ? (
                 <p className="text-sm text-gray-500 py-4">Loading breakdown...</p>
