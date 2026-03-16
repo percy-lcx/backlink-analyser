@@ -275,6 +275,7 @@ export interface GapDomainBreakdownRow {
   profile_label: string;
   domain_rating: number;
   page_traffic: number;
+  domain_traffic: number;
   anchor: string;
   link_type: string;
   first_seen: string | null;
