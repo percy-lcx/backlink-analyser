@@ -508,8 +508,8 @@ export function fetchBlocklistColumns(): Promise<ColumnMetadata> {
   return get<ColumnMetadata>(`${BASE}/blocklist/columns`);
 }
 
-export function autoBlockCriteria(profile: string, body: AutoBlockCriteriaBody): Promise<AutoBlockResult> {
-  return post<AutoBlockResult>(`${BASE}/blocklist/auto-block?profile=${encodeURIComponent(profile)}`, body);
+export function autoBlockCriteria(body: AutoBlockCriteriaBody): Promise<AutoBlockResult> {
+  return post<AutoBlockResult>(`${BASE}/blocklist/auto-block`, body);
 }
 
 /* ---- Session filters ---- */
