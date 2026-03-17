@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useParams, useNavigate, Link } from "react-router-dom";
 import { useProfile } from "./components/ProfileContext";
 import OverviewTab from "./components/tabs/OverviewTab";
 import LinksTab from "./components/tabs/LinksTab";
@@ -15,15 +16,67 @@ import { triggerIngest, type LinksDrilldown } from "./lib/api";
 
 type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "blocklist" | "terminology";
 
-function Dashboard() {
+const tabs: { key: Tab; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "links", label: "Links" },
+  { key: "domains", label: "Domains" },
+  { key: "anchors", label: "Anchors" },
+  { key: "pages", label: "Pages" },
+  { key: "quality", label: "Quality" },
+  { key: "compare", label: "Compare" },
+  { key: "intersect", label: "Intersect" },
+  { key: "broken", label: "Broken Links" },
+  { key: "blocklist", label: "Blocklist" },
+  { key: "terminology", label: "Terminology" },
+];
+
+const VALID_TABS = new Set<string>(tabs.map((t) => t.key));
+
+function isValidTab(t: string): t is Tab {
+  return VALID_TABS.has(t);
+}
+
+function profilePath(profile: string, tab: string = "overview") {
+  return `/${encodeURIComponent(profile)}/${tab}`;
+}
+
+/** Redirects unknown routes to the first profile's overview */
+function DefaultRedirect() {
+  const { profiles, loading } = useProfile();
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
+  }
+  if (profiles.length === 0) return <Navigate to="/no-profiles" replace />;
+  return <Navigate to={profilePath(profiles[0].profile_label)} replace />;
+}
+
+function DashboardContent() {
+  const { profile: urlProfile, tab: urlTab } = useParams<{ profile: string; tab: string }>();
+  const navigate = useNavigate();
   const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
-  const [tab, setTab] = useState<Tab>("overview");
+
   const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
   const [pageCategory, setPageCategory] = useState<string | null>(null);
 
   // Ingest state
   const [ingesting, setIngesting] = useState(false);
   const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+
+  const decodedProfile = urlProfile ? decodeURIComponent(urlProfile) : "";
+  const currentTab: Tab = urlTab && isValidTab(urlTab) ? urlTab : "overview";
+
+  // Sync URL profile → ProfileContext
+  useEffect(() => {
+    if (decodedProfile && decodedProfile !== selected && profiles.some((p) => p.profile_label === decodedProfile)) {
+      setSelected(decodedProfile);
+    }
+  }, [decodedProfile, selected, profiles, setSelected]);
+
+  // Dynamic browser tab title
+  useEffect(() => {
+    const tabLabel = tabs.find((t) => t.key === currentTab)?.label ?? "Overview";
+    document.title = `${selected} – ${tabLabel} | Backlink Analyser`;
+  }, [selected, currentTab]);
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -41,39 +94,51 @@ function Dashboard() {
 
   const handleDrilldown = (d: LinksDrilldown) => {
     setDrilldown(d);
-    setTab("links");
+    navigate(profilePath(selected, "links"));
   };
 
   const handleTabClick = (t: Tab) => {
     if (t === "links") setDrilldown(null);
     if (t === "pages") setPageCategory(null);
-    setTab(t);
+    navigate(profilePath(selected, t));
   };
 
   const handlePageCategory = (category: string) => {
     setPageCategory(category);
-    setTab("pages");
+    navigate(profilePath(selected, "pages"));
   };
 
   const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
     setSelected(profileLabel);
-    handleDrilldown({
+    setDrilldown({
       domain: referringDomain,
       ...(targetPath ? { targetPath, targetPathMode: "exact" as const } : {}),
     });
+    navigate(profilePath(profileLabel, "links"));
   };
 
   const handleDrBarClick = (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => {
     setSelected(profileLabel);
-    handleDrilldown({
+    setDrilldown({
       drMin: String(drMin),
       drMax: String(drMax),
       ...(targetPath ? { targetPath, targetPathMode: "exact" as const } : {}),
     });
+    navigate(profilePath(profileLabel, "links"));
   };
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
+  }
+
+  // Validate profile from URL
+  if (!profiles.some((p) => p.profile_label === decodedProfile)) {
+    return <Navigate to={profilePath(profiles[0]?.profile_label ?? "")} replace />;
+  }
+
+  // Validate tab from URL
+  if (urlTab && !isValidTab(urlTab)) {
+    return <Navigate to={profilePath(decodedProfile)} replace />;
   }
 
   if (profiles.length === 0) {
@@ -96,20 +161,6 @@ function Dashboard() {
     );
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "links", label: "Links" },
-    { key: "domains", label: "Domains" },
-    { key: "anchors", label: "Anchors" },
-    { key: "pages", label: "Pages" },
-    { key: "quality", label: "Quality" },
-    { key: "compare", label: "Compare" },
-    { key: "intersect", label: "Intersect" },
-    { key: "broken", label: "Broken Links" },
-    { key: "blocklist", label: "Blocklist" },
-    { key: "terminology", label: "Terminology" },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -128,7 +179,7 @@ function Dashboard() {
             <select
               className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
               value={selected}
-              onChange={(e) => setSelected(e.target.value)}
+              onChange={(e) => navigate(profilePath(e.target.value, currentTab))}
             >
               {profiles.map((p) => (
                 <option key={p.profile_label} value={p.profile_label}>
@@ -140,44 +191,61 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Tabs */}
+      {/* Tabs — using <Link> so middle-click / ctrl+click opens in new browser tab */}
       <nav className="bg-white border-b border-gray-200 px-6">
         <div className="flex gap-6 max-w-7xl mx-auto">
           {tabs.map((t) => (
-            <button
+            <Link
               key={t.key}
+              to={profilePath(selected, t.key)}
               className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === t.key
+                currentTab === t.key
                   ? "border-primary-500 text-primary-500"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => handleTabClick(t.key)}
+              onClick={(e) => {
+                // For normal clicks, use navigate to preserve drilldown clearing logic
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+                  e.preventDefault();
+                  handleTabClick(t.key);
+                }
+              }}
             >
               {t.label}
-            </button>
+            </Link>
           ))}
         </div>
       </nav>
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {tab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} onDrilldown={handleDrilldown} onPageCategory={handlePageCategory} />}
-        {tab === "links" && <LinksTab profile={selected} drilldown={drilldown} />}
-        {tab === "domains" && <DomainsTab profile={selected} onDrilldown={handleDrilldown} />}
-        {tab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
-        {tab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
-        {tab === "quality" && <QualityTab profile={selected} />}
-        <div style={{ display: tab === "compare" ? undefined : "none" }}>
+        {currentTab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} onDrilldown={handleDrilldown} onPageCategory={handlePageCategory} />}
+        {currentTab === "links" && <LinksTab profile={selected} drilldown={drilldown} />}
+        {currentTab === "domains" && <DomainsTab profile={selected} onDrilldown={handleDrilldown} />}
+        {currentTab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
+        {currentTab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
+        {currentTab === "quality" && <QualityTab profile={selected} />}
+        <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
           <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
         </div>
-        <div style={{ display: tab === "intersect" ? undefined : "none" }}>
+        <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
           <IntersectTab />
         </div>
-        {tab === "broken" && <BrokenLinksTab />}
-        {tab === "blocklist" && <BlocklistTab />}
-        {tab === "terminology" && <TerminologyTab />}
+        {currentTab === "broken" && <BrokenLinksTab />}
+        {currentTab === "blocklist" && <BlocklistTab />}
+        {currentTab === "terminology" && <TerminologyTab />}
       </main>
     </div>
+  );
+}
+
+function Dashboard() {
+  return (
+    <Routes>
+      <Route path="/:profile/:tab" element={<DashboardContent />} />
+      <Route path="/:profile" element={<DashboardContent />} />
+      <Route path="*" element={<DefaultRedirect />} />
+    </Routes>
   );
 }
 
