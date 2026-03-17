@@ -48,10 +48,13 @@ function intersectColor(count: number, total: number): string {
 
 /* ---- Main component ---- */
 
-export default function IntersectTab() {
+interface IntersectTabProps {
+  profile: string;
+}
+
+export default function IntersectTab({ profile }: IntersectTabProps) {
   const { profiles } = useProfile();
   const { blocklist } = useBlocklist();
-  const [baseProfile, setBaseProfile] = useState("");
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
   const [minDr, setMinDr] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -65,13 +68,11 @@ export default function IntersectTab() {
 
   // Session filter persistence
   const getFilters = useCallback(() => ({
-    baseProfile,
     selectedCompetitors: selectedCompetitors.join(","),
     minDr: minDr !== undefined ? String(minDr) : "",
-  }), [baseProfile, selectedCompetitors, minDr]);
+  }), [selectedCompetitors, minDr]);
 
   const applyFilters = useCallback((f: Record<string, string>) => {
-    if (f.baseProfile) setBaseProfile(f.baseProfile);
     if (f.selectedCompetitors) setSelectedCompetitors(f.selectedCompetitors.split(",").filter(Boolean));
     if (f.minDr) setMinDr(Number(f.minDr));
   }, []);
@@ -80,31 +81,24 @@ export default function IntersectTab() {
     "_global", "intersect", getFilters, applyFilters,
   );
 
-  // Default base to first profile
-  useEffect(() => {
-    if (profiles.length > 0 && !baseProfile) {
-      setBaseProfile(profiles[0].profile_label);
-    }
-  }, [profiles, baseProfile]);
-
   // Clear competitors that match new base
   useEffect(() => {
     setSelectedCompetitors((prev) =>
-      prev.filter((c) => c !== baseProfile),
+      prev.filter((c) => c !== profile),
     );
-  }, [baseProfile]);
+  }, [profile]);
 
   // Fetch data
   useEffect(() => {
     if (!sessionLoaded) return;
     saveSession();
-    if (!baseProfile || selectedCompetitors.length === 0) {
+    if (!profile || selectedCompetitors.length === 0) {
       setData(null);
       return;
     }
     const controller = new AbortController();
     setLoading(true);
-    fetchLinkIntersect(baseProfile, selectedCompetitors, minDr, controller.signal)
+    fetchLinkIntersect(profile, selectedCompetitors, minDr, controller.signal)
       .then((res) => {
         setData(res);
         setFilterCount(null);
@@ -119,7 +113,7 @@ export default function IntersectTab() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [baseProfile, selectedCompetitors, minDr, sessionLoaded, saveSession]);
+  }, [profile, selectedCompetitors, minDr, sessionLoaded, saveSession]);
 
   const toggleCompetitor = (label: string) => {
     setSelectedCompetitors((prev) =>
@@ -164,14 +158,14 @@ export default function IntersectTab() {
     }
     setExpandedDomain(row.referring_domain);
     setBreakdownLoading(true);
-    fetchGapDomainBreakdown(row.referring_domain, baseProfile, selectedCompetitors)
+    fetchGapDomainBreakdown(row.referring_domain, profile, selectedCompetitors)
       .then((res) => {
         setBreakdownData(res.rows);
         setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
       })
       .catch(() => setBreakdownData([]))
       .finally(() => setBreakdownLoading(false));
-  }, [expandedDomain, baseProfile, selectedCompetitors]);
+  }, [expandedDomain, profile, selectedCompetitors]);
 
   const breakdownColumns = useMemo((): ColumnDef<GapDomainBreakdownRow, unknown>[] => [
     {
@@ -329,24 +323,6 @@ export default function IntersectTab() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex items-start gap-6 flex-wrap">
-        {/* Base profile */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">
-            Your Site
-          </label>
-          <select
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
-            value={baseProfile}
-            onChange={(e) => setBaseProfile(e.target.value)}
-          >
-            {profiles.map((p) => (
-              <option key={p.profile_label} value={p.profile_label}>
-                {p.profile_label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Competitor checkboxes */}
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -357,7 +333,7 @@ export default function IntersectTab() {
               className="text-xs text-primary-500 hover:text-primary-700"
               onClick={() => {
                 const others = profiles
-                  .filter((p) => p.profile_label !== baseProfile)
+                  .filter((p) => p.profile_label !== profile)
                   .map((p) => p.profile_label);
                 setSelectedCompetitors(
                   selectedCompetitors.length === others.length ? [] : others,
@@ -365,14 +341,14 @@ export default function IntersectTab() {
               }}
             >
               {selectedCompetitors.length ===
-              profiles.filter((p) => p.profile_label !== baseProfile).length
+              profiles.filter((p) => p.profile_label !== profile).length
                 ? "Clear"
                 : "Select all"}
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {profiles
-              .filter((p) => p.profile_label !== baseProfile)
+              .filter((p) => p.profile_label !== profile)
               .map((p, i) => (
                 <label
                   key={p.profile_label}
@@ -599,7 +575,7 @@ export default function IntersectTab() {
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
                     Referring domains linking to competitors but not to{" "}
-                    <strong>{baseProfile}</strong>. Click a row to see individual
+                    <strong>{profile}</strong>. Click a row to see individual
                     referring pages.
                   </p>
                 </div>
@@ -634,7 +610,7 @@ export default function IntersectTab() {
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
                     Individual referring pages linking to competitors but not to{" "}
-                    <strong>{baseProfile}</strong>
+                    <strong>{profile}</strong>
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

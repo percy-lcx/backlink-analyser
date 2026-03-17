@@ -150,14 +150,14 @@ function PathCombobox({
 /* ---- Main component ---- */
 
 interface CompareTabProps {
+  profile: string;
   onDrBarClick?: (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => void;
   onGapRowClick?: (profileLabel: string, referringDomain: string, targetPath?: string) => void;
 }
 
-export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabProps) {
+export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: CompareTabProps) {
   const { profiles } = useProfile();
   const { blocklist } = useBlocklist();
-  const [profileA, setProfileA] = useState("");
   const [profileB, setProfileB] = useState("");
   const [mode, setMode] = useState<"site" | "url">("site");
   const [pathA, setPathA] = useState("");
@@ -174,11 +174,10 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
 
   // Session filter persistence
   const getFilters = useCallback(() => ({
-    profileA, profileB, mode, pathA, pathB,
-  }), [profileA, profileB, mode, pathA, pathB]);
+    profileB, mode, pathA, pathB,
+  }), [profileB, mode, pathA, pathB]);
 
   const applyFilters = useCallback((f: Record<string, string>) => {
-    if (f.profileA) setProfileA(f.profileA);
     if (f.profileB) setProfileB(f.profileB);
     if (f.mode === "site" || f.mode === "url") setMode(f.mode);
     if (f.pathA) setPathA(f.pathA);
@@ -189,20 +188,18 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
     "_global", "compare", getFilters, applyFilters,
   );
 
-  // Default to first two profiles
+  // Default profile B to first profile that isn't profile A
   useEffect(() => {
-    if (profiles.length >= 2) {
-      if (!profileA) setProfileA(profiles[0].profile_label);
-      if (!profileB) setProfileB(profiles[1].profile_label);
-    } else if (profiles.length === 1 && !profileA) {
-      setProfileA(profiles[0].profile_label);
+    if (!profileB || profileB === profile) {
+      const other = profiles.find((p) => p.profile_label !== profile);
+      if (other) setProfileB(other.profile_label);
     }
-  }, [profiles, profileA, profileB]);
+  }, [profiles, profile, profileB]);
 
   // Fetch target paths when profiles change
   useEffect(() => {
-    if (profileA) fetchTargetPaths(profileA).then(setPathOptionsA).catch(() => setPathOptionsA([]));
-  }, [profileA]);
+    if (profile) fetchTargetPaths(profile).then(setPathOptionsA).catch(() => setPathOptionsA([]));
+  }, [profile]);
 
   useEffect(() => {
     if (profileB) fetchTargetPaths(profileB).then(setPathOptionsB).catch(() => setPathOptionsB([]));
@@ -220,7 +217,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
   useEffect(() => {
     if (!sessionLoaded) return;
     saveSession();
-    if (!profileA || !profileB || profileA === profileB) return;
+    if (!profile || !profileB || profile === profileB) return;
     if (mode === "url" && (!pathA || !pathB)) return;
     setLoading(true);
 
@@ -228,10 +225,10 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
     const tpB = mode === "url" ? pathB : undefined;
 
     Promise.all([
-      fetchCompare([profileA, profileB], tpA && tpB ? [tpA, tpB] : undefined),
-      fetchLinkGap(profileA, [profileB], tpA, tpB),
-      fetchLinkGap(profileB, [profileA], tpB, tpA),
-      fetchDrDistribution(profileA, tpA).then((d) => d.dr ?? []),
+      fetchCompare([profile, profileB], tpA && tpB ? [tpA, tpB] : undefined),
+      fetchLinkGap(profile, [profileB], tpA, tpB),
+      fetchLinkGap(profileB, [profile], tpB, tpA),
+      fetchDrDistribution(profile, tpA).then((d) => d.dr ?? []),
       fetchDrDistribution(profileB, tpB).then((d) => d.dr ?? []),
     ])
       .then(([compare, gapA, gapB, drA, drB]) => {
@@ -249,7 +246,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
         setDrDistB([]);
       })
       .finally(() => setLoading(false));
-  }, [profileA, profileB, mode, pathA, pathB, sessionLoaded, saveSession]);
+  }, [profile, profileB, mode, pathA, pathB, sessionLoaded, saveSession]);
 
   if (profiles.length < 2) {
     return (
@@ -260,11 +257,11 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
     );
   }
 
-  const dataA = compareData.find((d) => d.profile_label === profileA);
+  const dataA = compareData.find((d) => d.profile_label === profile);
   const dataB = compareData.find((d) => d.profile_label === profileB);
   const metrics = dataA && dataB ? buildMetrics(dataA, dataB) : [];
 
-  const labelA = mode === "url" && pathA ? `${profileA} ${pathA}` : profileA;
+  const labelA = mode === "url" && pathA ? `${profile} ${pathA}` : profile;
   const labelB = mode === "url" && pathB ? `${profileB} ${pathB}` : profileB;
 
   const drMaxCount = Math.max(
@@ -278,18 +275,8 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
       {/* Profile selectors + mode toggle */}
       <div className="flex items-center gap-4 flex-wrap">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Profile A</label>
-          <select
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
-            value={profileA}
-            onChange={(e) => setProfileA(e.target.value)}
-          >
-            {profiles.map((p) => (
-              <option key={p.profile_label} value={p.profile_label} disabled={p.profile_label === profileB}>
-                {p.profile_label}
-              </option>
-            ))}
-          </select>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Comparing</label>
+          <span className="inline-block px-3 py-1.5 text-sm font-medium text-gray-700">{profile}</span>
         </div>
         <span className="text-gray-400 font-medium mt-5">vs</span>
         <div>
@@ -300,7 +287,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
             onChange={(e) => setProfileB(e.target.value)}
           >
             {profiles.map((p) => (
-              <option key={p.profile_label} value={p.profile_label} disabled={p.profile_label === profileA}>
+              <option key={p.profile_label} value={p.profile_label} disabled={p.profile_label === profile}>
                 {p.profile_label}
               </option>
             ))}
@@ -341,7 +328,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
       {mode === "url" && (
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">{profileA} path</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{profile} path</label>
             <PathCombobox value={pathA} onChange={setPathA} options={pathOptionsA} placeholder="/slug" />
           </div>
           <span className="text-gray-400 font-medium mt-5">vs</span>
@@ -355,7 +342,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
         </div>
       )}
 
-      {profileA === profileB && (
+      {profile === profileB && (
         <p className="text-sm text-amber-600">Select two different profiles to compare.</p>
       )}
 
@@ -415,7 +402,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
               <DataTable data={gapAtoB} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileB, row.referring_domain, mode === "url" ? pathB : undefined) : undefined} getRowClassName={(row: LinkGapDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelA}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelB} but not {labelA}</p></div>} toolbar={<ExportButton data={gapAtoB as unknown as Record<string, unknown>[]} filename="gap-opportunities-a.csv" />} />
             </div>
             <div className="bg-white rounded-lg shadow p-5">
-              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profileA, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} getRowClassName={(row: LinkGapDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelB}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelA} but not {labelB}</p></div>} toolbar={<ExportButton data={gapBtoA as unknown as Record<string, unknown>[]} filename="gap-opportunities-b.csv" />} />
+              <DataTable data={gapBtoA} columns={gapColumns} pageSize={25} onRowClick={onGapRowClick ? (row) => onGapRowClick(profile, row.referring_domain, mode === "url" ? pathA : undefined) : undefined} getRowClassName={(row: LinkGapDomain) => blocklist.has(row.referring_domain?.toLowerCase()) ? "row-blocklisted" : ""} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Opportunities for {labelB}</h3><p className="text-xs text-gray-400 mt-1">Domains linking to {labelA} but not {labelB}</p></div>} toolbar={<ExportButton data={gapBtoA as unknown as Record<string, unknown>[]} filename="gap-opportunities-b.csv" />} />
             </div>
           </div>
 
@@ -425,7 +412,7 @@ export default function CompareTab({ onDrBarClick, onGapRowClick }: CompareTabPr
               <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA} — DR Distribution</h3>
               <DrDistribution data={drDistA} maxCount={drMaxCount} onBarClick={onDrBarClick ? (bucket) => {
                 const [min, max] = bucket.split("-").map(Number);
-                onDrBarClick(profileA, min, max, mode === "url" ? pathA : undefined);
+                onDrBarClick(profile, min, max, mode === "url" ? pathA : undefined);
               } : undefined} />
             </div>
             <div>
