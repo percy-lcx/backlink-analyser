@@ -3,21 +3,25 @@ import Tooltip from "../Tooltip";
 
 const CATEGORY_COLORS: Record<string, string> = {
   branded: "#001489",
+  brand_keyword: "#7c3aed",
   exact_match: "#ef4444",
   partial_match: "#f59e0b",
   generic: "#6b7280",
   image: "#8b5cf6",
   naked_url: "#14b8a6",
+  empty: "#e5e7eb",
   other: "#d1d5db",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   branded: "Branded",
+  brand_keyword: "Brand + Keyword",
   exact_match: "Exact Match",
   partial_match: "Partial Match",
   generic: "Generic",
   image: "Image",
   naked_url: "Naked URL",
+  empty: "Empty",
   other: "Other",
 };
 

@@ -104,12 +104,14 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
             onChange={setCategoryFilter}
             allLabel="Category: All"
             options={[
+              { value: "empty", label: "Empty" },
+              { value: "image", label: "Image" },
+              { value: "brand_keyword", label: "Brand + Keyword" },
               { value: "branded", label: "Branded" },
               { value: "exact_match", label: "Exact Match" },
               { value: "partial_match", label: "Partial Match" },
               { value: "naked_url", label: "Naked URL" },
               { value: "generic", label: "Generic" },
-              { value: "image", label: "Image" },
               { value: "other", label: "Other" },
             ]}
           />
