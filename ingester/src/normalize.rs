@@ -52,6 +52,35 @@ pub fn extract_domain(url_str: &str) -> String {
         .unwrap_or_default()
 }
 
+#[derive(Debug, Clone)]
+pub struct OrganicKeywordRecord {
+    pub keyword: String,
+    pub country_code: String,
+    pub location: String,
+    pub language: String,
+    pub entities: String,
+    pub serp_features: String,
+    pub volume: u32,
+    pub kd: u32,
+    pub cpc: f32,
+    pub organic_traffic: u64,
+    pub paid_traffic: u64,
+    pub current_position: u32,
+    pub current_url: String,
+    pub current_url_domain: String,
+    pub current_url_path: String,
+    pub current_url_inside: String,
+    pub updated: NaiveDateTime,
+    pub is_navigational: bool,
+    pub is_informational: bool,
+    pub is_commercial: bool,
+    pub is_transactional: bool,
+    pub is_branded: bool,
+    pub is_local: bool,
+    pub source_file: String,
+    pub profile_label: String,
+}
+
 pub fn extract_domain_and_path(url_str: &str) -> (String, String) {
     match Url::parse(url_str) {
         Ok(u) => (

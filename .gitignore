@@ -14,7 +14,12 @@ frontend/dist/
 # Data
 data/*.tsv
 data/*.csv
+data/backlinks/*.tsv
+data/backlinks/*.csv
+data/keywords/*.tsv
+data/keywords/*.csv
 store/*.parquet
+store/keywords/*.parquet
 
 # IDE
 .idea/
