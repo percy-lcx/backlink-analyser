@@ -1,8 +1,6 @@
 """Endpoints for managing the domain blocklist."""
 
-from __future__ import annotations
-
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, field_validator
@@ -50,7 +48,7 @@ class SaveBlocklistBody(BaseModel):
 
 class CriterionRule(BaseModel):
     field: str
-    aggregation: str | None = None
+    aggregation: Optional[str] = None
     operator: str
     value: str
 
