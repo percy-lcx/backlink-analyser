@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useBlocklist } from "../BlocklistContext";
-import { useProfile } from "../ProfileContext";
 import AutoBlockCriteriaPanel from "../AutoBlockCriteriaPanel";
 
 export default function BlocklistTab() {
   const { blocklist, add, addMany, remove, clear, refresh } = useBlocklist();
-  const { selected } = useProfile();
   const [input, setInput] = useState("");
   const [confirming, setConfirming] = useState(false);
 
@@ -45,7 +43,7 @@ export default function BlocklistTab() {
         </div>
       </div>
 
-      <AutoBlockCriteriaPanel profile={selected} onBlockComplete={refresh} />
+      <AutoBlockCriteriaPanel onBlockComplete={refresh} />
 
       <div className="bg-white rounded-lg shadow p-5">
         <div className="flex items-center justify-between mb-3">

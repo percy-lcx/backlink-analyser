@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
 from blocklist import get_blocklist, set_blocklist
@@ -141,14 +141,14 @@ def get_columns():
 
 
 @router.post("/api/blocklist/auto-block")
-def auto_block_criteria(body: AutoBlockCriteriaBody, profile: str = Query(...)):
-    """Auto-block domains matching user-defined criteria."""
+def auto_block_criteria(body: AutoBlockCriteriaBody):
+    """Auto-block domains matching user-defined criteria across all profiles."""
     if not body.rules:
         raise HTTPException(status_code=400, detail="At least one rule is required")
 
-    all_params: list = [profile]
+    all_params: list = []
     having_parts: list[str] = []
-    idx = 2  # $1 is profile
+    idx = 1
 
     for rule in body.rules:
         try:
@@ -164,7 +164,6 @@ def auto_block_criteria(body: AutoBlockCriteriaBody, profile: str = Query(...)):
     query = f"""
         SELECT referring_domain
         FROM backlinks
-        WHERE profile_label = $1
         GROUP BY referring_domain
         HAVING {having_sql}
     """

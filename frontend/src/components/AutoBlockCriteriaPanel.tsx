@@ -8,7 +8,6 @@ import {
 } from "../lib/api";
 
 interface Props {
-  profile: string | null;
   onBlockComplete: () => void;
 }
 
@@ -36,7 +35,7 @@ function fieldType(field: string, cols: ColumnMetadata | null): "numeric" | "boo
   return "string";
 }
 
-export default function AutoBlockCriteriaPanel({ profile, onBlockComplete }: Props) {
+export default function AutoBlockCriteriaPanel({ onBlockComplete }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [cols, setCols] = useState<ColumnMetadata | null>(null);
   const [rules, setRules] = useState<CriterionRule[]>([emptyRule()]);
@@ -95,11 +94,11 @@ export default function AutoBlockCriteriaPanel({ profile, onBlockComplete }: Pro
   });
 
   const handlePreview = async () => {
-    if (!profile || validRules.length === 0) return;
+    if (validRules.length === 0) return;
     setPreviewLoading(true);
     setMessage(null);
     try {
-      const res = await autoBlockCriteria(profile, buildBody(true));
+      const res = await autoBlockCriteria(buildBody(true));
       setPreviewCount(res.matched);
     } catch {
       setMessage("Preview failed");
@@ -109,11 +108,11 @@ export default function AutoBlockCriteriaPanel({ profile, onBlockComplete }: Pro
   };
 
   const handleBlock = async () => {
-    if (!profile || validRules.length === 0) return;
+    if (validRules.length === 0) return;
     setBlocking(true);
     setMessage(null);
     try {
-      const res = await autoBlockCriteria(profile, buildBody(false));
+      const res = await autoBlockCriteria(buildBody(false));
       setMessage(
         res.added && res.added > 0
           ? `Added ${res.added} domain${res.added === 1 ? "" : "s"} (${res.total} total)`
@@ -289,7 +288,7 @@ export default function AutoBlockCriteriaPanel({ profile, onBlockComplete }: Pro
             <button
               className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-200 disabled:opacity-50"
               onClick={handlePreview}
-              disabled={previewLoading || !profile || validRules.length === 0}
+              disabled={previewLoading || validRules.length === 0}
             >
               {previewLoading
                 ? "Scanning..."
@@ -300,16 +299,13 @@ export default function AutoBlockCriteriaPanel({ profile, onBlockComplete }: Pro
             <button
               className="px-3 py-1.5 bg-primary-500 text-white rounded-md text-xs font-medium hover:bg-primary-600 disabled:opacity-50"
               onClick={handleBlock}
-              disabled={blocking || !profile || validRules.length === 0}
+              disabled={blocking || validRules.length === 0}
             >
               {blocking ? "Blocking..." : "Block matching domains"}
             </button>
             {message && <span className="text-xs text-gray-500">{message}</span>}
           </div>
 
-          {!profile && (
-            <p className="text-xs text-amber-500 mt-2">Select a profile to use auto-block.</p>
-          )}
         </div>
       )}
     </div>
