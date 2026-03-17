@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useBlocklist } from "../BlocklistContext";
 
 export default function BlocklistTab() {
-  const { blocklist, add, addMany, remove } = useBlocklist();
+  const { blocklist, add, addMany, remove, clear } = useBlocklist();
   const [input, setInput] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   const handleAdd = () => {
     const parts = input.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean);
@@ -46,6 +47,34 @@ export default function BlocklistTab() {
           <h3 className="text-sm font-semibold text-gray-700">
             Blocklisted Domains ({sorted.length})
           </h3>
+          {sorted.length > 0 && (
+            <div className="flex items-center gap-2">
+              {confirming ? (
+                <>
+                  <span className="text-xs text-gray-500">Are you sure?</span>
+                  <button
+                    className="px-2 py-1 text-xs text-white bg-red-500 rounded hover:bg-red-600"
+                    onClick={() => { clear(); setConfirming(false); }}
+                  >
+                    Yes, remove all
+                  </button>
+                  <button
+                    className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                    onClick={() => setConfirming(false)}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                  onClick={() => setConfirming(true)}
+                >
+                  Remove all
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {sorted.length === 0 ? (
