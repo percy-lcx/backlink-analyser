@@ -51,6 +51,7 @@ function buildMetrics(a: CompareProfile, b: CompareProfile): MetricRow[] {
   }[] = [
     { metric: "Total Links", key: "total_links", higherIsBetter: true, format: num },
     { metric: "Referring Domains", key: "referring_domains", higherIsBetter: true, format: num },
+    { metric: "Page Traffic", key: "total_page_traffic", higherIsBetter: true, format: num },
     { metric: "Avg DR", key: "avg_dr", higherIsBetter: true, format: dec1 },
     { metric: "Median DR", key: "median_dr", higherIsBetter: true, format: dec1 },
     { metric: "Dofollow %", key: "dofollow_ratio", higherIsBetter: true, format: pct },

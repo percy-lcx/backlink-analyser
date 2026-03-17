@@ -220,6 +220,7 @@ export interface CompareProfile {
   links_per_domain: number;
   sitewide_ratio: number;
   image_link_ratio: number;
+  total_page_traffic: number;
 }
 
 export interface LinkGapDomain {
