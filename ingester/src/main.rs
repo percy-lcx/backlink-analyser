@@ -66,8 +66,9 @@ fn main() -> Result<()> {
 
     println!("Found {} file(s)", files.len());
 
-    // Group records by profile_label
-    let mut grouped: HashMap<String, Vec<normalize::BacklinkRecord>> = HashMap::new();
+    // Group records by profile_label, separated by data type
+    let mut backlink_grouped: HashMap<String, Vec<normalize::BacklinkRecord>> = HashMap::new();
+    let mut keyword_grouped: HashMap<String, Vec<normalize::OrganicKeywordRecord>> = HashMap::new();
 
     for file in &files {
         println!("  Processing: {}", file.display());
@@ -82,27 +83,39 @@ fn main() -> Result<()> {
 
         let profile_label = derive_profile_label(file);
 
-        let records = match detected.source {
-            parser::detector::SourceFormat::Ahrefs => {
-                parser::ahrefs::parse_ahrefs_file(file, detected.delimiter, &profile_label)?
+        match detected.data_type {
+            parser::detector::DataType::Backlinks => {
+                let records = parser::ahrefs::parse_ahrefs_file(file, detected.delimiter, &profile_label)?;
+                println!("    Parsed {} backlink records (format: {:?})", records.len(), detected.source);
+                backlink_grouped.entry(profile_label).or_default().extend(records);
             }
-        };
-
-        println!("    Parsed {} records (format: {:?})", records.len(), detected.source);
-
-        grouped
-            .entry(profile_label)
-            .or_default()
-            .extend(records);
+            parser::detector::DataType::OrganicKeywords => {
+                let records = parser::ahrefs_keywords::parse_ahrefs_keywords_file(file, detected.delimiter, &profile_label)?;
+                println!("    Parsed {} keyword records (format: {:?})", records.len(), detected.source);
+                keyword_grouped.entry(profile_label).or_default().extend(records);
+            }
+        }
     }
 
-    // Write parquet per profile
+    // Write backlink parquet per profile
     std::fs::create_dir_all(&cli.output)?;
 
-    for (label, records) in &grouped {
+    for (label, records) in &backlink_grouped {
         let output_path = cli.output.join(format!("{}.parquet", label));
-        println!("  Writing {} records to {}", records.len(), output_path.display());
+        println!("  Writing {} backlink records to {}", records.len(), output_path.display());
         writer::write_parquet(records, &output_path)?;
+    }
+
+    // Write keyword parquet per profile to keywords/ subdirectory
+    let keywords_output = cli.output.join("keywords");
+    if !keyword_grouped.is_empty() {
+        std::fs::create_dir_all(&keywords_output)?;
+    }
+
+    for (label, records) in &keyword_grouped {
+        let output_path = keywords_output.join(format!("{}.parquet", label));
+        println!("  Writing {} keyword records to {}", records.len(), output_path.display());
+        writer::write_keywords_parquet(records, &output_path)?;
     }
 
     println!("Done!");

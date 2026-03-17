@@ -1,3 +1,4 @@
+import glob
 import os
 import duckdb
 import threading
@@ -28,7 +29,7 @@ def init_db() -> duckdb.DuckDBPyConnection:
 
 
 def refresh_views() -> None:
-    """(Re)create the backlinks view from parquet files in ./store/."""
+    """(Re)create the backlinks and organic_keywords views from parquet files in ./store/."""
     global _conn
     if _conn is None:
         raise RuntimeError("Database not initialised. Call init_db() first.")
@@ -37,3 +38,14 @@ def refresh_views() -> None:
         "CREATE OR REPLACE VIEW backlinks AS "
         f"SELECT * FROM read_parquet('{parquet_pattern}')"
     )
+
+    # Organic keywords view (optional — only created if keyword parquet files exist)
+    keywords_pattern = os.path.join(_STORE_DIR, "keywords", "*.parquet")
+    if glob.glob(keywords_pattern):
+        _conn.execute(
+            "CREATE OR REPLACE VIEW organic_keywords AS "
+            f"SELECT * FROM read_parquet('{keywords_pattern}')"
+        )
+    else:
+        # Drop stale view if keyword files were removed
+        _conn.execute("DROP VIEW IF EXISTS organic_keywords")

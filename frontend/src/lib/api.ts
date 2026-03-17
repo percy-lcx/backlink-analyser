@@ -513,6 +513,92 @@ export function autoBlockCriteria(body: AutoBlockCriteriaBody): Promise<AutoBloc
   return post<AutoBlockResult>(`${BASE}/blocklist/auto-block`, body);
 }
 
+/* ---- Keyword comparison ---- */
+
+export interface KeywordProfile {
+  profile_label: string;
+  keyword_count: number;
+  total_traffic: number;
+}
+
+export interface KeywordCompareSummary {
+  profile: string;
+  total_keywords: number;
+  total_traffic: number;
+  avg_position: number;
+  avg_kd: number;
+}
+
+export interface SharedKeyword {
+  keyword: string;
+  country_code: string;
+  volume: number;
+  kd: number;
+  position_a: number;
+  position_b: number;
+  traffic_a: number;
+  traffic_b: number;
+}
+
+export interface KeywordOnly {
+  keyword: string;
+  country_code: string;
+  volume: number;
+  kd: number;
+  position: number;
+  traffic: number;
+}
+
+export interface KeywordCompareResponse {
+  summary_a: KeywordCompareSummary;
+  summary_b: KeywordCompareSummary;
+  shared_keywords: SharedKeyword[];
+  only_a: KeywordOnly[];
+  only_b: KeywordOnly[];
+  intent_distribution_a: Record<string, number>;
+  intent_distribution_b: Record<string, number>;
+  serp_features_a: Record<string, number>;
+  serp_features_b: Record<string, number>;
+}
+
+export interface KeywordCombinedEntry {
+  profile_label: string;
+  total_links: number;
+  ref_domains: number;
+  avg_dr: number;
+  total_keywords: number;
+  total_traffic: number;
+  avg_position: number;
+}
+
+export function fetchKeywordProfiles(): Promise<KeywordProfile[]> {
+  return get<KeywordProfile[]>(`${BASE}/keyword-profiles`);
+}
+
+export function fetchKeywordCompare(
+  profileA: string,
+  profileB: string,
+  pathA?: string,
+  pathB?: string,
+): Promise<KeywordCompareResponse> {
+  return get<KeywordCompareResponse>(`${BASE}/keyword-compare`, {
+    profile_a: profileA,
+    profile_b: profileB,
+    path_a: pathA,
+    path_b: pathB,
+  });
+}
+
+export function fetchKeywordCombined(
+  profileA: string,
+  profileB: string,
+): Promise<KeywordCombinedEntry[]> {
+  return get<KeywordCombinedEntry[]>(`${BASE}/keyword-combined`, {
+    profile_a: profileA,
+    profile_b: profileB,
+  });
+}
+
 /* ---- Session filters ---- */
 
 export function loadSessionFilters(

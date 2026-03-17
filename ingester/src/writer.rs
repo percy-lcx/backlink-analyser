@@ -1,4 +1,4 @@
-use crate::normalize::BacklinkRecord;
+use crate::normalize::{BacklinkRecord, OrganicKeywordRecord};
 use anyhow::Result;
 use polars::prelude::*;
 use std::path::Path;
@@ -146,6 +146,120 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         let new_count = df.height();
         let mut combined = existing_df.vstack(&df)?;
         let key_cols = vec!["referring_url".into(), "target_url".into(), "anchor".into()];
+        combined = combined.unique_stable(Some(&key_cols), UniqueKeepStrategy::Last, None)?;
+        println!("    Merge: {} existing + {} new -> {} after dedup",
+            existing_df.height(), new_count, combined.height());
+        df = combined;
+    }
+
+    // Ensure output directory exists
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let file = std::fs::File::create(output_path)?;
+    ParquetWriter::new(file).finish(&mut df)?;
+
+    Ok(())
+}
+
+pub fn write_keywords_parquet(records: &[OrganicKeywordRecord], output_path: &Path) -> Result<()> {
+    if records.is_empty() {
+        eprintln!("  No keyword records to write for {}", output_path.display());
+        return Ok(());
+    }
+
+    let len = records.len();
+
+    let mut keyword = Vec::with_capacity(len);
+    let mut country_code = Vec::with_capacity(len);
+    let mut location = Vec::with_capacity(len);
+    let mut language = Vec::with_capacity(len);
+    let mut entities = Vec::with_capacity(len);
+    let mut serp_features = Vec::with_capacity(len);
+    let mut volume = Vec::with_capacity(len);
+    let mut kd = Vec::with_capacity(len);
+    let mut cpc = Vec::with_capacity(len);
+    let mut organic_traffic = Vec::with_capacity(len);
+    let mut paid_traffic = Vec::with_capacity(len);
+    let mut current_position = Vec::with_capacity(len);
+    let mut current_url = Vec::with_capacity(len);
+    let mut current_url_domain = Vec::with_capacity(len);
+    let mut current_url_path = Vec::with_capacity(len);
+    let mut current_url_inside = Vec::with_capacity(len);
+    let mut updated = Vec::with_capacity(len);
+    let mut is_navigational = Vec::with_capacity(len);
+    let mut is_informational = Vec::with_capacity(len);
+    let mut is_commercial = Vec::with_capacity(len);
+    let mut is_transactional = Vec::with_capacity(len);
+    let mut is_branded = Vec::with_capacity(len);
+    let mut is_local = Vec::with_capacity(len);
+    let mut source_file = Vec::with_capacity(len);
+    let mut profile_label = Vec::with_capacity(len);
+
+    for r in records {
+        keyword.push(r.keyword.as_str());
+        country_code.push(r.country_code.as_str());
+        location.push(r.location.as_str());
+        language.push(r.language.as_str());
+        entities.push(r.entities.as_str());
+        serp_features.push(r.serp_features.as_str());
+        volume.push(r.volume);
+        kd.push(r.kd);
+        cpc.push(r.cpc);
+        organic_traffic.push(r.organic_traffic);
+        paid_traffic.push(r.paid_traffic);
+        current_position.push(r.current_position);
+        current_url.push(r.current_url.as_str());
+        current_url_domain.push(r.current_url_domain.as_str());
+        current_url_path.push(r.current_url_path.as_str());
+        current_url_inside.push(r.current_url_inside.as_str());
+        updated.push(r.updated.and_utc().timestamp_millis());
+        is_navigational.push(r.is_navigational);
+        is_informational.push(r.is_informational);
+        is_commercial.push(r.is_commercial);
+        is_transactional.push(r.is_transactional);
+        is_branded.push(r.is_branded);
+        is_local.push(r.is_local);
+        source_file.push(r.source_file.as_str());
+        profile_label.push(r.profile_label.as_str());
+    }
+
+    let mut df = DataFrame::new(vec![
+        Column::new("keyword".into(), &keyword),
+        Column::new("country_code".into(), &country_code),
+        Column::new("location".into(), &location),
+        Column::new("language".into(), &language),
+        Column::new("entities".into(), &entities),
+        Column::new("serp_features".into(), &serp_features),
+        Column::new("volume".into(), &volume),
+        Column::new("kd".into(), &kd),
+        Column::new("cpc".into(), &cpc),
+        Column::new("organic_traffic".into(), &organic_traffic),
+        Column::new("paid_traffic".into(), &paid_traffic),
+        Column::new("current_position".into(), &current_position),
+        Column::new("current_url".into(), &current_url),
+        Column::new("current_url_domain".into(), &current_url_domain),
+        Column::new("current_url_path".into(), &current_url_path),
+        Column::new("current_url_inside".into(), &current_url_inside),
+        Series::new("updated".into(), &updated).cast(&DataType::Datetime(TimeUnit::Milliseconds, None)).unwrap().into(),
+        Column::new("is_navigational".into(), &is_navigational),
+        Column::new("is_informational".into(), &is_informational),
+        Column::new("is_commercial".into(), &is_commercial),
+        Column::new("is_transactional".into(), &is_transactional),
+        Column::new("is_branded".into(), &is_branded),
+        Column::new("is_local".into(), &is_local),
+        Column::new("source_file".into(), &source_file),
+        Column::new("profile_label".into(), &profile_label),
+    ])?;
+
+    // Merge with existing parquet if present, dedup on natural key
+    if output_path.exists() {
+        let existing_file = std::fs::File::open(output_path)?;
+        let existing_df = ParquetReader::new(existing_file).finish()?;
+        let new_count = df.height();
+        let mut combined = existing_df.vstack(&df)?;
+        let key_cols = vec!["keyword".into(), "country_code".into(), "current_url".into(), "profile_label".into()];
         combined = combined.unique_stable(Some(&key_cols), UniqueKeepStrategy::Last, None)?;
         println!("    Merge: {} existing + {} new -> {} after dedup",
             existing_df.height(), new_count, combined.height());

@@ -30,6 +30,7 @@ from routes import (
     broken,
     session,
     blocklist,
+    keywords,
 )
 
 
@@ -69,6 +70,7 @@ app.include_router(target_paths.router)
 app.include_router(broken.router)
 app.include_router(session.router)
 app.include_router(blocklist.router)
+app.include_router(keywords.router)
 
 
 class IngestRequest(BaseModel):
