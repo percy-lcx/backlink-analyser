@@ -226,10 +226,10 @@ function DashboardContent() {
         {currentTab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
         {currentTab === "quality" && <QualityTab profile={selected} />}
         <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
-          <CompareTab onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
+          <CompareTab profile={selected} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
         </div>
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
-          <IntersectTab />
+          <IntersectTab profile={selected} />
         </div>
         {currentTab === "broken" && <BrokenLinksTab />}
         {currentTab === "blocklist" && <BlocklistTab />}
