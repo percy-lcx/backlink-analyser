@@ -42,6 +42,7 @@ def compare(
         "links_per_domain",
         "sitewide_ratio",
         "image_link_ratio",
+        "total_page_traffic",
     ]
 
     agg_sql = """
@@ -70,7 +71,8 @@ def compare(
                 ELSE 0 END AS sitewide_ratio,
             CASE WHEN COUNT(*) > 0
                 THEN COUNT(*) FILTER (WHERE link_type = 'image')::FLOAT / COUNT(*)
-                ELSE 0 END AS image_link_ratio
+                ELSE 0 END AS image_link_ratio,
+            SUM(COALESCE(page_traffic, 0)) AS total_page_traffic
         FROM backlinks
     """
 
