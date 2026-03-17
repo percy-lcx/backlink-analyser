@@ -30,10 +30,11 @@ def auto_block_zero_traffic(profile: str = Query(...)):
     conn = get_conn()
     rows = conn.execute(
         """
-        SELECT DISTINCT referring_domain
+        SELECT referring_domain
         FROM backlinks
         WHERE profile_label = $1
-          AND COALESCE(domain_traffic, 0) = 0
+        GROUP BY referring_domain
+        HAVING MAX(COALESCE(domain_traffic, 0)) = 0
         """,
         [profile],
     ).fetchall()
