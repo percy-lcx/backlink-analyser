@@ -15,6 +15,10 @@ struct Cli {
 
     #[arg(long, default_value = "./store/")]
     output: PathBuf,
+
+    /// Specific file(s) to ingest. If omitted, all CSV/TSV files in --source are ingested.
+    #[arg(long, num_args = 1..)]
+    files: Vec<PathBuf>,
 }
 
 fn derive_profile_label(path: &Path) -> String {
@@ -50,7 +54,11 @@ fn main() -> Result<()> {
     println!("  Source: {}", cli.source.display());
     println!("  Output: {}", cli.output.display());
 
-    let files = collect_input_files(&cli.source);
+    let files = if cli.files.is_empty() {
+        collect_input_files(&cli.source)
+    } else {
+        cli.files.clone()
+    };
     if files.is_empty() {
         println!("No CSV/TSV files found in {}", cli.source.display());
         return Ok(());
