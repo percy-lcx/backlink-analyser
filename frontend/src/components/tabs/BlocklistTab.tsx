@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { useBlocklist } from "../BlocklistContext";
+import { useProfile } from "../ProfileContext";
+import { autoBlockZeroTraffic } from "../../lib/api";
 
 export default function BlocklistTab() {
-  const { blocklist, add, addMany, remove, clear } = useBlocklist();
+  const { blocklist, add, addMany, remove, clear, refresh } = useBlocklist();
+  const { selected } = useProfile();
   const [input, setInput] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockMsg, setBlockMsg] = useState<string | null>(null);
 
   const handleAdd = () => {
     const parts = input.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean);
@@ -12,6 +17,21 @@ export default function BlocklistTab() {
     if (parts.length === 1) add(parts[0]);
     else addMany(parts);
     setInput("");
+  };
+
+  const handleAutoBlock = async () => {
+    if (!selected) return;
+    setBlocking(true);
+    setBlockMsg(null);
+    try {
+      const res = await autoBlockZeroTraffic(selected);
+      setBlockMsg(res.added > 0 ? `Added ${res.added} domain${res.added === 1 ? "" : "s"} (${res.total} total)` : "No new zero-traffic domains found");
+      refresh();
+    } catch {
+      setBlockMsg("Failed to fetch zero-traffic domains");
+    } finally {
+      setBlocking(false);
+    }
   };
 
   const sorted = [...blocklist].sort();
@@ -39,6 +59,16 @@ export default function BlocklistTab() {
           >
             Add
           </button>
+        </div>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-200 disabled:opacity-50"
+            onClick={handleAutoBlock}
+            disabled={blocking || !selected}
+          >
+            {blocking ? "Scanning..." : "Block zero-traffic domains"}
+          </button>
+          {blockMsg && <span className="text-xs text-gray-500">{blockMsg}</span>}
         </div>
       </div>
 
