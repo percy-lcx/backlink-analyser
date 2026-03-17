@@ -23,6 +23,8 @@ def cmd_ingest(args):
         sys.exit(1)
 
     cmd = [INGESTER_BIN, "--source", source, "--output", output]
+    if args.files:
+        cmd.extend(["--files"] + args.files)
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=ROOT_DIR)
     sys.exit(result.returncode)
@@ -43,6 +45,7 @@ def main():
     p_ingest = sub.add_parser("ingest", help="Run the Rust ingester")
     p_ingest.add_argument("--source", help=f"Source directory (default: {DATA_DIR})")
     p_ingest.add_argument("--output", help=f"Output directory (default: {STORE_DIR})")
+    p_ingest.add_argument("--files", nargs="+", help="Specific CSV/TSV file(s) to ingest (default: all files in source dir)")
     p_ingest.set_defaults(func=cmd_ingest)
 
     # serve
