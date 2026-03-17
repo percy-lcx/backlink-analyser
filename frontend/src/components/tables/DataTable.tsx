@@ -151,6 +151,19 @@ export default function DataTable<T>({
 
   const currentPage = manualPagination ? (pageIndex ?? 0) : table.getState().pagination.pageIndex;
   const totalPages = manualPagination ? (pageCount ?? 1) : table.getPageCount();
+  const [goToPageValue, setGoToPageValue] = useState("");
+
+  const handleGoToPage = () => {
+    const parsed = parseInt(goToPageValue, 10);
+    if (isNaN(parsed)) return;
+    const clamped = Math.max(1, Math.min(parsed, Math.max(totalPages, 1)));
+    if (manualPagination) {
+      onPageChange?.(clamped - 1);
+    } else {
+      table.setPageIndex(clamped - 1);
+    }
+    setGoToPageValue("");
+  };
   const isResizing = table.getState().columnSizingInfo.isResizingColumn;
 
   const handlePageSizeChange = (newSize: number) => {
@@ -291,6 +304,20 @@ export default function DataTable<T>({
         <div className="flex items-center gap-3">
           <span>
             Page {currentPage + 1} of {Math.max(totalPages, 1)}
+          </span>
+          <span className="flex items-center gap-1">
+            <label htmlFor="go-to-page">Go to page:</label>
+            <input
+              id="go-to-page"
+              type="number"
+              min={1}
+              max={Math.max(totalPages, 1)}
+              value={goToPageValue}
+              onChange={(e) => setGoToPageValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleGoToPage(); }}
+              onBlur={handleGoToPage}
+              className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white w-16"
+            />
           </span>
           <select
             value={effectivePageSize}
