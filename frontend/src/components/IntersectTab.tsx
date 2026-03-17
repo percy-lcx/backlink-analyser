@@ -194,6 +194,20 @@ export default function IntersectTab() {
       size: 120,
     },
     {
+      accessorKey: "target_url",
+      header: "Target",
+      size: 280,
+      cell: ({ getValue }) => {
+        const url = getValue() as string;
+        return (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="text-primary-600 hover:underline truncate block max-w-[260px]"
+            title={url}
+          >{url}</a>
+        );
+      },
+    },
+    {
       accessorKey: "domain_rating",
       header: "DR",
       size: 60,
