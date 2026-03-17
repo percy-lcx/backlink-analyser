@@ -75,8 +75,8 @@ function DashboardContent() {
   // Dynamic browser tab title
   useEffect(() => {
     const tabLabel = tabs.find((t) => t.key === currentTab)?.label ?? "Overview";
-    document.title = `${selected} – ${tabLabel} | Backlink Analyser`;
-  }, [selected, currentTab]);
+    document.title = `${decodedProfile} – ${tabLabel} | Backlink Analyser`;
+  }, [decodedProfile, currentTab]);
 
   const handleIngest = async () => {
     setIngesting(true);
@@ -94,18 +94,18 @@ function DashboardContent() {
 
   const handleDrilldown = (d: LinksDrilldown) => {
     setDrilldown(d);
-    navigate(profilePath(selected, "links"));
+    navigate(profilePath(decodedProfile, "links"));
   };
 
   const handleTabClick = (t: Tab) => {
     if (t === "links") setDrilldown(null);
     if (t === "pages") setPageCategory(null);
-    navigate(profilePath(selected, t));
+    navigate(profilePath(decodedProfile, t));
   };
 
   const handlePageCategory = (category: string) => {
     setPageCategory(category);
-    navigate(profilePath(selected, "pages"));
+    navigate(profilePath(decodedProfile, "pages"));
   };
 
   const handleGapRowClick = (profileLabel: string, referringDomain: string, targetPath?: string) => {
@@ -178,7 +178,7 @@ function DashboardContent() {
             {ingestMsg && <span className="text-xs text-gray-500">{ingestMsg}</span>}
             <select
               className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
-              value={selected}
+              value={decodedProfile}
               onChange={(e) => navigate(profilePath(e.target.value, currentTab))}
             >
               {profiles.map((p) => (
@@ -197,7 +197,7 @@ function DashboardContent() {
           {tabs.map((t) => (
             <Link
               key={t.key}
-              to={profilePath(selected, t.key)}
+              to={profilePath(decodedProfile, t.key)}
               className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                 currentTab === t.key
                   ? "border-primary-500 text-primary-500"
@@ -219,17 +219,17 @@ function DashboardContent() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {currentTab === "overview" && <OverviewTab profile={selected} onTabClick={(t) => handleTabClick(t as Tab)} onDrilldown={handleDrilldown} onPageCategory={handlePageCategory} />}
-        {currentTab === "links" && <LinksTab profile={selected} drilldown={drilldown} />}
-        {currentTab === "domains" && <DomainsTab profile={selected} onDrilldown={handleDrilldown} />}
-        {currentTab === "anchors" && <AnchorsTab profile={selected} onDrilldown={handleDrilldown} />}
-        {currentTab === "pages" && <PagesTab profile={selected} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
-        {currentTab === "quality" && <QualityTab profile={selected} />}
+        {currentTab === "overview" && <OverviewTab profile={decodedProfile} onTabClick={(t) => handleTabClick(t as Tab)} onDrilldown={handleDrilldown} onPageCategory={handlePageCategory} />}
+        {currentTab === "links" && <LinksTab profile={decodedProfile} drilldown={drilldown} />}
+        {currentTab === "domains" && <DomainsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
+        {currentTab === "anchors" && <AnchorsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
+        {currentTab === "pages" && <PagesTab profile={decodedProfile} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
+        {currentTab === "quality" && <QualityTab profile={decodedProfile} />}
         <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
-          <CompareTab profile={selected} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
+          <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
         </div>
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
-          <IntersectTab profile={selected} />
+          <IntersectTab profile={decodedProfile} />
         </div>
         {currentTab === "broken" && <BrokenLinksTab />}
         {currentTab === "blocklist" && <BlocklistTab />}
