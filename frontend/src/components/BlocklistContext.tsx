@@ -6,6 +6,7 @@ interface BlocklistContextValue {
   add: (domain: string) => void;
   addMany: (domains: string[]) => void;
   remove: (domain: string) => void;
+  clear: () => void;
   refresh: () => void;
 }
 
@@ -14,6 +15,7 @@ const BlocklistContext = createContext<BlocklistContextValue>({
   add: () => {},
   addMany: () => {},
   remove: () => {},
+  clear: () => {},
   refresh: () => {},
 });
 
@@ -69,8 +71,12 @@ export function BlocklistProvider({ children }: { children: ReactNode }) {
     });
   }, [persist]);
 
+  const clear = useCallback(() => {
+    persist(new Set());
+  }, [persist]);
+
   return (
-    <BlocklistContext.Provider value={{ blocklist, add, addMany, remove, refresh: load }}>
+    <BlocklistContext.Provider value={{ blocklist, add, addMany, remove, clear, refresh: load }}>
       {children}
     </BlocklistContext.Provider>
   );
