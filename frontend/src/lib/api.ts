@@ -479,8 +479,37 @@ export function saveBlocklist(domains: string[]): Promise<{ status: string }> {
   return post<{ status: string }>(`${BASE}/blocklist`, { domains });
 }
 
-export function autoBlockZeroTraffic(profile: string): Promise<{ added: number; total: number }> {
-  return post<{ added: number; total: number }>(`${BASE}/blocklist/auto-zero-traffic?profile=${encodeURIComponent(profile)}`);
+export interface CriterionRule {
+  field: string;
+  aggregation: string | null;
+  operator: string;
+  value: string;
+}
+
+export interface AutoBlockCriteriaBody {
+  combine: "AND" | "OR";
+  rules: CriterionRule[];
+  preview?: boolean;
+}
+
+export interface AutoBlockResult {
+  added?: number;
+  total?: number;
+  matched: number;
+}
+
+export interface ColumnMetadata {
+  numeric: string[];
+  boolean: string[];
+  string: string[];
+}
+
+export function fetchBlocklistColumns(): Promise<ColumnMetadata> {
+  return get<ColumnMetadata>(`${BASE}/blocklist/columns`);
+}
+
+export function autoBlockCriteria(profile: string, body: AutoBlockCriteriaBody): Promise<AutoBlockResult> {
+  return post<AutoBlockResult>(`${BASE}/blocklist/auto-block?profile=${encodeURIComponent(profile)}`, body);
 }
 
 /* ---- Session filters ---- */
