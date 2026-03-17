@@ -479,6 +479,10 @@ export function saveBlocklist(domains: string[]): Promise<{ status: string }> {
   return post<{ status: string }>(`${BASE}/blocklist`, { domains });
 }
 
+export function autoBlockZeroTraffic(profile: string): Promise<{ added: number; total: number }> {
+  return post<{ added: number; total: number }>(`${BASE}/blocklist/auto-zero-traffic?profile=${encodeURIComponent(profile)}`);
+}
+
 /* ---- Session filters ---- */
 
 export function loadSessionFilters(
