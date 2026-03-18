@@ -28,6 +28,7 @@ from routes import (
     broken,
     session,
     blocklist,
+    anchor_settings,
 )
 
 
@@ -67,6 +68,7 @@ app.include_router(target_paths.router)
 app.include_router(broken.router)
 app.include_router(session.router)
 app.include_router(blocklist.router)
+app.include_router(anchor_settings.router)
 
 
 @app.post("/api/ingest")

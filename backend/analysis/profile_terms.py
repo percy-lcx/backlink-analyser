@@ -5,6 +5,7 @@ import threading
 from typing import Optional
 
 from config import get_config
+import anchor_settings
 
 
 _cache: dict[str, tuple[list[str], list[str]]] = {}
@@ -31,17 +32,27 @@ def resolve_profile_terms(
 
         auto_branded = _auto_detect_branded(profile, conn)
 
-        cfg = get_config()
-        profile_cfg = cfg.get("profiles", {}).get(profile, {})
-        config_branded = [t.lower() for t in profile_cfg.get("branded_terms", [])]
-        config_keywords = [kw.lower() for kw in profile_cfg.get("target_keywords", [])]
+        # Settings file takes precedence over config.yaml
+        settings = anchor_settings.get_profile_settings(profile)
+        config_branded = settings["branded_terms"]
+        config_keywords = settings["target_keywords"]
+
+        # Fall back to config.yaml if settings file has nothing
+        if not config_branded:
+            cfg = get_config()
+            profile_cfg = cfg.get("profiles", {}).get(profile, {})
+            config_branded = [t.lower() for t in profile_cfg.get("branded_terms", [])]
+        if not config_keywords:
+            cfg = get_config()
+            profile_cfg = cfg.get("profiles", {}).get(profile, {})
+            config_keywords = [kw.lower() for kw in profile_cfg.get("target_keywords", [])]
 
         # Fallback to global config when no profile-specific config exists
         if not config_branded and not auto_branded:
-            global_cfg = cfg.get("anchor_categories", {})
+            global_cfg = get_config().get("anchor_categories", {})
             config_branded = [t.lower() for t in global_cfg.get("branded_terms", [])]
         if not config_keywords:
-            global_cfg = cfg.get("anchor_categories", {})
+            global_cfg = get_config().get("anchor_categories", {})
             config_keywords = [kw.lower() for kw in global_cfg.get("target_keywords", [])]
 
         branded = _merge_unique(auto_branded, config_branded)
@@ -58,6 +69,11 @@ def invalidate_cache(profile: Optional[str] = None) -> None:
             _cache.pop(profile, None)
         else:
             _cache.clear()
+
+
+def get_auto_branded_terms(profile: str, conn) -> list[str]:
+    """Public wrapper for auto-detecting branded terms from target_domain."""
+    return _auto_detect_branded(profile, conn)
 
 
 def _auto_detect_branded(profile: str, conn) -> list[str]:
