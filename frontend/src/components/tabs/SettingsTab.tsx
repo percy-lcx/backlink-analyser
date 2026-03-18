@@ -9,6 +9,37 @@ import BlocklistTab from "./BlocklistTab";
 
 const PAGE_SIZE = 25;
 
+function SettingsSection({ title, description, defaultOpen = true, children }: {
+  title: string;
+  description: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-8">
+      <button
+        className="w-full flex items-center justify-between mb-4 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div>
+          <h2 className="text-base font-semibold text-gray-800">{title}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  );
+}
+
 interface TermListProps {
   title: string;
   description: string;
@@ -262,58 +293,61 @@ export default function SettingsTab() {
 
   return (
     <div>
-      {/* Branded terms — single panel with profile dropdown */}
-      {activeBrandedProfile && (
+      <SettingsSection title="Anchor Text Matching" description="Configure how anchor text is categorised across your profiles.">
+        {/* Branded terms — single panel with profile dropdown */}
+        {activeBrandedProfile && (
+          <TermList
+            key={activeBrandedProfile}
+            title="Branded Terms"
+            description="Anchors containing these terms are categorized as branded. Auto-detected terms from the target domain are always included."
+            terms={profileSettings[activeBrandedProfile].branded_terms}
+            onAdd={(term) => addBranded(activeBrandedProfile, term)}
+            onRemove={(term) => removeBranded(activeBrandedProfile, term)}
+            placeholder="e.g. my brand, mybrand..."
+            autoTerms={profileSettings[activeBrandedProfile].auto_branded_terms}
+            onAutoRemove={(term) => excludeAutoTerm(activeBrandedProfile, term)}
+            profileSelector={
+              profileLabels.length > 1 ? (
+                <select
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  value={activeBrandedProfile}
+                  onChange={(e) => setSelectedBrandedProfile(e.target.value)}
+                >
+                  {profileLabels.map((label) => (
+                    <option key={label} value={label}>{label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-sm font-medium text-gray-600">{activeBrandedProfile}</span>
+              )
+            }
+          />
+        )}
+
+        {/* Global target keywords */}
         <TermList
-          key={activeBrandedProfile}
-          title="Branded Terms"
-          description="Anchors containing these terms are categorized as branded. Auto-detected terms from the target domain are always included."
-          terms={profileSettings[activeBrandedProfile].branded_terms}
-          onAdd={(term) => addBranded(activeBrandedProfile, term)}
-          onRemove={(term) => removeBranded(activeBrandedProfile, term)}
-          placeholder="e.g. my brand, mybrand..."
-          autoTerms={profileSettings[activeBrandedProfile].auto_branded_terms}
-          onAutoRemove={(term) => excludeAutoTerm(activeBrandedProfile, term)}
-          profileSelector={
-            profileLabels.length > 1 ? (
-              <select
-                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                value={activeBrandedProfile}
-                onChange={(e) => setSelectedBrandedProfile(e.target.value)}
-              >
-                {profileLabels.map((label) => (
-                  <option key={label} value={label}>{label}</option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-sm font-medium text-gray-600">{activeBrandedProfile}</span>
-            )
-          }
+          title="Target Keywords"
+          description="Anchors matching these keywords are categorized as exact match or partial match. Applies to all profiles."
+          terms={targetKeywords}
+          onAdd={addKeyword}
+          onRemove={removeKeyword}
+          placeholder="e.g. forex trading, demo account..."
         />
-      )}
 
-      {/* Global target keywords */}
-      <TermList
-        title="Target Keywords"
-        description="Anchors matching these keywords are categorized as exact match or partial match. Applies to all profiles."
-        terms={targetKeywords}
-        onAdd={addKeyword}
-        onRemove={removeKeyword}
-        placeholder="e.g. forex trading, demo account..."
-      />
+        {/* Global generic anchors */}
+        <TermList
+          title="Generic Anchors"
+          description="Anchors containing these terms are categorized as generic. Applies to all profiles."
+          terms={genericAnchors}
+          onAdd={addGeneric}
+          onRemove={removeGeneric}
+          placeholder="e.g. click here, read more..."
+        />
+      </SettingsSection>
 
-      {/* Global generic anchors */}
-      <TermList
-        title="Generic Anchors"
-        description="Anchors containing these terms are categorized as generic. Applies to all profiles."
-        terms={genericAnchors}
-        onAdd={addGeneric}
-        onRemove={removeGeneric}
-        placeholder="e.g. click here, read more..."
-      />
-
-      {/* Domain Blocklist */}
-      <BlocklistTab />
+      <SettingsSection title="Domain Blocking" description="Manage domains to flag across all tables.">
+        <BlocklistTab />
+      </SettingsSection>
     </div>
   );
 }
