@@ -35,6 +35,9 @@ def resolve_profile_terms(
         # Settings file takes precedence over config.yaml
         settings = anchor_settings.get_profile_settings(profile)
         config_branded = settings["branded_terms"]
+        excluded_auto = set(settings.get("excluded_auto_terms", []))
+        if excluded_auto:
+            auto_branded = [t for t in auto_branded if t not in excluded_auto]
 
         # Target keywords are now global
         gs = anchor_settings.get_global_settings()

@@ -61,15 +61,20 @@ def get_profile_settings(profile: str) -> dict:
     profile_data = data.get(profile, {})
     return {
         "branded_terms": profile_data.get("branded_terms", []),
+        "excluded_auto_terms": profile_data.get("excluded_auto_terms", []),
     }
 
 
 def set_profile_settings(
-    profile: str, branded_terms: list[str]
+    profile: str,
+    branded_terms: list[str],
+    excluded_auto_terms: list[str] | None = None,
 ) -> None:
     data = _read()
     existing = data.get(profile, {})
     existing["branded_terms"] = _clean_list(branded_terms)
+    if excluded_auto_terms is not None:
+        existing["excluded_auto_terms"] = _clean_list(excluded_auto_terms)
     # Remove legacy target_keywords from profile level
     existing.pop("target_keywords", None)
     data[profile] = existing

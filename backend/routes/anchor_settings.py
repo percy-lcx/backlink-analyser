@@ -13,6 +13,7 @@ router = APIRouter()
 
 class ProfileSettingsBody(BaseModel):
     branded_terms: list[str]
+    excluded_auto_terms: list[str] = []
 
 
 class GlobalSettingsBody(BaseModel):
@@ -57,6 +58,7 @@ def read_settings(profile: str = Query(...)):
         "target_keywords": gs["target_keywords"],
         "generic_anchors": gs["generic_anchors"],
         "auto_branded_terms": auto,
+        "excluded_auto_terms": ps.get("excluded_auto_terms", []),
     }
 
 
@@ -90,6 +92,7 @@ def read_all_settings():
         profiles[p] = {
             "branded_terms": ps["branded_terms"],
             "auto_branded_terms": auto,
+            "excluded_auto_terms": ps.get("excluded_auto_terms", []),
         }
 
     gs = anchor_settings.get_global_settings()
@@ -116,7 +119,7 @@ def read_all_settings():
 @router.post("/api/anchor-settings/profile")
 def write_profile_settings(body: ProfileSettingsBody, profile: str = Query(...)):
     """Save branded terms for a profile."""
-    anchor_settings.set_profile_settings(profile, body.branded_terms)
+    anchor_settings.set_profile_settings(profile, body.branded_terms, body.excluded_auto_terms)
     invalidate_cache(profile)
     return {"status": "ok"}
 
