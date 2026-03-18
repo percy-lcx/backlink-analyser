@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   fetchAnchors,
   type AnchorRecord,
+  type CategorySummary,
   type MatchMode,
   type LinksDrilldown,
 } from "../../lib/api";
@@ -12,7 +13,12 @@ import ExportButton from "../tables/ExportButton";
 import FilterInput from "../FilterInput";
 import LoadingSpinner from "../LoadingSpinner";
 import EmptyState from "../EmptyState";
+import SummaryCard from "../SummaryCard";
+import AlertCard from "../AlertCard";
+import AnchorCategoryDonut from "../charts/AnchorCategoryDonut";
+import TopAnchorsChart from "../charts/TopAnchorsChart";
 import { FilterPanel, RangeFilter, SelectFilter } from "../filters";
+import { METRICS } from "../../lib/metrics";
 
 interface AnchorsTabProps {
   profile: string;
@@ -21,6 +27,7 @@ interface AnchorsTabProps {
 
 export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
   const [anchors, setAnchors] = useState<AnchorRecord[]>([]);
+  const [categories, setCategories] = useState<Record<string, CategorySummary>>({});
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [searchFilter, setSearchFilter] = useState<string | null>(null);
@@ -71,11 +78,13 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
     if (countMax) params.count_max = parseInt(countMax);
     fetchAnchors(profile, params)
       .then((data) => {
-        const items = Array.isArray(data) ? data : (data as { items: AnchorRecord[] }).items ?? [];
+        const items = Array.isArray(data) ? data : data.items ?? [];
+        const cats = Array.isArray(data) ? {} : data.categories ?? {};
         const total = items.reduce((s, a) => s + a.count, 0);
         setAnchors(items.map((a) => ({ ...a, pct: total > 0 ? (a.count / total) * 100 : 0 })));
+        setCategories(cats);
       })
-      .catch(() => setAnchors([]))
+      .catch(() => { setAnchors([]); setCategories({}); })
       .finally(() => setLoading(false));
   }, [profile, searchFilter, searchMode, searchExclude, categoryFilter, countMin, countMax, sessionLoaded, saveSession]);
 
@@ -83,7 +92,19 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
     onDrilldown({ anchor: row.anchor });
   };
 
+  const handleBarClick = (anchor: string) => {
+    onDrilldown({ anchor });
+  };
+
+  const totalLinks = anchors.reduce((s, a) => s + a.count, 0);
+  const uniqueAnchors = anchors.length;
+  const diversityRatio = totalLinks > 0 ? ((uniqueAnchors / totalLinks) * 100).toFixed(1) + "%" : "—";
+  const exactMatchPct = categories["exact_match"]
+    ? categories["exact_match"].percentage
+    : 0;
+
   const activeCount = [searchFilter, categoryFilter, countMin, countMax].filter(Boolean).length;
+  const hasCategories = Object.keys(categories).length > 0;
 
   return (
     <div>
@@ -124,9 +145,40 @@ export default function AnchorsTab({ profile, onDrilldown }: AnchorsTabProps) {
       ) : anchors.length === 0 ? (
         <EmptyState title="No anchor text data found" description="Try adjusting your filters." />
       ) : (
-        <div className="bg-white rounded-lg shadow p-5">
-          <DataTable data={anchors} columns={anchorColumns} onRowClick={handleRowClick} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3><p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks with that anchor text.</p></div>} toolbar={<ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />} />
-        </div>
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <SummaryCard label="Unique Anchors" value={uniqueAnchors.toLocaleString()} tooltip={METRICS.unique_anchors.short} />
+            <SummaryCard label="Total Links" value={totalLinks.toLocaleString()} tooltip={METRICS.count.short} />
+            <SummaryCard label="Diversity Ratio" value={diversityRatio} tooltip={METRICS.anchor_diversity_ratio.short} />
+          </div>
+
+          {/* Alert for exact match over-optimization */}
+          {exactMatchPct > 40 && (
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              <AlertCard
+                label="Exact Match Warning"
+                value={`${exactMatchPct.toFixed(1)}%`}
+                subtitle="Exact match anchors exceed 40% — may trigger algorithmic penalties"
+                status="danger"
+                tooltip="A natural anchor profile typically has less than 40% exact match anchors. Over-optimization can lead to search engine penalties."
+              />
+            </div>
+          )}
+
+          {/* Charts */}
+          {hasCategories && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <AnchorCategoryDonut categories={categories} />
+              <TopAnchorsChart data={anchors} onBarClick={handleBarClick} />
+            </div>
+          )}
+
+          {/* Data table */}
+          <div className="bg-white rounded-lg shadow p-5">
+            <DataTable data={anchors} columns={anchorColumns} onRowClick={handleRowClick} statusText={<div><h3 className="text-sm font-semibold text-gray-700">Anchor Text Distribution</h3><p className="text-xs text-gray-400 mt-1">Click any row to see all backlinks with that anchor text.</p></div>} toolbar={<ExportButton data={anchors as unknown as Record<string, unknown>[]} filename="anchors.csv" />} />
+          </div>
+        </>
       )}
     </div>
   );
