@@ -28,6 +28,8 @@ def read_settings(profile: str = Query(...)):
     ps = anchor_settings.get_profile_settings(profile)
     gs = anchor_settings.get_global_settings()
     auto = get_auto_branded_terms(profile, conn)
+    excluded_set = set(ps.get("excluded_auto_terms", []))
+    auto = [t for t in auto if t not in excluded_set]
 
     # Fall back to config.yaml profile section if settings file has no data yet
     if not ps["branded_terms"]:
@@ -73,6 +75,8 @@ def read_all_settings():
     for p in profiles_list:
         ps = anchor_settings.get_profile_settings(p)
         auto = get_auto_branded_terms(p, conn)
+        excluded_set = set(ps.get("excluded_auto_terms", []))
+        auto = [t for t in auto if t not in excluded_set]
 
         # Fall back to config.yaml profile section
         if not ps["branded_terms"]:
