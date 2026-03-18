@@ -17,15 +17,15 @@ type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | 
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
-  { key: "links", label: "Links" },
-  { key: "domains", label: "Domains" },
-  { key: "anchors", label: "Anchors" },
-  { key: "pages", label: "Pages" },
-  { key: "compare", label: "Compare" },
   { key: "intersect", label: "Intersect" },
+  { key: "compare", label: "Compare" },
+  { key: "links", label: "Drilldown" },
+  { key: "domains", label: "Domains" },
+  { key: "pages", label: "Pages" },
+  { key: "anchors", label: "Anchors" },
   { key: "broken", label: "Broken Links" },
   { key: "settings", label: "Settings" },
-  { key: "terminology", label: "Terminology" },
+  { key: "terminology", label: "Glossary" },
 ];
 
 const VALID_TABS = new Set<string>(tabs.map((t) => t.key));
