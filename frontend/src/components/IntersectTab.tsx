@@ -600,54 +600,65 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
           </div>
 
           {/* Gap Domain Breakdown */}
-          {expandedDomain && (
-            <div ref={breakdownRef} className="bg-white rounded-lg shadow p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    Pages from{" "}
-                    <span className="text-primary-600">{expandedDomain}</span>
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Individual referring pages linking to competitors but not to{" "}
-                    <strong>{profile}</strong>
-                  </p>
+          <div ref={breakdownRef} className="bg-white rounded-lg shadow p-5">
+            {expandedDomain ? (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      Pages from{" "}
+                      <span className="text-primary-600">{expandedDomain}</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Individual referring pages linking to competitors but not to{" "}
+                      <strong>{profile}</strong>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="text-xs text-primary-500 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50"
+                      onClick={() => gapTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    >
+                      Back to Gap Domains
+                    </button>
+                    <button
+                      className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
+                      onClick={() => {
+                        setExpandedDomain(null);
+                        setBreakdownData([]);
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="text-xs text-primary-500 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50"
-                    onClick={() => gapTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  >
-                    Back to Gap Domains
-                  </button>
-                  <button
-                    className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
-                    onClick={() => {
-                      setExpandedDomain(null);
-                      setBreakdownData([]);
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-              {breakdownLoading ? (
-                <p className="text-sm text-gray-500 py-4">Loading breakdown...</p>
-              ) : (
-                <DataTable
-                  data={breakdownData}
-                  columns={breakdownColumns}
-                  pageSize={25}
-                  toolbar={
-                    <ExportButton
-                      data={breakdownData as unknown as Record<string, unknown>[]}
-                      filename={`gap-breakdown-${expandedDomain}.csv`}
-                    />
-                  }
-                />
-              )}
-            </div>
-          )}
+                {breakdownLoading ? (
+                  <p className="text-sm text-gray-500 py-4">Loading breakdown...</p>
+                ) : (
+                  <DataTable
+                    data={breakdownData}
+                    columns={breakdownColumns}
+                    pageSize={25}
+                    toolbar={
+                      <ExportButton
+                        data={breakdownData as unknown as Record<string, unknown>[]}
+                        filename={`gap-breakdown-${expandedDomain}.csv`}
+                      />
+                    }
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                  Pages from domain
+                </h3>
+                <p className="text-sm text-gray-400 py-6 text-center">
+                  Select a domain row above to see its referring pages.
+                </p>
+              </>
+            )}
+          </div>
         </>
       )}
 
