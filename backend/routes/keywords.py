@@ -218,7 +218,7 @@ def keyword_combined(
             profile_label,
             COUNT(*) AS total_links,
             COUNT(DISTINCT referring_domain) AS ref_domains,
-            AVG(domain_rating) AS avg_dr
+            ROUND(AVG(domain_rating), 1) AS avg_dr
         FROM backlinks
         WHERE profile_label IN ($1, $2)
         GROUP BY profile_label

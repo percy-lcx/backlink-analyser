@@ -50,8 +50,8 @@ def compare(
             profile_label,
             COUNT(*) AS total_links,
             COUNT(DISTINCT referring_domain) AS referring_domains,
-            AVG(domain_rating) AS avg_dr,
-            PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY domain_rating) AS median_dr,
+            ROUND(AVG(domain_rating), 1) AS avg_dr,
+            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY domain_rating), 1) AS median_dr,
             CASE WHEN COUNT(*) > 0
                 THEN COUNT(*) FILTER (
                     WHERE COALESCE(is_nofollow, false) = false

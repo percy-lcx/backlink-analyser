@@ -14,7 +14,7 @@ def list_profiles():
             profile_label,
             COUNT(*) AS total_links,
             COUNT(DISTINCT referring_domain) AS unique_referring_domains,
-            AVG(domain_rating) AS avg_dr
+            ROUND(AVG(domain_rating), 1) AS avg_dr
         FROM backlinks
         GROUP BY profile_label
         ORDER BY profile_label
@@ -43,8 +43,8 @@ def overview(profile: str = Query(...)):
             COUNT(*) FILTER (WHERE is_sponsored = true) AS sponsored_count,
             COUNT(*) FILTER (WHERE link_type = 'image') AS image_link_count,
             COUNT(*) FILTER (WHERE link_type != 'image' OR link_type IS NULL) AS text_link_count,
-            AVG(domain_rating) AS avg_dr,
-            PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY domain_rating) AS median_dr,
+            ROUND(AVG(domain_rating), 1) AS avg_dr,
+            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY domain_rating), 1) AS median_dr,
             CASE WHEN COUNT(*) > 0
                 THEN COUNT(*) FILTER (WHERE is_spam = true)::FLOAT / COUNT(*)
                 ELSE 0 END AS spam_ratio,

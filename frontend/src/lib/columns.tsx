@@ -26,8 +26,17 @@ export const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
   },
   { accessorKey: "anchor", header: "Anchor", size: 400, meta: { tooltip: METRICS.anchor.short } },
   { accessorKey: "target_path", header: "Target", size: 400, meta: { tooltip: METRICS.target.short } },
-  { accessorKey: "domain_rating", header: "DR", meta: { tooltip: METRICS.dr.short } },
-  { accessorKey: "url_rating", header: "UR" },
+  {
+    accessorKey: "domain_rating",
+    header: "DR",
+    meta: { tooltip: METRICS.dr.short },
+    cell: ({ getValue }) => { const v = getValue() as number; return v != null ? Math.round(v) : "—"; },
+  },
+  {
+    accessorKey: "url_rating",
+    header: "UR",
+    cell: ({ getValue }) => { const v = getValue() as number; return v != null ? Math.round(v) : "—"; },
+  },
   { accessorKey: "page_traffic", header: "Page Traffic", meta: { tooltip: METRICS.page_traffic.short } },
   { accessorKey: "domain_traffic", header: "Domain Traffic", meta: { tooltip: METRICS.domain_traffic.short } },
   { accessorKey: "link_type", header: "Type", meta: { tooltip: METRICS.link_type.short } },
@@ -66,7 +75,12 @@ export const linkColumns: ColumnDef<LinkRecord, unknown>[] = [
 export const domainColumns: ColumnDef<ReferringDomain, unknown>[] = [
   { accessorKey: "referring_domain", header: "Domain", size: 400, meta: { tooltip: METRICS.domain.short } },
   { accessorKey: "link_count", header: "Links", meta: { tooltip: METRICS.links.short } },
-  { accessorKey: "max_dr", header: "DR", meta: { tooltip: METRICS.dr.short } },
+  {
+    accessorKey: "max_dr",
+    header: "DR",
+    meta: { tooltip: METRICS.dr.short },
+    cell: ({ getValue }) => { const v = getValue() as number; return v != null ? Math.round(v) : "—"; },
+  },
   { accessorKey: "total_traffic", header: "Traffic", meta: { tooltip: METRICS.traffic.short } },
   {
     accessorKey: "is_sitewide",

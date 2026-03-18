@@ -48,7 +48,7 @@ def sitewide(
             ds.is_sitewide,
             COUNT(*) AS link_count,
             COUNT(DISTINCT b.referring_domain) AS unique_domains,
-            AVG(b.domain_rating) AS avg_dr
+            ROUND(AVG(b.domain_rating), 1) AS avg_dr
         FROM backlinks b
         JOIN domain_sitewide ds ON b.referring_domain = ds.referring_domain
         WHERE b.profile_label = $1
