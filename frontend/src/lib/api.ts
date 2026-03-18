@@ -613,27 +613,42 @@ export interface AnchorSettings {
   auto_branded_terms: string[];
 }
 
+export interface ProfileBrandedSettings {
+  branded_terms: string[];
+  auto_branded_terms: string[];
+}
+
+export interface AllAnchorSettings {
+  profiles: Record<string, ProfileBrandedSettings>;
+  target_keywords: string[];
+  generic_anchors: string[];
+}
+
 export function fetchAnchorSettings(profile: string): Promise<AnchorSettings> {
   return get<AnchorSettings>(`${BASE}/anchor-settings`, { profile });
+}
+
+export function fetchAllAnchorSettings(): Promise<AllAnchorSettings> {
+  return get<AllAnchorSettings>(`${BASE}/anchor-settings/all`);
 }
 
 export function saveProfileAnchorSettings(
   profile: string,
   branded_terms: string[],
-  target_keywords: string[],
 ): Promise<{ status: string }> {
   return post<{ status: string }>(
     `${BASE}/anchor-settings/profile?profile=${encodeURIComponent(profile)}`,
-    { branded_terms, target_keywords },
+    { branded_terms },
   );
 }
 
 export function saveGlobalAnchorSettings(
   generic_anchors: string[],
+  target_keywords: string[],
 ): Promise<{ status: string }> {
   return post<{ status: string }>(
     `${BASE}/anchor-settings/global`,
-    { generic_anchors },
+    { generic_anchors, target_keywords },
   );
 }
 

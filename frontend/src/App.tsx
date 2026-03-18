@@ -234,7 +234,7 @@ function DashboardContent() {
         </div>
         {currentTab === "broken" && <BrokenLinksTab />}
         {currentTab === "blocklist" && <BlocklistTab />}
-        {currentTab === "settings" && <SettingsTab profile={decodedProfile} />}
+        {currentTab === "settings" && <SettingsTab />}
         {currentTab === "terminology" && <TerminologyTab />}
       </main>
     </div>
