@@ -3,19 +3,6 @@ import re
 from typing import Optional
 from config import get_config
 
-GENERIC_ANCHORS = {
-    "click here",
-    "read more",
-    "visit",
-    "website",
-    "overview",
-    "learn more",
-    "here",
-    "this",
-    "link",
-    "source",
-}
-
 _URL_PATTERN = re.compile(
     r"^(https?://)?(www\.)?[\w\-]+\.[\w\-]+(\.[\w\-]+)*(\/\S*)?$", re.IGNORECASE
 )
@@ -23,15 +10,17 @@ _URL_PATTERN = re.compile(
 # Pre-lowercased config terms, lazily initialised once.
 _lowered_branded: list[str] | None = None
 _lowered_keywords: list[str] | None = None
+_lowered_generic: list[str] | None = None
 
 
-def _get_lowered_terms() -> tuple[list[str], list[str]]:
-    global _lowered_branded, _lowered_keywords
+def _get_lowered_terms() -> tuple[list[str], list[str], list[str]]:
+    global _lowered_branded, _lowered_keywords, _lowered_generic
     if _lowered_branded is None:
         cfg = get_config().get("anchor_categories", {})
         _lowered_branded = [t.lower() for t in cfg.get("branded_terms", [])]
         _lowered_keywords = [kw.lower() for kw in cfg.get("target_keywords", [])]
-    return _lowered_branded, _lowered_keywords  # type: ignore[return-value]
+        _lowered_generic = [g.lower() for g in cfg.get("generic_anchors", [])]
+    return _lowered_branded, _lowered_keywords, _lowered_generic  # type: ignore[return-value]
 
 
 def categorise_anchor(
@@ -39,38 +28,46 @@ def categorise_anchor(
     link_type: Optional[str],
 ) -> str:
     """Return the category string for a single anchor text."""
-    branded_terms, target_keywords = _get_lowered_terms()
+    branded_terms, target_keywords, generic_anchors = _get_lowered_terms()
 
-    if not anchor:
-        anchor = ""
+    # empty / no text
+    if not anchor or not anchor.strip():
+        return "empty"
+
     anchor_lower = anchor.strip().lower()
 
     # image links
     if link_type and link_type.lower() == "image":
         return "image"
 
-    # naked URL
-    if anchor_lower and _URL_PATTERN.match(anchor_lower):
-        return "naked_url"
+    # pre-compute brand and keyword presence (reused below)
+    has_brand = any(term in anchor_lower for term in branded_terms)
+    has_keyword = any(kw in anchor_lower for kw in target_keywords)
+
+    # brand + keyword combo (most specific — check before individual)
+    if has_brand and has_keyword:
+        return "brand_keyword"
 
     # branded
-    for term in branded_terms:
-        if term in anchor_lower:
-            return "branded"
+    if has_brand:
+        return "branded"
 
-    # generic
-    if anchor_lower in GENERIC_ANCHORS:
-        return "generic"
-
-    # Single pass: check both exact and partial match in one loop — O(K)
-    found_partial = False
+    # exact keyword match
     for kw in target_keywords:
         if anchor_lower == kw:
             return "exact_match"
-        if not found_partial and kw in anchor_lower:
-            found_partial = True
-    if found_partial:
+
+    # partial keyword match
+    if has_keyword:
         return "partial_match"
+
+    # naked URL (after branded/keyword checks so branded URLs stay branded)
+    if _URL_PATTERN.match(anchor_lower):
+        return "naked_url"
+
+    # generic — substring match (not exact-only)
+    if any(term in anchor_lower for term in generic_anchors):
+        return "generic"
 
     return "other"
 
