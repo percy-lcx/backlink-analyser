@@ -63,6 +63,7 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
+  const [domainInput, setDomainInput] = useState("");
   const breakdownRef = useRef<HTMLDivElement>(null);
   const gapTableRef = useRef<HTMLDivElement>(null);
 
@@ -148,15 +149,18 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
   useEffect(() => {
     setExpandedDomain(null);
     setBreakdownData([]);
+    setDomainInput("");
   }, [filterCount]);
 
   const handleGapRowClick = useCallback((row: IntersectDomain) => {
     if (expandedDomain === row.referring_domain) {
       setExpandedDomain(null);
       setBreakdownData([]);
+      setDomainInput("");
       return;
     }
     setExpandedDomain(row.referring_domain);
+    setDomainInput(row.referring_domain);
     setBreakdownLoading(true);
     fetchGapDomainBreakdown(row.referring_domain, profile, selectedCompetitors)
       .then((res) => {
@@ -166,6 +170,21 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
       .catch(() => setBreakdownData([]))
       .finally(() => setBreakdownLoading(false));
   }, [expandedDomain, profile, selectedCompetitors]);
+
+  const handleManualLookup = useCallback(() => {
+    const normalized = domainInput.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    if (!normalized) return;
+    setDomainInput(normalized);
+    setExpandedDomain(normalized);
+    setBreakdownLoading(true);
+    fetchGapDomainBreakdown(normalized, profile, selectedCompetitors)
+      .then((res) => {
+        setBreakdownData(res.rows);
+        setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      })
+      .catch(() => setBreakdownData([]))
+      .finally(() => setBreakdownLoading(false));
+  }, [domainInput, profile, selectedCompetitors]);
 
   const breakdownColumns = useMemo((): ColumnDef<GapDomainBreakdownRow, unknown>[] => [
     {
@@ -605,10 +624,25 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-1">
                       Pages from{" "}
                       <span className="text-primary-600">{expandedDomain}</span>
                     </h3>
+                    <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); handleManualLookup(); }}>
+                      <input
+                        type="text"
+                        value={domainInput}
+                        onChange={(e) => setDomainInput(e.target.value)}
+                        placeholder="e.g. example.com"
+                        className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                      />
+                      <button
+                        type="submit"
+                        className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
+                      >
+                        Look up
+                      </button>
+                    </form>
                     <p className="text-xs text-gray-400 mt-1">
                       Individual referring pages linking to competitors but not to{" "}
                       <strong>{profile}</strong>
@@ -626,6 +660,7 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                       onClick={() => {
                         setExpandedDomain(null);
                         setBreakdownData([]);
+                        setDomainInput("");
                       }}
                     >
                       Close
@@ -653,8 +688,23 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
                   Pages from domain
                 </h3>
-                <p className="text-sm text-gray-400 py-6 text-center">
-                  Select a domain row above to see its referring pages.
+                <form className="flex items-center gap-2 justify-center py-4" onSubmit={(e) => { e.preventDefault(); handleManualLookup(); }}>
+                  <input
+                    type="text"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    placeholder="e.g. example.com"
+                    className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                  />
+                  <button
+                    type="submit"
+                    className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
+                  >
+                    Look up
+                  </button>
+                </form>
+                <p className="text-xs text-gray-400 text-center">
+                  or select a domain row above
                 </p>
               </>
             )}
