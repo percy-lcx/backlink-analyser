@@ -35,17 +35,16 @@ def resolve_profile_terms(
         # Settings file takes precedence over config.yaml
         settings = anchor_settings.get_profile_settings(profile)
         config_branded = settings["branded_terms"]
-        config_keywords = settings["target_keywords"]
+
+        # Target keywords are now global
+        gs = anchor_settings.get_global_settings()
+        config_keywords = gs["target_keywords"]
 
         # Fall back to config.yaml if settings file has nothing
         if not config_branded:
             cfg = get_config()
             profile_cfg = cfg.get("profiles", {}).get(profile, {})
             config_branded = [t.lower() for t in profile_cfg.get("branded_terms", [])]
-        if not config_keywords:
-            cfg = get_config()
-            profile_cfg = cfg.get("profiles", {}).get(profile, {})
-            config_keywords = [kw.lower() for kw in profile_cfg.get("target_keywords", [])]
 
         # Fallback to global config when no profile-specific config exists
         if not config_branded and not auto_branded:
