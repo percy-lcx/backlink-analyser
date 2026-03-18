@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query
 from typing import Optional
 from db import get_conn
 from analysis.anchors import categorise_anchor, summarise_categories_weighted
+from analysis.profile_terms import resolve_profile_terms
 from routes._filters import apply_text_filter
 
 router = APIRouter()
@@ -44,6 +45,7 @@ def anchors(
 ):
     """Group by anchor, count, and categorise."""
     conn = get_conn()
+    branded_terms, target_keywords = resolve_profile_terms(profile, conn)
 
     conditions = ["profile_label = $1"]
     params: list = [profile]
@@ -94,7 +96,7 @@ def anchors(
     items = []
     for row in rows:
         anchor_text, link_type_val, count = row
-        cat = categorise_anchor(anchor_text, link_type_val)
+        cat = categorise_anchor(anchor_text, link_type_val, branded_terms, target_keywords)
         items.append({
             "anchor": anchor_text,
             "link_type": link_type_val,

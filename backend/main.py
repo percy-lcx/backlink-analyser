@@ -13,6 +13,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db, refresh_views
+from analysis.profile_terms import invalidate_cache as invalidate_profile_cache
 from routes import (
     overview,
     links,
@@ -110,6 +111,7 @@ async def ingest(request: IngestRequest = IngestRequest()):
 
         # Recreate the DuckDB view to pick up new parquet files
         refresh_views()
+        invalidate_profile_cache()
 
         return {
             "status": "ok",
