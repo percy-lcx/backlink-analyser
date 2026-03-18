@@ -29,7 +29,7 @@ def read_settings(profile: str = Query(...)):
     gs = anchor_settings.get_global_settings()
     auto = get_auto_branded_terms(profile, conn)
 
-    # Fall back to config.yaml if settings file has no data yet
+    # Fall back to config.yaml profile section if settings file has no data yet
     if not ps["branded_terms"]:
         from config import get_config
 
@@ -37,9 +37,6 @@ def read_settings(profile: str = Query(...)):
         profile_cfg = cfg.get("profiles", {}).get(profile, {})
         if profile_cfg:
             ps["branded_terms"] = [t.lower() for t in profile_cfg.get("branded_terms", [])]
-        else:
-            global_cfg = cfg.get("anchor_categories", {})
-            ps["branded_terms"] = [t.lower() for t in global_cfg.get("branded_terms", [])]
 
     if not gs["target_keywords"]:
         from config import get_config
@@ -77,7 +74,7 @@ def read_all_settings():
         ps = anchor_settings.get_profile_settings(p)
         auto = get_auto_branded_terms(p, conn)
 
-        # Fall back to config.yaml
+        # Fall back to config.yaml profile section
         if not ps["branded_terms"]:
             from config import get_config
 
@@ -85,9 +82,6 @@ def read_all_settings():
             profile_cfg = cfg.get("profiles", {}).get(p, {})
             if profile_cfg:
                 ps["branded_terms"] = [t.lower() for t in profile_cfg.get("branded_terms", [])]
-            else:
-                global_cfg = cfg.get("anchor_categories", {})
-                ps["branded_terms"] = [t.lower() for t in global_cfg.get("branded_terms", [])]
 
         profiles[p] = {
             "branded_terms": ps["branded_terms"],

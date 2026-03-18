@@ -49,10 +49,6 @@ def resolve_profile_terms(
             profile_cfg = cfg.get("profiles", {}).get(profile, {})
             config_branded = [t.lower() for t in profile_cfg.get("branded_terms", [])]
 
-        # Fallback to global config when no profile-specific config exists
-        if not config_branded and not auto_branded:
-            global_cfg = get_config().get("anchor_categories", {})
-            config_branded = [t.lower() for t in global_cfg.get("branded_terms", [])]
         if not config_keywords:
             global_cfg = get_config().get("anchor_categories", {})
             config_keywords = [kw.lower() for kw in global_cfg.get("target_keywords", [])]
