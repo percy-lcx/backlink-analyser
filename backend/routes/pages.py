@@ -144,7 +144,7 @@ def page_breakdown(
         categories[cat] = {
             "link_count": total_links,
             "unique_referring_domains": cd["unique_referring_domains"],
-            "avg_dr": round(avg_dr_val, 2),
+            "avg_dr": round(avg_dr_val, 1),
             "dofollow_ratio": round(df_ratio_val, 4),
         }
 

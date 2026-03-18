@@ -35,7 +35,7 @@ export default function TopDomainsTable({ domains, onViewAll }: Props) {
                 {d.referring_domain}
               </td>
               <td className="py-2 text-right text-gray-600">{d.link_count.toLocaleString()}</td>
-              <td className="py-2 text-right font-medium text-gray-800">{d.max_dr}</td>
+              <td className="py-2 text-right font-medium text-gray-800">{Math.round(d.max_dr)}</td>
               <td className="py-2 text-right text-gray-600">{d.total_traffic.toLocaleString()}</td>
             </tr>
           ))}

@@ -60,8 +60,8 @@ pub fn write_parquet(records: &[BacklinkRecord], output_path: &Path) -> Result<(
         language.push(r.language.as_str());
         platform.push(r.platform.as_str());
         http_code.push(r.http_code as u32);
-        domain_rating.push(r.domain_rating);
-        url_rating.push(r.url_rating);
+        domain_rating.push(r.domain_rating.round());
+        url_rating.push(r.url_rating.round());
         domain_traffic.push(r.domain_traffic);
         referring_domains.push(r.referring_domains);
         linked_domains.push(r.linked_domains);
