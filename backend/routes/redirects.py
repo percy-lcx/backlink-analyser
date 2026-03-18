@@ -7,12 +7,21 @@ router = APIRouter()
 
 
 @router.get("/api/redirects")
-def redirects(profile: str = Query(...)):
+def redirects(
+    profile: str = Query(...),
+    target_path: Optional[str] = Query(None),
+):
     """Find links with redirect chains, parse them, and return analysis."""
     conn = get_conn()
 
+    where = "profile_label = $1 AND redirect_chain_urls IS NOT NULL AND redirect_chain_urls != ''"
+    params: list[str] = [profile]
+    if target_path:
+        where += " AND target_path = $2"
+        params.append(target_path)
+
     rows = conn.execute(
-        """
+        f"""
         SELECT
             referring_url,
             referring_domain,
@@ -23,12 +32,10 @@ def redirects(profile: str = Query(...)):
             redirect_chain_codes,
             anchor
         FROM backlinks
-        WHERE profile_label = $1
-          AND redirect_chain_urls IS NOT NULL
-          AND redirect_chain_urls != ''
+        WHERE {where}
         ORDER BY domain_rating DESC NULLS LAST
         """,
-        [profile],
+        params,
     ).fetchall()
 
     cols = [

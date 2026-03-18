@@ -28,6 +28,7 @@ def referring_domains(
     links_min: Optional[int] = Query(None),
     links_max: Optional[int] = Query(None),
     is_sitewide: Optional[bool] = Query(None),
+    target_path: Optional[str] = Query(None),
 ):
     """Group by referring domain with aggregated metrics."""
     conn = get_conn()
@@ -40,6 +41,11 @@ def referring_domains(
     conditions = ["profile_label = $1"]
     params: list = [profile]
     idx = 2
+
+    if target_path:
+        conditions.append(f"target_path = ${idx}")
+        params.append(target_path)
+        idx += 1
 
     if domain_search:
         idx = apply_text_filter(
