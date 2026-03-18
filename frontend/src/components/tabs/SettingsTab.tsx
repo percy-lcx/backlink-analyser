@@ -15,7 +15,7 @@ import BlocklistTab from "./BlocklistTab";
 
 const PAGE_SIZE = 25;
 
-function SettingsSection({ title, description, defaultOpen = true, children }: {
+function SettingsSection({ title, description, defaultOpen = false, children }: {
   title: string;
   description: string;
   defaultOpen?: boolean;
