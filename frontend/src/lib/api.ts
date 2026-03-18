@@ -604,6 +604,39 @@ export function fetchKeywordCombined(
   });
 }
 
+/* ---- Anchor Settings ---- */
+
+export interface AnchorSettings {
+  branded_terms: string[];
+  target_keywords: string[];
+  generic_anchors: string[];
+  auto_branded_terms: string[];
+}
+
+export function fetchAnchorSettings(profile: string): Promise<AnchorSettings> {
+  return get<AnchorSettings>(`${BASE}/anchor-settings`, { profile });
+}
+
+export function saveProfileAnchorSettings(
+  profile: string,
+  branded_terms: string[],
+  target_keywords: string[],
+): Promise<{ status: string }> {
+  return post<{ status: string }>(
+    `${BASE}/anchor-settings/profile?profile=${encodeURIComponent(profile)}`,
+    { branded_terms, target_keywords },
+  );
+}
+
+export function saveGlobalAnchorSettings(
+  generic_anchors: string[],
+): Promise<{ status: string }> {
+  return post<{ status: string }>(
+    `${BASE}/anchor-settings/global`,
+    { generic_anchors },
+  );
+}
+
 /* ---- Session filters ---- */
 
 export function loadSessionFilters(

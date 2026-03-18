@@ -12,9 +12,10 @@ import IntersectTab from "./components/IntersectTab";
 import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
 import BlocklistTab from "./components/tabs/BlocklistTab";
+import SettingsTab from "./components/tabs/SettingsTab";
 import { triggerIngest, type LinksDrilldown } from "./lib/api";
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "blocklist" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "blocklist" | "settings" | "terminology";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -161,6 +162,21 @@ function DashboardContent() {
     );
   }
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "links", label: "Links" },
+    { key: "domains", label: "Domains" },
+    { key: "anchors", label: "Anchors" },
+    { key: "pages", label: "Pages" },
+    { key: "quality", label: "Quality" },
+    { key: "compare", label: "Compare" },
+    { key: "intersect", label: "Intersect" },
+    { key: "broken", label: "Broken Links" },
+    { key: "blocklist", label: "Blocklist" },
+    { key: "settings", label: "Settings" },
+    { key: "terminology", label: "Terminology" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -231,6 +247,10 @@ function DashboardContent() {
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
           <IntersectTab profile={decodedProfile} />
         </div>
+        {tab === "broken" && <BrokenLinksTab />}
+        {tab === "blocklist" && <BlocklistTab />}
+        {tab === "settings" && <SettingsTab profile={selected} />}
+        {tab === "terminology" && <TerminologyTab />}
         {currentTab === "broken" && <BrokenLinksTab />}
         {currentTab === "blocklist" && <BlocklistTab />}
         {currentTab === "terminology" && <TerminologyTab />}

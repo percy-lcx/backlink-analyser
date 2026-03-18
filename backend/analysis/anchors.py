@@ -2,6 +2,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 from config import get_config
+import anchor_settings
 
 _URL_PATTERN = re.compile(
     r"^(https?://)?(www\.)?[\w\-]+\.[\w\-]+(\.[\w\-]+)*(\/\S*)?$", re.IGNORECASE
@@ -14,9 +15,20 @@ _lowered_generic: list[str] | None = None
 def _get_generic_anchors() -> list[str]:
     global _lowered_generic
     if _lowered_generic is None:
-        cfg = get_config().get("anchor_categories", {})
-        _lowered_generic = [g.lower() for g in cfg.get("generic_anchors", [])]
+        # Settings file takes precedence over config.yaml
+        settings = anchor_settings.get_global_settings()
+        terms = settings.get("generic_anchors", [])
+        if not terms:
+            cfg = get_config().get("anchor_categories", {})
+            terms = [g.lower() for g in cfg.get("generic_anchors", [])]
+        _lowered_generic = terms
     return _lowered_generic
+
+
+def invalidate_generic_cache() -> None:
+    """Reset generic anchors cache. Call after saving global settings."""
+    global _lowered_generic
+    _lowered_generic = None
 
 
 def categorise_anchor(

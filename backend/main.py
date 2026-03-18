@@ -2,6 +2,7 @@ import asyncio
 import os
 import subprocess
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from typing import Optional
 
@@ -31,6 +32,7 @@ from routes import (
     broken,
     session,
     blocklist,
+    anchor_settings,
     keywords,
 )
 
@@ -71,6 +73,7 @@ app.include_router(target_paths.router)
 app.include_router(broken.router)
 app.include_router(session.router)
 app.include_router(blocklist.router)
+app.include_router(anchor_settings.router)
 app.include_router(keywords.router)
 
 
@@ -85,11 +88,13 @@ async def ingest(request: IngestRequest = IngestRequest()):
     data_dir = os.path.join(_PROJECT_ROOT, "data")
     store_dir = os.path.join(_PROJECT_ROOT, "store")
     cmd = [binary, "--source", data_dir, "--output", store_dir]
+
     if request.files:
         for f in request.files:
             if os.path.isabs(f) or ".." in f:
                 raise HTTPException(status_code=400, detail=f"Invalid file path: {f}")
         cmd.extend(["--files"] + request.files)
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
