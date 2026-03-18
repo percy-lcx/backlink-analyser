@@ -196,6 +196,25 @@ export const METRICS: Record<string, MetricDef> = {
     category: "Anchors",
   },
 
+  unique_anchors: {
+    label: "Unique Anchors",
+    short: "Number of distinct anchor texts across all backlinks.",
+    full: "The count of unique anchor text strings found across all backlinks. Higher diversity indicates a more natural link profile. Low diversity (many links with the same anchor) may signal manipulative link building.",
+    category: "Anchors",
+  },
+  anchor_diversity_ratio: {
+    label: "Diversity Ratio",
+    short: "Ratio of unique anchors to total links — higher means more diverse.",
+    full: "The ratio of distinct anchor text strings to total backlinks, expressed as a percentage. A higher ratio indicates more diverse, natural-looking anchor text usage. A very low ratio suggests many links share the same anchor text, which may appear manipulative to search engines.",
+    category: "Anchors",
+  },
+  top_anchors_chart: {
+    label: "Top Anchors",
+    short: "Most frequently used anchor texts across all backlinks.",
+    full: "Horizontal bar chart showing the top 15 anchor texts ranked by link count. Bars are colored by category (branded, exact match, generic, etc.). Click a bar to drill down to the Links tab filtered by that anchor text.",
+    category: "Anchors",
+  },
+
   // ── Pages ─────────────────────────────────────────────────
   target_url: {
     label: "Target URL",

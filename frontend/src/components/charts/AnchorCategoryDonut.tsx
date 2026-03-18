@@ -1,5 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
+import type { CategorySummary } from "../../lib/api";
 import Tooltip from "../Tooltip";
+import { METRICS } from "../../lib/metrics";
 
 const CATEGORY_COLORS: Record<string, string> = {
   branded: "#001489",
@@ -26,23 +28,23 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 interface Props {
-  categories: Record<string, number>;
+  categories: Record<string, CategorySummary>;
 }
 
 export default function AnchorCategoryDonut({ categories }: Props) {
   const data = Object.entries(categories)
-    .filter(([, v]) => v > 0)
-    .map(([key, value]) => ({ name: CATEGORY_LABELS[key] ?? key, value, key }))
+    .filter(([, v]) => v.count > 0)
+    .map(([key, value]) => ({ name: CATEGORY_LABELS[key] ?? key, value: value.count, key }))
     .sort((a, b) => b.value - a.value);
 
   const total = data.reduce((s, d) => s + d.value, 0);
-  const exactPct = total > 0 ? ((categories["exact_match"] ?? 0) / total) * 100 : 0;
+  const exactPct = total > 0 ? ((categories["exact_match"]?.count ?? 0) / total) * 100 : 0;
 
   return (
     <div className="bg-white rounded-lg shadow p-5">
       <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-semibold text-gray-700">
-          <Tooltip text="Distribution of anchor text types across all backlinks.">Anchor Categories</Tooltip>
+          <Tooltip text={METRICS.anchor_categories.short}>Anchor Categories</Tooltip>
         </h3>
         {exactPct > 40 && (
           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
