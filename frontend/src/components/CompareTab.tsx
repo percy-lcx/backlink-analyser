@@ -261,9 +261,11 @@ interface CompareTabProps {
   profile: string;
   onDrBarClick?: (profileLabel: string, drMin: number, drMax: number, targetPath?: string) => void;
   onGapRowClick?: (profileLabel: string, referringDomain: string, targetPath?: string) => void;
+  onTabClick?: (tab: "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | "intersect" | "broken" | "settings" | "terminology") => void;
+  onPageCategory?: (category: string) => void;
 }
 
-export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: CompareTabProps) {
+export default function CompareTab({ profile, onDrBarClick, onGapRowClick, onTabClick, onPageCategory }: CompareTabProps) {
   const { profiles } = useProfile();
   const { blocklist } = useBlocklist();
   const [profileB, setProfileB] = useState("");
@@ -728,12 +730,16 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: Com
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
                   <PageCategoryChart
                     data={Object.entries(pageCatsA).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                    onBarClick={onPageCategory}
+                    onViewAll={onTabClick ? () => onTabClick("pages") : undefined}
                   />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
                   <PageCategoryChart
                     data={Object.entries(pageCatsB).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                    onBarClick={onPageCategory}
+                    onViewAll={onTabClick ? () => onTabClick("pages") : undefined}
                   />
                 </div>
               </div>
@@ -754,22 +760,22 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: Com
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
-                  <TopDomainsTable domains={topDomainsA} />
+                  <TopDomainsTable domains={topDomainsA} onViewAll={onTabClick ? () => onTabClick("domains") : undefined} />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
-                  <TopDomainsTable domains={topDomainsB} />
+                  <TopDomainsTable domains={topDomainsB} onViewAll={onTabClick ? () => onTabClick("domains") : undefined} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
-                  <TopPagesTable pages={topPagesA} />
+                  <TopPagesTable pages={topPagesA} onViewAll={onTabClick ? () => onTabClick("pages") : undefined} />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
-                  <TopPagesTable pages={topPagesB} />
+                  <TopPagesTable pages={topPagesB} onViewAll={onTabClick ? () => onTabClick("pages") : undefined} />
                 </div>
               </div>
             </>

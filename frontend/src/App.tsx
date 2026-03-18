@@ -222,7 +222,7 @@ function DashboardContent() {
         {currentTab === "anchors" && <AnchorsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
         {currentTab === "pages" && <PagesTab profile={decodedProfile} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
         <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
-          <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
+          <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} onTabClick={handleTabClick} onPageCategory={handlePageCategory} />
         </div>
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
           <IntersectTab profile={decodedProfile} />
