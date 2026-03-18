@@ -31,6 +31,15 @@ def invalidate_generic_cache() -> None:
     _lowered_generic = None
 
 
+def _has_branded_match(anchor_lower: str, branded_terms: list[str]) -> bool:
+    """Check if any branded term matches in the anchor as a word, not inside a URL/domain."""
+    for term in branded_terms:
+        pattern = r"\b" + re.escape(term) + r"\b(?!\.)"
+        if re.search(pattern, anchor_lower):
+            return True
+    return False
+
+
 def categorise_anchor(
     anchor: Optional[str],
     link_type: Optional[str],
@@ -51,7 +60,7 @@ def categorise_anchor(
         return "image"
 
     # pre-compute brand and keyword presence (reused below)
-    has_brand = any(term in anchor_lower for term in branded_terms)
+    has_brand = _has_branded_match(anchor_lower, branded_terms)
     has_keyword = any(kw in anchor_lower for kw in target_keywords)
 
     # brand + keyword combo (most specific — check before individual)

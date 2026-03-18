@@ -91,14 +91,13 @@ def _auto_detect_branded(profile: str, conn) -> list[str]:
 def _domain_to_brand_terms(domain: str) -> list[str]:
     """Derive branded term variants from a domain.
 
-    "avatrade.com" → ["avatrade", "avatrade.com", "www.avatrade.com"]
+    "avatrade.com" → ["avatrade"]
+    "site123.com"  → ["site123", "site 123"]
     """
     bare = domain.removeprefix("www.")
     name = bare.split(".")[0]
 
-    terms = [name, bare]
-    if not domain.startswith("www."):
-        terms.append(f"www.{bare}")
+    terms = [name]
 
     # Insert spaces before digit boundaries (e.g. "site123" → "site 123")
     spaced = re.sub(r"(\d+)", r" \1", name).strip()
