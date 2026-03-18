@@ -4,7 +4,14 @@ use std::path::Path;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SourceFormat {
     Ahrefs,
+    AhrefsKeywords,
     // Semrush, // stub for future
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DataType {
+    Backlinks,
+    OrganicKeywords,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -16,6 +23,7 @@ pub enum Delimiter {
 pub struct DetectedFormat {
     pub source: SourceFormat,
     pub delimiter: Delimiter,
+    pub data_type: DataType,
 }
 
 /// Read the raw bytes of a file and decode to UTF-8, handling non-UTF-8 encodings automatically.
@@ -73,6 +81,13 @@ pub fn detect_format(path: &Path) -> Result<DetectedFormat> {
         Ok(DetectedFormat {
             source: SourceFormat::Ahrefs,
             delimiter,
+            data_type: DataType::Backlinks,
+        })
+    } else if lower.starts_with("keyword") || lower.starts_with("\"keyword") {
+        Ok(DetectedFormat {
+            source: SourceFormat::AhrefsKeywords,
+            delimiter,
+            data_type: DataType::OrganicKeywords,
         })
     } else {
         bail!(
