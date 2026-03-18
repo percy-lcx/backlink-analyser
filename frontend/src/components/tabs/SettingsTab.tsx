@@ -143,6 +143,7 @@ export default function SettingsTab() {
   const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
   const [genericAnchors, setGenericAnchors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBrandedProfile, setSelectedBrandedProfile] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -224,7 +225,6 @@ export default function SettingsTab() {
   }
 
   const profileLabels = Object.keys(profileSettings).sort();
-  const [selectedBrandedProfile, setSelectedBrandedProfile] = useState(profileLabels[0] ?? "");
 
   // Keep selection valid if profiles change
   const activeBrandedProfile = profileLabels.includes(selectedBrandedProfile)
