@@ -106,6 +106,23 @@ function DashboardContent() {
     navigate(profilePath(profileLabel, "links"));
   };
 
+  const handlePageCategoryFromCompare = (profileLabel: string, category: string) => {
+    setSelected(profileLabel);
+    setPageCategory(category);
+    navigate(profilePath(profileLabel, "pages"));
+  };
+
+  const handleViewAllPages = (profileLabel: string) => {
+    setSelected(profileLabel);
+    setPageCategory(null);
+    navigate(profilePath(profileLabel, "pages"));
+  };
+
+  const handleViewAllDomains = (profileLabel: string) => {
+    setSelected(profileLabel);
+    navigate(profilePath(profileLabel, "domains"));
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
   }
@@ -188,7 +205,7 @@ function DashboardContent() {
         {currentTab === "anchors" && <AnchorsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
         {currentTab === "pages" && <PagesTab profile={decodedProfile} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
         <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
-          <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
+          <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} onPageCategoryClick={handlePageCategoryFromCompare} onViewAllPages={handleViewAllPages} onViewAllDomains={handleViewAllDomains} />
         </div>
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
           <IntersectTab profile={decodedProfile} />

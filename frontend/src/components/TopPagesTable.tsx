@@ -12,7 +12,7 @@ export default function TopPagesTable({ pages, onViewAll }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700">Top Pages</h3>
         {onViewAll && (
-          <button onClick={onViewAll} className="text-xs text-primary-500 hover:text-primary-700 font-medium">
+          <button onClick={onViewAll} className="text-xs text-primary-500 hover:text-primary-700 font-medium cursor-pointer">
             View all &rarr;
           </button>
         )}
