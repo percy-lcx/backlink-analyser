@@ -4,6 +4,11 @@ import { useBlocklist } from "./BlocklistContext";
 import { useSessionFilters } from "../lib/useSessionFilters";
 import RadarCompare from "./charts/RadarCompare";
 import DrDistribution from "./charts/DrDistribution";
+import VelocityChart from "./charts/VelocityChart";
+import PageCategoryChart from "./charts/PageCategoryChart";
+import TopDomainsTable from "./TopDomainsTable";
+import TopPagesTable from "./TopPagesTable";
+import AlertCard from "./AlertCard";
 import DataTable from "./tables/DataTable";
 import ExportButton from "./tables/ExportButton";
 import {
@@ -14,6 +19,13 @@ import {
   fetchKeywordProfiles,
   fetchKeywordCompare,
   fetchKeywordCombined,
+  fetchOverview,
+  fetchVelocity,
+  fetchPageBreakdown,
+  fetchBrokenLinks,
+  fetchSitewide,
+  fetchRedirects,
+  fetchReferringDomains,
   type CompareProfile,
   type LinkGapDomain,
   type DrBucket,
@@ -22,6 +34,13 @@ import {
   type KeywordCombinedEntry,
   type SharedKeyword,
   type KeywordOnly,
+  type OverviewData,
+  type VelocityPoint,
+  type PageBreakdownResponse,
+  type PageRow,
+  type BrokenLinksSummary,
+  type RedirectSummary,
+  type ReferringDomain,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import Tooltip from "./Tooltip";
@@ -263,6 +282,26 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: Com
   const [drDistA, setDrDistA] = useState<DrBucket[]>([]);
   const [drDistB, setDrDistB] = useState<DrBucket[]>([]);
 
+  // Overview visualizations state
+  const [overviewA, setOverviewA] = useState<OverviewData | null>(null);
+  const [overviewB, setOverviewB] = useState<OverviewData | null>(null);
+  const [velocityA, setVelocityA] = useState<VelocityPoint[]>([]);
+  const [velocityB, setVelocityB] = useState<VelocityPoint[]>([]);
+  const [pageCatsA, setPageCatsA] = useState<PageBreakdownResponse["categories"]>({});
+  const [pageCatsB, setPageCatsB] = useState<PageBreakdownResponse["categories"]>({});
+  const [topPagesA, setTopPagesA] = useState<PageRow[]>([]);
+  const [topPagesB, setTopPagesB] = useState<PageRow[]>([]);
+  const [topDomainsA, setTopDomainsA] = useState<ReferringDomain[]>([]);
+  const [topDomainsB, setTopDomainsB] = useState<ReferringDomain[]>([]);
+  const [brokenA, setBrokenA] = useState<BrokenLinksSummary | null>(null);
+  const [brokenB, setBrokenB] = useState<BrokenLinksSummary | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [sitewideA, setSitewideA] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [sitewideB, setSitewideB] = useState<any>(null);
+  const [redirectsA, setRedirectsA] = useState<RedirectSummary | null>(null);
+  const [redirectsB, setRedirectsB] = useState<RedirectSummary | null>(null);
+
   // Keywords state
   const [hasKeywords, setHasKeywords] = useState(false);
   const [kwLoading, setKwLoading] = useState(false);
@@ -337,13 +376,45 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: Com
       fetchLinkGap(profileB, [profile], tpB, tpA),
       fetchDrDistribution(profile, tpA).then((d) => d.dr ?? []),
       fetchDrDistribution(profileB, tpB).then((d) => d.dr ?? []),
+      fetchOverview(profile).catch(() => null),
+      fetchOverview(profileB).catch(() => null),
+      fetchVelocity(profile).catch(() => []),
+      fetchVelocity(profileB).catch(() => []),
+      fetchPageBreakdown(profile).catch(() => ({ pages: [], categories: {} } as PageBreakdownResponse)),
+      fetchPageBreakdown(profileB).catch(() => ({ pages: [], categories: {} } as PageBreakdownResponse)),
+      fetchReferringDomains(profile, { sort: "max_dr:desc" }).catch(() => []),
+      fetchReferringDomains(profileB, { sort: "max_dr:desc" }).catch(() => []),
+      fetchBrokenLinks(profile, { per_page: 1 }).then((r) => r.summary).catch(() => null),
+      fetchBrokenLinks(profileB, { per_page: 1 }).then((r) => r.summary).catch(() => null),
+      fetchSitewide(profile).catch(() => null),
+      fetchSitewide(profileB).catch(() => null),
+      fetchRedirects(profile).catch(() => null),
+      fetchRedirects(profileB).catch(() => null),
     ])
-      .then(([compare, gapA, gapB, drA, drB]) => {
+      .then(([compare, gapA, gapB, drA, drB, ovA, ovB, velA, velB, pgA, pgB, domsA, domsB, brkA, brkB, swA, swB, redirA, redirB]) => {
         setCompareData(compare);
         setGapAtoB(gapA);
         setGapBtoA(gapB);
         setDrDistA(drA);
         setDrDistB(drB);
+        setOverviewA(ovA as OverviewData | null);
+        setOverviewB(ovB as OverviewData | null);
+        setVelocityA(velA as VelocityPoint[]);
+        setVelocityB(velB as VelocityPoint[]);
+        const pdA = pgA as PageBreakdownResponse;
+        const pdB = pgB as PageBreakdownResponse;
+        setPageCatsA(pdA.categories ?? {});
+        setPageCatsB(pdB.categories ?? {});
+        setTopPagesA(pdA.pages ?? []);
+        setTopPagesB(pdB.pages ?? []);
+        setTopDomainsA(domsA as ReferringDomain[]);
+        setTopDomainsB(domsB as ReferringDomain[]);
+        setBrokenA(brkA as BrokenLinksSummary | null);
+        setBrokenB(brkB as BrokenLinksSummary | null);
+        setSitewideA(swA);
+        setSitewideB(swB);
+        setRedirectsA(redirA as RedirectSummary | null);
+        setRedirectsB(redirB as RedirectSummary | null);
       })
       .catch(() => {
         setCompareData([]);
@@ -585,6 +656,120 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick }: Com
                     const [min, max] = bucket.split("-").map(Number);
                     onDrBarClick(profileB, min, max, mode === "url" ? pathB : undefined);
                   } : undefined} />
+                </div>
+              </div>
+
+              {/* Link Health Alerts */}
+              {(overviewA || overviewB) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Link Health</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {[
+                      { label: labelA, overview: overviewA, broken: brokenA, sitewide: sitewideA, redirects: redirectsA },
+                      { label: labelB, overview: overviewB, broken: brokenB, sitewide: sitewideB, redirects: redirectsB },
+                    ].map(({ label, overview, broken, sitewide: sw, redirects: redir }) => (
+                      <div key={label}>
+                        <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <AlertCard
+                            label="Broken Links"
+                            value={broken ? broken.total_broken.toLocaleString() : "—"}
+                            subtitle={broken ? `4xx: ${broken.count_4xx} / 5xx: ${broken.count_5xx}` : undefined}
+                            status={!broken || broken.total_broken === 0 ? "ok" : broken.total_broken <= 10 ? "warning" : "danger"}
+                            tooltip={METRICS.broken_links_alert.short}
+                          />
+                          <AlertCard
+                            label="Sitewide Links"
+                            value={(() => {
+                              const s = sw?.aggregate?.sitewide ?? sw?.with_sitewide;
+                              return s ? (s.link_count ?? s.total_links ?? 0).toLocaleString() : "0";
+                            })()}
+                            subtitle={(() => {
+                              const s = sw?.aggregate?.sitewide ?? sw?.with_sitewide;
+                              return s ? `${s.unique_domains ?? 0} domains` : undefined;
+                            })()}
+                            status={(() => {
+                              const s = sw?.aggregate?.sitewide ?? sw?.with_sitewide;
+                              if (!s || !overview?.total_backlinks) return "ok";
+                              const links = s.link_count ?? s.total_links ?? 0;
+                              const ratio = links / overview.total_backlinks;
+                              return ratio > 0.5 ? "danger" : ratio > 0.3 ? "warning" : "ok";
+                            })()}
+                            tooltip={METRICS.sitewide_alert.short}
+                          />
+                          <AlertCard
+                            label="Redirect Issues"
+                            value={redir ? redir.total_with_redirects.toLocaleString() : "—"}
+                            subtitle={redir && overview?.total_backlinks ? `${((redir.total_with_redirects / overview.total_backlinks) * 100).toFixed(1)}% of links` : undefined}
+                            status={(() => {
+                              if (!redir || redir.total_with_redirects === 0) return "ok";
+                              const p = overview?.total_backlinks ? (redir.total_with_redirects / overview.total_backlinks) * 100 : 0;
+                              return p > 10 ? "danger" : "warning";
+                            })()}
+                            tooltip={METRICS.redirect_alert.short}
+                          />
+                          <AlertCard
+                            label="Spam Count"
+                            value={Math.round((overview?.spam_ratio ?? 0) * (overview?.total_backlinks ?? 0)).toLocaleString()}
+                            subtitle={`${((overview?.spam_ratio ?? 0) * 100).toFixed(1)}% of total`}
+                            status={(overview?.spam_ratio ?? 0) > 0.1 ? "danger" : (overview?.spam_ratio ?? 0) > 0.05 ? "warning" : "ok"}
+                            tooltip={METRICS.spam_ratio.short}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Page Category Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                  <PageCategoryChart
+                    data={Object.entries(pageCatsA).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                  <PageCategoryChart
+                    data={Object.entries(pageCatsB).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                  />
+                </div>
+              </div>
+
+              {/* Velocity Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                  <VelocityChart data={velocityA} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                  <VelocityChart data={velocityB} />
+                </div>
+              </div>
+
+              {/* Top Domains & Top Pages */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                  <TopDomainsTable domains={topDomainsA} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                  <TopDomainsTable domains={topDomainsB} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                  <TopPagesTable pages={topPagesA} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                  <TopPagesTable pages={topPagesB} />
                 </div>
               </div>
             </>
