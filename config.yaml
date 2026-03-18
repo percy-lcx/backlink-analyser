@@ -112,6 +112,15 @@ anchor_categories:
     - "details"
     - "info"
 
+profiles:
+  avatrade:
+    branded_terms:
+      - "ava trade"
+    target_keywords:
+      - "cfd trading"
+      - "forex broker"
+      - "demo account"
+
 thresholds:
   exact_match_warning: 0.40
   sitewide_min_links: 10

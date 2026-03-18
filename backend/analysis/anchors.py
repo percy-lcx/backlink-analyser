@@ -7,28 +7,26 @@ _URL_PATTERN = re.compile(
     r"^(https?://)?(www\.)?[\w\-]+\.[\w\-]+(\.[\w\-]+)*(\/\S*)?$", re.IGNORECASE
 )
 
-# Pre-lowercased config terms, lazily initialised once.
-_lowered_branded: list[str] | None = None
-_lowered_keywords: list[str] | None = None
+# Global generic anchors, lazily initialised once (not per-profile).
 _lowered_generic: list[str] | None = None
 
 
-def _get_lowered_terms() -> tuple[list[str], list[str], list[str]]:
-    global _lowered_branded, _lowered_keywords, _lowered_generic
-    if _lowered_branded is None:
+def _get_generic_anchors() -> list[str]:
+    global _lowered_generic
+    if _lowered_generic is None:
         cfg = get_config().get("anchor_categories", {})
-        _lowered_branded = [t.lower() for t in cfg.get("branded_terms", [])]
-        _lowered_keywords = [kw.lower() for kw in cfg.get("target_keywords", [])]
         _lowered_generic = [g.lower() for g in cfg.get("generic_anchors", [])]
-    return _lowered_branded, _lowered_keywords, _lowered_generic  # type: ignore[return-value]
+    return _lowered_generic
 
 
 def categorise_anchor(
     anchor: Optional[str],
     link_type: Optional[str],
+    branded_terms: list[str],
+    target_keywords: list[str],
 ) -> str:
     """Return the category string for a single anchor text."""
-    branded_terms, target_keywords, generic_anchors = _get_lowered_terms()
+    generic_anchors = _get_generic_anchors()
 
     # empty / no text
     if not anchor or not anchor.strip():
@@ -72,11 +70,16 @@ def categorise_anchor(
     return "other"
 
 
-def categorise_anchors(rows: list[dict]) -> list[dict]:
+def categorise_anchors(
+    rows: list[dict],
+    branded_terms: list[str],
+    target_keywords: list[str],
+) -> list[dict]:
     """Add a 'category' key to each row dict based on anchor + link_type."""
     for row in rows:
         row["category"] = categorise_anchor(
-            row.get("anchor"), row.get("link_type")
+            row.get("anchor"), row.get("link_type"),
+            branded_terms, target_keywords,
         )
     return rows
 
