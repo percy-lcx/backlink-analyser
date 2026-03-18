@@ -34,6 +34,7 @@ from routes import (
     blocklist,
     anchor_settings,
     keywords,
+    files,
 )
 
 
@@ -75,6 +76,7 @@ app.include_router(session.router)
 app.include_router(blocklist.router)
 app.include_router(anchor_settings.router)
 app.include_router(keywords.router)
+app.include_router(files.router)
 
 
 class IngestRequest(BaseModel):
