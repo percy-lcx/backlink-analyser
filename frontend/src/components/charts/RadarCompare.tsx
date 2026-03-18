@@ -24,6 +24,7 @@ const RADAR_METRICS: { key: keyof CompareProfile; label: string }[] = [
   { key: "dofollow_ratio", label: "Dofollow %" },
   { key: "avg_dr", label: "Avg DR" },
   { key: "anchor_diversity", label: "Anchor Diversity" },
+  { key: "total_page_traffic", label: "Page Traffic" },
 ];
 
 function normalize(values: number[]): number[] {
