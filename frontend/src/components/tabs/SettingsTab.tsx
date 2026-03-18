@@ -5,6 +5,7 @@ import {
   saveGlobalAnchorSettings,
   type ProfileBrandedSettings,
 } from "../../lib/api";
+import BlocklistTab from "./BlocklistTab";
 
 const PAGE_SIZE = 25;
 
@@ -310,6 +311,9 @@ export default function SettingsTab() {
         onRemove={removeGeneric}
         placeholder="e.g. click here, read more..."
       />
+
+      {/* Domain Blocklist */}
+      <BlocklistTab />
     </div>
   );
 }
