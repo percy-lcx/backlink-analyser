@@ -1,10 +1,16 @@
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import {
   fetchAllAnchorSettings,
   saveProfileAnchorSettings,
   saveGlobalAnchorSettings,
+  triggerIngest,
+  fetchFiles,
+  uploadFiles,
+  deleteFile,
   type ProfileBrandedSettings,
+  type FileEntry,
 } from "../../lib/api";
+import { useProfile } from "../ProfileContext";
 import BlocklistTab from "./BlocklistTab";
 
 const PAGE_SIZE = 25;
@@ -180,6 +186,152 @@ function TermList({ title, description, terms, onAdd, onRemove, placeholder, aut
   );
 }
 
+const DIR_CONFIG: { key: string; label: string; description: string; accept: string }[] = [
+  { key: "data/backlinks", label: "Source: Backlinks", description: "CSV/TSV backlink exports", accept: ".csv,.tsv" },
+  { key: "data/keywords", label: "Source: Keywords", description: "CSV/TSV keyword exports", accept: ".csv,.tsv" },
+  { key: "store", label: "Store: Backlinks", description: "Parquet backlink files", accept: ".parquet" },
+  { key: "store/keywords", label: "Store: Keywords", description: "Parquet keyword files", accept: ".parquet" },
+];
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FilePanel({ dirKey, label, description, accept }: { dirKey: string; label: string; description: string; accept: string }) {
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchFiles(dirKey).then((r) => setFiles(r.files)).catch(() => {}).finally(() => setLoading(false));
+  }, [dirKey]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    setUploading(true);
+    try {
+      await uploadFiles(dirKey, e.target.files);
+      load();
+    } catch { /* ignore */ }
+    finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (name: string) => {
+    try {
+      await deleteFile(dirKey, name);
+      setFiles((prev) => prev.filter((f) => f.name !== name));
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <div className="flex items-center justify-between mb-1">
+        <h4 className="text-sm font-semibold text-gray-700">{label}</h4>
+        <div>
+          <input ref={fileRef} type="file" accept={accept} multiple className="hidden" onChange={handleUpload} />
+          <button
+            className="text-xs text-primary-500 hover:text-primary-700 hover:underline disabled:opacity-50"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? "Uploading..." : "Upload"}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 mb-3">{description}</p>
+
+      {loading ? (
+        <p className="text-xs text-gray-400 py-4 text-center">Loading...</p>
+      ) : files.length === 0 ? (
+        <p className="text-xs text-gray-400 py-4 text-center">No files</p>
+      ) : (
+        <div className="border border-gray-200 rounded-md overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-primary-50">
+                <th className="px-3 py-1.5 text-left font-semibold text-gray-600">File</th>
+                <th className="px-3 py-1.5 text-right font-semibold text-gray-600 w-20">Size</th>
+                <th className="px-3 py-1.5 text-right font-semibold text-gray-600 w-16"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.map((f, idx) => (
+                <tr key={f.name} className={`border-b border-gray-100 ${idx % 2 === 1 ? "bg-row-alt" : ""}`}>
+                  <td className="px-3 py-1.5 font-mono text-gray-800 truncate max-w-[200px]" title={f.name}>{f.name}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-500">{formatSize(f.size)}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <button
+                      className="text-red-500 hover:text-red-700 hover:underline"
+                      onClick={() => handleDelete(f.name)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DataManagementSection() {
+  const { refresh } = useProfile();
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+
+  const handleIngest = async () => {
+    setIngesting(true);
+    setIngestMsg(null);
+    try {
+      const result = await triggerIngest();
+      setIngestMsg(result.status === "ok" ? "Ingestion complete" : `Status: ${result.status}`);
+      refresh();
+    } catch (err) {
+      setIngestMsg(`Failed: ${err}`);
+    } finally {
+      setIngesting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="bg-white rounded-lg shadow p-5 mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            className="px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
+            onClick={handleIngest}
+            disabled={ingesting}
+          >
+            {ingesting ? "Ingesting..." : "Run Ingestion"}
+          </button>
+          {ingestMsg && <span className="text-sm text-gray-500">{ingestMsg}</span>}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Parses CSV/TSV files from source directories into Parquet and refreshes the database.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {DIR_CONFIG.map((d) => (
+          <FilePanel key={d.key} dirKey={d.key} label={d.label} description={d.description} accept={d.accept} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsTab() {
   const [profileSettings, setProfileSettings] = useState<Record<string, ProfileBrandedSettings>>({});
   const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
@@ -347,6 +499,10 @@ export default function SettingsTab() {
 
       <SettingsSection title="Domain Blocking" description="Manage domains to flag across all tables.">
         <BlocklistTab />
+      </SettingsSection>
+
+      <SettingsSection title="Data Management" description="Upload, delete source files and manage ingestion.">
+        <DataManagementSection />
       </SettingsSection>
     </div>
   );

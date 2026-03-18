@@ -11,7 +11,7 @@ import IntersectTab from "./components/IntersectTab";
 import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
 import SettingsTab from "./components/tabs/SettingsTab";
-import { triggerIngest, type LinksDrilldown } from "./lib/api";
+import { type LinksDrilldown } from "./lib/api";
 
 type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | "intersect" | "broken" | "settings" | "terminology";
 
@@ -51,13 +51,9 @@ function DefaultRedirect() {
 function DashboardContent() {
   const { profile: urlProfile, tab: urlTab } = useParams<{ profile: string; tab: string }>();
   const navigate = useNavigate();
-  const { profiles, selected, setSelected, loading, error, refresh } = useProfile();
+  const { profiles, selected, setSelected, loading, error } = useProfile();
   const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
   const [pageCategory, setPageCategory] = useState<string | null>(null);
-
-  // Ingest state
-  const [ingesting, setIngesting] = useState(false);
-  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
 
   const decodedProfile = urlProfile ? decodeURIComponent(urlProfile) : "";
   const currentTab: Tab = urlTab && isValidTab(urlTab) ? urlTab : "overview";
@@ -74,20 +70,6 @@ function DashboardContent() {
     const tabLabel = tabs.find((t) => t.key === currentTab)?.label ?? "Overview";
     document.title = `${decodedProfile} – ${tabLabel} | Backlink Analyser`;
   }, [decodedProfile, currentTab]);
-
-  const handleIngest = async () => {
-    setIngesting(true);
-    setIngestMsg(null);
-    try {
-      const result = await triggerIngest();
-      setIngestMsg(result.status === "ok" ? "Ingestion complete" : `Status: ${result.status}`);
-      refresh();
-    } catch (err) {
-      setIngestMsg(`Failed: ${err}`);
-    } finally {
-      setIngesting(false);
-    }
-  };
 
   const handleDrilldown = (d: LinksDrilldown) => {
     setDrilldown(d);
@@ -144,15 +126,7 @@ function DashboardContent() {
         <div className="text-center">
           <p className="text-lg font-medium">No profiles found</p>
           {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
-          <p className="text-sm mt-2">Ingest some backlink data first, then restart the backend.</p>
-          <button
-            className="mt-4 px-3 py-1.5 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
-            onClick={handleIngest}
-            disabled={ingesting}
-          >
-            {ingesting ? "Ingesting..." : "Run Ingestion"}
-          </button>
-          {ingestMsg && <p className="text-sm mt-2 text-gray-600">{ingestMsg}</p>}
+          <p className="text-sm mt-2">Upload backlink data and run ingestion from Settings.</p>
         </div>
       </div>
     );
@@ -165,14 +139,6 @@ function DashboardContent() {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-xl font-bold text-gray-900">Backlink Analyser</h1>
           <div className="flex items-center gap-3">
-            <button
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-50"
-              onClick={handleIngest}
-              disabled={ingesting}
-            >
-              {ingesting ? "Ingesting..." : "Re-ingest"}
-            </button>
-            {ingestMsg && <span className="text-xs text-gray-500">{ingestMsg}</span>}
             <select
               className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
               value={decodedProfile}

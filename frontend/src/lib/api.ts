@@ -475,6 +475,38 @@ export function triggerIngest(): Promise<{ status: string }> {
   return post<{ status: string }>(`${BASE}/ingest`);
 }
 
+/* ---- File Management ---- */
+
+export interface FileEntry {
+  name: string;
+  size: number;
+  modified: string;
+}
+
+export function fetchFiles(dir: string): Promise<{ files: FileEntry[] }> {
+  return get<{ files: FileEntry[] }>(`${BASE}/files`, { dir });
+}
+
+export async function uploadFiles(dir: string, files: FileList): Promise<{ status: string; saved: string[] }> {
+  const form = new FormData();
+  for (let i = 0; i < files.length; i++) form.append("files", files[i]);
+  const res = await fetch(`${BASE}/files/upload?dir=${encodeURIComponent(dir)}`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+export async function deleteFile(dir: string, name: string): Promise<{ status: string }> {
+  const url = new URL(`${BASE}/files`, window.location.origin);
+  url.searchParams.set("dir", dir);
+  url.searchParams.set("name", name);
+  const res = await fetch(url.toString(), { method: "DELETE" });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
 /* ---- Blocklist ---- */
 
 export function fetchBlocklist(): Promise<{ domains: string[] }> {
