@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import {
   fetchAllAnchorSettings,
   saveProfileAnchorSettings,
@@ -16,9 +16,10 @@ interface TermListProps {
   onRemove: (term: string) => void;
   placeholder?: string;
   autoTerms?: string[];
+  profileSelector?: ReactNode;
 }
 
-function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms }: TermListProps) {
+function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms, profileSelector }: TermListProps) {
   const [input, setInput] = useState("");
   const [page, setPage] = useState(0);
 
@@ -41,7 +42,10 @@ function TermList({ title, description, terms, onAdd, onRemove, placeholder, aut
 
   return (
     <div className="bg-white rounded-lg shadow p-5 mb-6">
-      <h3 className="text-sm font-semibold text-gray-700 mb-1">{title}</h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        {profileSelector}
+      </div>
       <p className="text-xs text-gray-400 mb-4">{description}</p>
 
       {autoTerms && autoTerms.length > 0 && (
@@ -220,22 +224,43 @@ export default function SettingsTab() {
   }
 
   const profileLabels = Object.keys(profileSettings).sort();
+  const [selectedBrandedProfile, setSelectedBrandedProfile] = useState(profileLabels[0] ?? "");
+
+  // Keep selection valid if profiles change
+  const activeBrandedProfile = profileLabels.includes(selectedBrandedProfile)
+    ? selectedBrandedProfile
+    : profileLabels[0] ?? "";
 
   return (
     <div>
-      {/* Branded terms — one panel per profile */}
-      {profileLabels.map((label) => (
+      {/* Branded terms — single panel with profile dropdown */}
+      {activeBrandedProfile && (
         <TermList
-          key={label}
-          title={`Branded Terms — ${label}`}
+          key={activeBrandedProfile}
+          title="Branded Terms"
           description="Anchors containing these terms are categorized as branded. Auto-detected terms from the target domain are always included."
-          terms={profileSettings[label].branded_terms}
-          onAdd={(term) => addBranded(label, term)}
-          onRemove={(term) => removeBranded(label, term)}
+          terms={profileSettings[activeBrandedProfile].branded_terms}
+          onAdd={(term) => addBranded(activeBrandedProfile, term)}
+          onRemove={(term) => removeBranded(activeBrandedProfile, term)}
           placeholder="e.g. my brand, mybrand..."
-          autoTerms={profileSettings[label].auto_branded_terms}
+          autoTerms={profileSettings[activeBrandedProfile].auto_branded_terms}
+          profileSelector={
+            profileLabels.length > 1 ? (
+              <select
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={activeBrandedProfile}
+                onChange={(e) => setSelectedBrandedProfile(e.target.value)}
+              >
+                {profileLabels.map((label) => (
+                  <option key={label} value={label}>{label}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-sm font-medium text-gray-600">{activeBrandedProfile}</span>
+            )
+          }
         />
-      ))}
+      )}
 
       {/* Global target keywords */}
       <TermList
