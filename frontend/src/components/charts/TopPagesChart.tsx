@@ -29,7 +29,7 @@ export default function TopPagesChart({ data, onBarClick }: Props) {
           data={top}
           layout="vertical"
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-          onClick={onBarClick ? (state: { activeLabel?: string }) => {
+          onClick={onBarClick ? (state: any) => {
             if (state?.activeLabel) {
               const match = top.find((d) => d.label === state.activeLabel);
               if (match) onBarClick(match.target_path);
@@ -47,8 +47,8 @@ export default function TopPagesChart({ data, onBarClick }: Props) {
           />
           <RechartsTooltip
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
-            formatter={(value: number) => [value.toLocaleString(), "Backlinks"]}
-            labelFormatter={(label: string) => {
+            formatter={(value: any) => [Number(value).toLocaleString(), "Backlinks"]}
+            labelFormatter={(label: any) => {
               const match = top.find((d) => d.label === label);
               return match ? match.target_path : label;
             }}
