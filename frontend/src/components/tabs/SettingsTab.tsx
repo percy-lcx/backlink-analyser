@@ -16,10 +16,11 @@ interface TermListProps {
   onRemove: (term: string) => void;
   placeholder?: string;
   autoTerms?: string[];
+  onAutoRemove?: (term: string) => void;
   profileSelector?: ReactNode;
 }
 
-function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms, profileSelector }: TermListProps) {
+function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms, onAutoRemove, profileSelector }: TermListProps) {
   const [input, setInput] = useState("");
   const [page, setPage] = useState(0);
 
@@ -53,8 +54,17 @@ function TermList({ title, description, terms, onAdd, onRemove, placeholder, aut
           <span className="text-xs text-gray-500 font-medium">Auto-detected from domain:</span>
           <div className="flex flex-wrap gap-2 mt-1">
             {autoTerms.map((t) => (
-              <span key={t} className="bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-3 py-1 text-xs">
+              <span key={t} className="bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-3 py-1 text-xs inline-flex items-center gap-1">
                 {t}
+                {onAutoRemove && (
+                  <button
+                    className="text-gray-400 hover:text-red-500 ml-0.5"
+                    onClick={() => onAutoRemove(t)}
+                    title="Exclude this auto-detected term"
+                  >
+                    &times;
+                  </button>
+                )}
               </span>
             ))}
           </div>
@@ -164,25 +174,43 @@ export default function SettingsTab() {
   }, []);
 
   // --- Branded terms handlers (per-profile) ---
+  const saveProfile = useCallback((profileLabel: string, settings: ProfileBrandedSettings) => {
+    saveProfileAnchorSettings(profileLabel, settings.branded_terms, settings.excluded_auto_terms).catch(() => {});
+  }, []);
+
   const addBranded = useCallback((profileLabel: string, term: string) => {
     setProfileSettings((prev) => {
       const current = prev[profileLabel];
       if (!current || current.branded_terms.includes(term)) return prev;
       const next = { ...current, branded_terms: [...current.branded_terms, term] };
-      saveProfileAnchorSettings(profileLabel, next.branded_terms).catch(() => {});
+      saveProfile(profileLabel, next);
       return { ...prev, [profileLabel]: next };
     });
-  }, []);
+  }, [saveProfile]);
 
   const removeBranded = useCallback((profileLabel: string, term: string) => {
     setProfileSettings((prev) => {
       const current = prev[profileLabel];
       if (!current) return prev;
       const next = { ...current, branded_terms: current.branded_terms.filter((t) => t !== term) };
-      saveProfileAnchorSettings(profileLabel, next.branded_terms).catch(() => {});
+      saveProfile(profileLabel, next);
       return { ...prev, [profileLabel]: next };
     });
-  }, []);
+  }, [saveProfile]);
+
+  const excludeAutoTerm = useCallback((profileLabel: string, term: string) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current) return prev;
+      const next = {
+        ...current,
+        auto_branded_terms: current.auto_branded_terms.filter((t) => t !== term),
+        excluded_auto_terms: [...current.excluded_auto_terms, term],
+      };
+      saveProfile(profileLabel, next);
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [saveProfile]);
 
   // --- Target keywords handlers (global) ---
   const addKeyword = useCallback((term: string) => {
@@ -244,6 +272,7 @@ export default function SettingsTab() {
           onRemove={(term) => removeBranded(activeBrandedProfile, term)}
           placeholder="e.g. my brand, mybrand..."
           autoTerms={profileSettings[activeBrandedProfile].auto_branded_terms}
+          onAutoRemove={(term) => excludeAutoTerm(activeBrandedProfile, term)}
           profileSelector={
             profileLabels.length > 1 ? (
               <select

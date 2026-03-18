@@ -616,6 +616,7 @@ export interface AnchorSettings {
 export interface ProfileBrandedSettings {
   branded_terms: string[];
   auto_branded_terms: string[];
+  excluded_auto_terms: string[];
 }
 
 export interface AllAnchorSettings {
@@ -635,10 +636,11 @@ export function fetchAllAnchorSettings(): Promise<AllAnchorSettings> {
 export function saveProfileAnchorSettings(
   profile: string,
   branded_terms: string[],
+  excluded_auto_terms: string[] = [],
 ): Promise<{ status: string }> {
   return post<{ status: string }>(
     `${BASE}/anchor-settings/profile?profile=${encodeURIComponent(profile)}`,
-    { branded_terms },
+    { branded_terms, excluded_auto_terms },
   );
 }
 
