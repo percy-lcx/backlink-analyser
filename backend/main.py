@@ -2,8 +2,10 @@ import asyncio
 import os
 import subprocess
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 # Resolve paths relative to project root (one level up from backend/)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +31,7 @@ from routes import (
     session,
     blocklist,
     anchor_settings,
+    keywords,
 )
 
 
@@ -69,15 +72,27 @@ app.include_router(broken.router)
 app.include_router(session.router)
 app.include_router(blocklist.router)
 app.include_router(anchor_settings.router)
+app.include_router(keywords.router)
+
+
+class IngestRequest(BaseModel):
+    files: Optional[list[str]] = None
 
 
 @app.post("/api/ingest")
-async def ingest():
+async def ingest(request: IngestRequest = IngestRequest()):
     """Shell out to the Rust ingester binary and recreate the DuckDB view."""
     binary = os.path.join(_PROJECT_ROOT, "ingester", "target", "release", "backlink-ingest")
     data_dir = os.path.join(_PROJECT_ROOT, "data")
     store_dir = os.path.join(_PROJECT_ROOT, "store")
     cmd = [binary, "--source", data_dir, "--output", store_dir]
+
+    if request.files:
+        for f in request.files:
+            if os.path.isabs(f) or ".." in f:
+                raise HTTPException(status_code=400, detail=f"Invalid file path: {f}")
+        cmd.extend(["--files"] + request.files)
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
