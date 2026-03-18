@@ -6,16 +6,14 @@ import LinksTab from "./components/tabs/LinksTab";
 import DomainsTab from "./components/tabs/DomainsTab";
 import AnchorsTab from "./components/tabs/AnchorsTab";
 import PagesTab from "./components/tabs/PagesTab";
-import QualityTab from "./components/tabs/QualityTab";
 import CompareTab from "./components/CompareTab";
 import IntersectTab from "./components/IntersectTab";
 import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
-import BlocklistTab from "./components/tabs/BlocklistTab";
 import SettingsTab from "./components/tabs/SettingsTab";
 import { triggerIngest, type LinksDrilldown } from "./lib/api";
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "quality" | "compare" | "intersect" | "broken" | "blocklist" | "settings" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | "intersect" | "broken" | "settings" | "terminology";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -23,11 +21,9 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "domains", label: "Domains" },
   { key: "anchors", label: "Anchors" },
   { key: "pages", label: "Pages" },
-  { key: "quality", label: "Quality" },
   { key: "compare", label: "Compare" },
   { key: "intersect", label: "Intersect" },
   { key: "broken", label: "Broken Links" },
-  { key: "blocklist", label: "Blocklist" },
   { key: "settings", label: "Settings" },
   { key: "terminology", label: "Terminology" },
 ];
@@ -225,7 +221,6 @@ function DashboardContent() {
         {currentTab === "domains" && <DomainsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
         {currentTab === "anchors" && <AnchorsTab profile={decodedProfile} onDrilldown={handleDrilldown} />}
         {currentTab === "pages" && <PagesTab profile={decodedProfile} onDrilldown={handleDrilldown} initialCategory={pageCategory} />}
-        {currentTab === "quality" && <QualityTab profile={decodedProfile} />}
         <div style={{ display: currentTab === "compare" ? undefined : "none" }}>
           <CompareTab profile={decodedProfile} onDrBarClick={handleDrBarClick} onGapRowClick={handleGapRowClick} />
         </div>
@@ -233,7 +228,6 @@ function DashboardContent() {
           <IntersectTab profile={decodedProfile} />
         </div>
         {currentTab === "broken" && <BrokenLinksTab />}
-        {currentTab === "blocklist" && <BlocklistTab />}
         {currentTab === "settings" && <SettingsTab />}
         {currentTab === "terminology" && <TerminologyTab />}
       </main>
