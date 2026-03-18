@@ -31,11 +31,16 @@ def broken_links(
     http_code: Optional[str] = Query(None),
     dr_min: Optional[float] = Query(None),
     dr_max: Optional[float] = Query(None),
+    target_path: Optional[str] = Query(None),
 ):
     """Broken links report: summary, status code distribution, and paginated items."""
     conn = get_conn()
 
     base_where = "profile_label = $1 AND http_code >= 400"
+    base_params: list = [profile]
+    if target_path:
+        base_where += " AND target_path = $2"
+        base_params.append(target_path)
 
     # Summary (always full broken set, no sub-filters)
     summary_row = conn.execute(
@@ -48,7 +53,7 @@ def broken_links(
         FROM backlinks
         WHERE {base_where}
         """,
-        [profile],
+        base_params,
     ).fetchone()
 
     summary = {
@@ -67,7 +72,7 @@ def broken_links(
         GROUP BY http_code
         ORDER BY http_code
         """,
-        [profile],
+        base_params,
     ).fetchall()
 
     distribution = [{"http_code": row[0], "count": row[1]} for row in dist_rows]
@@ -76,6 +81,11 @@ def broken_links(
     conditions = ["profile_label = $1", "http_code >= 400"]
     params: list = [profile]
     idx = 2
+
+    if target_path:
+        conditions.append(f"target_path = ${idx}")
+        params.append(target_path)
+        idx += 1
 
     if http_code is not None:
         codes = [int(c) for c in http_code.split(",") if c.strip().isdigit()]

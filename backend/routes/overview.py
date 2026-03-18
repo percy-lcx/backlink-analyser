@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Query
 from db import get_conn
 
@@ -25,11 +26,21 @@ def list_profiles():
 
 
 @router.get("/api/overview")
-def overview(profile: str = Query(...)):
+def overview(
+    profile: str = Query(...),
+    target_path: Optional[str] = Query(None),
+):
     """Return summary stats for a single profile."""
     conn = get_conn()
+
+    where = "profile_label = $1"
+    params: list[str] = [profile]
+    if target_path:
+        where += " AND target_path = $2"
+        params.append(target_path)
+
     row = conn.execute(
-        """
+        f"""
         SELECT
             COUNT(*) AS total_backlinks,
             COUNT(DISTINCT referring_domain) AS unique_referring_domains,
@@ -51,9 +62,9 @@ def overview(profile: str = Query(...)):
             SUM(COALESCE(page_traffic, 0)) AS total_page_traffic,
             MAX(first_seen) AS newest_backlink_date
         FROM backlinks
-        WHERE profile_label = $1
+        WHERE {where}
         """,
-        [profile],
+        params,
     ).fetchone()
 
     cols = [

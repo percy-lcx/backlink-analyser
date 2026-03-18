@@ -82,12 +82,19 @@ def dr_distribution(
 def velocity(
     profile: str = Query(...),
     interval: str = Query("week"),
+    target_path: Optional[str] = Query(None),
 ):
     """Link velocity: new links grouped by week or month."""
     if interval not in ("week", "month"):
         interval = "week"
 
     conn = get_conn()
+
+    path_filter = ""
+    params: list[str] = [profile]
+    if target_path:
+        path_filter = " AND target_path = $2"
+        params.append(target_path)
 
     # Single CTE query combining new and new-by-status
     rows = conn.execute(
@@ -97,7 +104,7 @@ def velocity(
                 DATE_TRUNC('{interval}', first_seen) AS period,
                 COUNT(*) AS new_count
             FROM backlinks
-            WHERE profile_label = $1 AND first_seen IS NOT NULL
+            WHERE profile_label = $1 AND first_seen IS NOT NULL{path_filter}
             GROUP BY period
         ),
         new_by_status AS (
@@ -106,7 +113,7 @@ def velocity(
                 discovered_status,
                 COUNT(*) AS count
             FROM backlinks
-            WHERE profile_label = $1 AND first_seen IS NOT NULL
+            WHERE profile_label = $1 AND first_seen IS NOT NULL{path_filter}
             GROUP BY period, discovered_status
         )
         SELECT
@@ -118,7 +125,7 @@ def velocity(
         LEFT JOIN new_by_status ns ON n.period = ns.period
         ORDER BY n.period, ns.discovered_status
         """,
-        [profile],
+        params,
     ).fetchall()
 
     # Merge rows into timeline (multiple rows per period when statuses exist)

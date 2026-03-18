@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Query
 from db import get_conn
 
@@ -8,9 +9,20 @@ router = APIRouter()
 def sitewide(
     profile: str = Query(...),
     threshold: int = Query(10),
+    target_path: Optional[str] = Query(None),
 ):
     """Referring domains where max links_in_group > threshold."""
     conn = get_conn()
+
+    params: list[str] = [profile]
+    path_filter = ""
+    b_path_filter = ""
+    if target_path:
+        path_filter = " AND target_path = $2"
+        b_path_filter = " AND b.target_path = $2"
+        params.append(target_path)
+
+    where = "profile_label = $1" + path_filter
 
     sitewide_rows = conn.execute(
         f"""
@@ -21,12 +33,12 @@ def sitewide(
             MODE(anchor) AS anchor_pattern,
             MAX(COALESCE(links_in_group, 0)) AS max_links_in_group
         FROM backlinks
-        WHERE profile_label = $1
+        WHERE {where}
         GROUP BY referring_domain
         HAVING MAX(COALESCE(links_in_group, 0)) > {threshold}
         ORDER BY link_count DESC
         """,
-        [profile],
+        params,
     ).fetchall()
 
     cols = ["referring_domain", "link_count", "dr", "anchor_pattern", "max_links_in_group"]
@@ -41,7 +53,7 @@ def sitewide(
                 CASE WHEN MAX(COALESCE(links_in_group, 0)) > {threshold}
                     THEN true ELSE false END AS is_sitewide
             FROM backlinks
-            WHERE profile_label = $1
+            WHERE {where}
             GROUP BY referring_domain
         )
         SELECT
@@ -51,10 +63,10 @@ def sitewide(
             ROUND(AVG(b.domain_rating), 1) AS avg_dr
         FROM backlinks b
         JOIN domain_sitewide ds ON b.referring_domain = ds.referring_domain
-        WHERE b.profile_label = $1
+        WHERE b.profile_label = $1{b_path_filter}
         GROUP BY ds.is_sitewide
         """,
-        [profile],
+        params,
     ).fetchall()
 
     aggregate = {}

@@ -379,20 +379,20 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick, onPag
       fetchLinkGap(profileB, [profile], tpB, tpA),
       fetchDrDistribution(profile, tpA).then((d) => d.dr ?? []),
       fetchDrDistribution(profileB, tpB).then((d) => d.dr ?? []),
-      fetchOverview(profile).catch(() => null),
-      fetchOverview(profileB).catch(() => null),
-      fetchVelocity(profile).catch(() => []),
-      fetchVelocity(profileB).catch(() => []),
+      fetchOverview(profile, tpA).catch(() => null),
+      fetchOverview(profileB, tpB).catch(() => null),
+      fetchVelocity(profile, undefined, tpA).catch(() => []),
+      fetchVelocity(profileB, undefined, tpB).catch(() => []),
       fetchPageBreakdown(profile).catch(() => ({ pages: [], categories: {} } as PageBreakdownResponse)),
       fetchPageBreakdown(profileB).catch(() => ({ pages: [], categories: {} } as PageBreakdownResponse)),
-      fetchReferringDomains(profile, { sort: "max_dr:desc" }).catch(() => []),
-      fetchReferringDomains(profileB, { sort: "max_dr:desc" }).catch(() => []),
-      fetchBrokenLinks(profile, { per_page: 1 }).then((r) => r.summary).catch(() => null),
-      fetchBrokenLinks(profileB, { per_page: 1 }).then((r) => r.summary).catch(() => null),
-      fetchSitewide(profile).catch(() => null),
-      fetchSitewide(profileB).catch(() => null),
-      fetchRedirects(profile).catch(() => null),
-      fetchRedirects(profileB).catch(() => null),
+      fetchReferringDomains(profile, { sort: "max_dr:desc", target_path: tpA }).catch(() => []),
+      fetchReferringDomains(profileB, { sort: "max_dr:desc", target_path: tpB }).catch(() => []),
+      fetchBrokenLinks(profile, { per_page: 1, target_path: tpA }).then((r) => r.summary).catch(() => null),
+      fetchBrokenLinks(profileB, { per_page: 1, target_path: tpB }).then((r) => r.summary).catch(() => null),
+      fetchSitewide(profile, undefined, tpA).catch(() => null),
+      fetchSitewide(profileB, undefined, tpB).catch(() => null),
+      fetchRedirects(profile, tpA).catch(() => null),
+      fetchRedirects(profileB, tpB).catch(() => null),
     ])
       .then(([compare, gapA, gapB, drA, drB, ovA, ovB, velA, velB, pgA, pgB, domsA, domsB, brkA, brkB, swA, swB, redirA, redirB]) => {
         setCompareData(compare);
@@ -726,24 +726,31 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick, onPag
               )}
 
               {/* Page Category Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
-                  <PageCategoryChart
-                    data={Object.entries(pageCatsA).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
-                    onBarClick={onPageCategoryClick ? (cat) => onPageCategoryClick(profile, cat) : undefined}
-                    onViewAll={onViewAllPages ? () => onViewAllPages(profile) : undefined}
-                  />
+              {mode === "url" ? (
+                <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-500">
+                  <p className="font-medium">Backlinks by category</p>
+                  <p>Only available for site-level comparison</p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
-                  <PageCategoryChart
-                    data={Object.entries(pageCatsB).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
-                    onBarClick={onPageCategoryClick ? (cat) => onPageCategoryClick(profileB, cat) : undefined}
-                    onViewAll={onViewAllPages ? () => onViewAllPages(profileB) : undefined}
-                  />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                    <PageCategoryChart
+                      data={Object.entries(pageCatsA).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                      onBarClick={onPageCategoryClick ? (cat) => onPageCategoryClick(profile, cat) : undefined}
+                      onViewAll={onViewAllPages ? () => onViewAllPages(profile) : undefined}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                    <PageCategoryChart
+                      data={Object.entries(pageCatsB).map(([category, stats]) => ({ category, link_count: stats.link_count }))}
+                      onBarClick={onPageCategoryClick ? (cat) => onPageCategoryClick(profileB, cat) : undefined}
+                      onViewAll={onViewAllPages ? () => onViewAllPages(profileB) : undefined}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Velocity Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -769,16 +776,23 @@ export default function CompareTab({ profile, onDrBarClick, onGapRowClick, onPag
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
-                  <TopPagesTable pages={topPagesA} onViewAll={onViewAllPages ? () => onViewAllPages(profile) : undefined} />
+              {mode === "url" ? (
+                <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-500">
+                  <p className="font-medium">Top pages</p>
+                  <p>Only available for site-level comparison</p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
-                  <TopPagesTable pages={topPagesB} onViewAll={onViewAllPages ? () => onViewAllPages(profileB) : undefined} />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelA}</h3>
+                    <TopPagesTable pages={topPagesA} onViewAll={onViewAllPages ? () => onViewAllPages(profile) : undefined} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">{labelB}</h3>
+                    <TopPagesTable pages={topPagesB} onViewAll={onViewAllPages ? () => onViewAllPages(profileB) : undefined} />
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </>

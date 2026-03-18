@@ -140,6 +140,7 @@ export interface ReferringDomainParams {
   links_min?: number;
   links_max?: number;
   is_sitewide?: boolean;
+  target_path?: string;
 }
 
 export interface DrBucket {
@@ -349,8 +350,8 @@ export function fetchProfiles(): Promise<Profile[]> {
   return get<Profile[]>(`${BASE}/profiles`);
 }
 
-export function fetchOverview(profile: string): Promise<OverviewData> {
-  return get<OverviewData>(`${BASE}/overview`, { profile });
+export function fetchOverview(profile: string, targetPath?: string): Promise<OverviewData> {
+  return get<OverviewData>(`${BASE}/overview`, { profile, target_path: targetPath });
 }
 
 export function fetchLinks(profile: string, params?: LinkParams): Promise<LinksResponse> {
@@ -381,24 +382,24 @@ export function fetchDrDistribution(profile: string, targetPath?: string): Promi
   return get<DrDistributionResponse>(`${BASE}/dr-distribution`, { profile, target_path: targetPath });
 }
 
-export function fetchVelocity(profile: string, interval?: string): Promise<VelocityPoint[]> {
-  return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval });
+export function fetchVelocity(profile: string, interval?: string, targetPath?: string): Promise<VelocityPoint[]> {
+  return get<VelocityPoint[]>(`${BASE}/velocity`, { profile, interval, target_path: targetPath });
 }
 
 export function fetchPageBreakdown(profile: string, params?: PageBreakdownParams): Promise<PageBreakdownResponse> {
   return get<PageBreakdownResponse>(`${BASE}/page-breakdown`, { profile, ...params } as Record<string, string | number | boolean | undefined>);
 }
 
-export function fetchRedirects(profile: string): Promise<RedirectSummary> {
-  return get<RedirectSummary>(`${BASE}/redirects`, { profile });
+export function fetchRedirects(profile: string, targetPath?: string): Promise<RedirectSummary> {
+  return get<RedirectSummary>(`${BASE}/redirects`, { profile, target_path: targetPath });
 }
 
 export function fetchQualityMatrix(profile: string, page?: number): Promise<QualityResponse> {
   return get<QualityResponse>(`${BASE}/quality-matrix`, { profile, page });
 }
 
-export function fetchSitewide(profile: string, threshold?: number): Promise<SitewideMetrics> {
-  return get<SitewideMetrics>(`${BASE}/sitewide`, { profile, threshold });
+export function fetchSitewide(profile: string, threshold?: number, targetPath?: string): Promise<SitewideMetrics> {
+  return get<SitewideMetrics>(`${BASE}/sitewide`, { profile, threshold, target_path: targetPath });
 }
 
 export function fetchCompare(profiles: string[], targetPaths?: string[]): Promise<CompareProfile[]> {
@@ -463,6 +464,7 @@ export function fetchBrokenLinks(
     http_code?: string;
     dr_min?: number;
     dr_max?: number;
+    target_path?: string;
   },
 ): Promise<BrokenLinksResponse> {
   return get<BrokenLinksResponse>(`${BASE}/broken-links`, {
