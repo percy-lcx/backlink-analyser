@@ -308,6 +308,18 @@ def keyword_suggestions(
     ]
 
 
+@router.get("/api/keyword-countries")
+def keyword_countries():
+    """Return distinct country codes from organic_keywords."""
+    conn = get_conn()
+    if not _has_keywords_view(conn):
+        return []
+    rows = conn.execute(
+        "SELECT DISTINCT country_code FROM organic_keywords WHERE country_code != '' ORDER BY country_code"
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
 @router.get("/api/keyword-ranking-urls")
 def keyword_ranking_urls(
     keyword: str = Query(..., description="Keyword to search"),
@@ -316,6 +328,7 @@ def keyword_ranking_urls(
     max_position: int = Query(100, ge=1, description="Maximum ranking position"),
     min_dr: Optional[int] = Query(None, description="Minimum domain rating filter on backlinks"),
     profiles: Optional[str] = Query(None, description="Comma-separated profile labels to scope keyword search"),
+    country: Optional[str] = Query(None, description="Country code filter (e.g. 'us', 'gb')"),
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=1, le=1000),
     sort: str = Query("domain_rating:desc"),
@@ -354,6 +367,11 @@ def keyword_ranking_urls(
             params.extend(profile_list)
             idx += len(profile_list)
 
+    if country:
+        kw_conditions.append(f"country_code = ${idx}")
+        params.append(country)
+        idx += 1
+
     kw_where = " AND ".join(kw_conditions)
 
     # First: get ranking URLs summary
@@ -365,7 +383,8 @@ def keyword_ranking_urls(
             current_position,
             volume,
             organic_traffic,
-            profile_label
+            profile_label,
+            country_code
         FROM organic_keywords
         WHERE {kw_where}
         ORDER BY current_position ASC, volume DESC NULLS LAST
@@ -381,6 +400,7 @@ def keyword_ranking_urls(
             "volume": r[3],
             "traffic": r[4],
             "profile_label": r[5],
+            "country_code": r[6],
         }
         for r in ranking_rows
     ]
@@ -419,7 +439,7 @@ def keyword_ranking_urls(
 
     cte = f"""
         WITH ranking_urls AS (
-            SELECT DISTINCT current_url, keyword, current_position, volume, organic_traffic, profile_label
+            SELECT DISTINCT current_url, keyword, current_position, volume, organic_traffic, profile_label, country_code
             FROM organic_keywords
             WHERE {kw_where}
         )
@@ -456,7 +476,8 @@ def keyword_ranking_urls(
             r.current_position,
             r.volume,
             r.organic_traffic AS keyword_traffic,
-            r.profile_label AS keyword_profile
+            r.profile_label AS keyword_profile,
+            r.country_code AS keyword_country
         FROM backlinks b
         INNER JOIN ranking_urls r ON b.target_url = r.current_url
         WHERE 1=1{bl_where}
@@ -470,6 +491,7 @@ def keyword_ranking_urls(
         "url_rating", "anchor", "link_type", "page_traffic", "domain_traffic",
         "first_seen", "is_nofollow", "is_spam", "backlink_profile",
         "keyword", "current_position", "volume", "keyword_traffic", "keyword_profile",
+        "keyword_country",
     ]
     items = []
     for row in rows:

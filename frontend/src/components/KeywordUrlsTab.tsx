@@ -5,6 +5,7 @@ import ExportButton from "./tables/ExportButton";
 import {
   fetchKeywordSuggestions,
   fetchKeywordRankingUrls,
+  fetchKeywordCountries,
   type KeywordSuggestion,
   type KeywordBacklinkItem,
   type KeywordMatchMode,
@@ -33,6 +34,8 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
   const [maxPosition, setMaxPosition] = useState(100);
   const [minDr, setMinDr] = useState<number | undefined>(undefined);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([profile]);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
 
   // Data state
   const [loading, setLoading] = useState(false);
@@ -50,6 +53,11 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       prev.includes(profile) ? prev : [profile, ...prev],
     );
   }, [profile]);
+
+  // Fetch available countries
+  useEffect(() => {
+    fetchKeywordCountries().then(setCountries).catch(() => {});
+  }, []);
 
   // Debounced suggestions
   useEffect(() => {
@@ -94,6 +102,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
         max_position: maxPosition,
         min_dr: minDr,
         profiles: selectedProfiles.length > 0 ? selectedProfiles.join(",") : undefined,
+        country: selectedCountry || undefined,
         page,
         per_page: perPage,
         sort: sortStr,
@@ -111,7 +120,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [activeKeyword, matchMode, minPosition, maxPosition, minDr, selectedProfiles, page, perPage, sortStr]);
+  }, [activeKeyword, matchMode, minPosition, maxPosition, minDr, selectedProfiles, selectedCountry, page, perPage, sortStr]);
 
   const handleSearch = useCallback(() => {
     const q = searchInput.trim();
@@ -143,10 +152,10 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
   // Ranking URLs with backlink counts
   const rankingUrlsWithCounts = useMemo(() => {
     if (!data) return [];
-    // Deduplicate ranking URLs (same URL can appear for multiple keywords)
+    // Deduplicate ranking URLs (same URL+country can appear for multiple keywords)
     const urlMap = new Map<string, RankingUrl & { backlink_count: number }>();
     for (const ru of data.ranking_urls) {
-      const key = ru.url;
+      const key = `${ru.url}::${ru.country_code}`;
       if (!urlMap.has(key)) {
         urlMap.set(key, { ...ru, backlink_count: 0 });
       }
@@ -216,6 +225,15 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       cell: ({ getValue }) => {
         const v = getValue() as number | null;
         return v != null ? v.toLocaleString() : "-";
+      },
+    },
+    {
+      accessorKey: "country_code",
+      header: "Country",
+      size: 70,
+      cell: ({ getValue }) => {
+        const c = getValue() as string;
+        return c ? c.toUpperCase() : "-";
       },
     },
     {
@@ -411,6 +429,23 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
             max={100}
           />
         </div>
+
+        {/* Country filter */}
+        {countries.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
+            <select
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white w-28"
+              value={selectedCountry}
+              onChange={(e) => { setSelectedCountry(e.target.value); setPage(1); }}
+            >
+              <option value="">All</option>
+              {countries.map((c) => (
+                <option key={c} value={c}>{c.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Profile scope */}
         {profiles.length > 1 && (

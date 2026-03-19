@@ -653,6 +653,7 @@ export interface RankingUrl {
   volume: number;
   traffic: number;
   profile_label: string;
+  country_code: string;
 }
 
 export interface KeywordBacklinkItem {
@@ -674,6 +675,7 @@ export interface KeywordBacklinkItem {
   volume: number;
   keyword_traffic: number;
   keyword_profile: string;
+  keyword_country: string;
 }
 
 export interface KeywordRankingUrlsResponse {
@@ -694,9 +696,14 @@ export interface KeywordRankingUrlsParams {
   max_position?: number;
   min_dr?: number;
   profiles?: string;
+  country?: string;
   page?: number;
   per_page?: number;
   sort?: string;
+}
+
+export function fetchKeywordCountries(signal?: AbortSignal): Promise<string[]> {
+  return get<string[]>(`${BASE}/keyword-countries`, {}, signal);
 }
 
 export function fetchKeywordSuggestions(q: string, signal?: AbortSignal, match?: KeywordMatchMode): Promise<KeywordSuggestion[]> {
