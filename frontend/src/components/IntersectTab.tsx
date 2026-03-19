@@ -46,6 +46,46 @@ function intersectColor(count: number, total: number): string {
   return "#9fa8da";                    // primary-200
 }
 
+/* ---- Domain lookup form (isolated to avoid re-rendering parent on keystrokes) ---- */
+
+interface DomainLookupFormProps {
+  initialValue: string;
+  onSubmit: (domain: string) => void;
+  className?: string;
+}
+
+function DomainLookupForm({ initialValue, onSubmit, className }: DomainLookupFormProps) {
+  const [inputValue, setInputValue] = useState(initialValue);
+
+  useEffect(() => {
+    setInputValue(initialValue);
+  }, [initialValue]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalized = inputValue.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    if (normalized) onSubmit(normalized);
+  };
+
+  return (
+    <form className={className} onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        placeholder="e.g. example.com"
+        className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
+      />
+      <button
+        type="submit"
+        className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
+      >
+        Look up
+      </button>
+    </form>
+  );
+}
+
 /* ---- Main component ---- */
 
 interface IntersectTabProps {
@@ -63,7 +103,8 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
-  const [domainInput, setDomainInput] = useState("");
+  const [minDrDisplay, setMinDrDisplay] = useState("");
+  const minDrDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const breakdownRef = useRef<HTMLDivElement>(null);
   const gapTableRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +116,10 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
 
   const applyFilters = useCallback((f: Record<string, string>) => {
     if (f.selectedCompetitors) setSelectedCompetitors(f.selectedCompetitors.split(",").filter(Boolean));
-    if (f.minDr) setMinDr(Number(f.minDr));
+    if (f.minDr) {
+      setMinDr(Number(f.minDr));
+      setMinDrDisplay(f.minDr);
+    }
   }, []);
 
   const { loaded: sessionLoaded, save: saveSession } = useSessionFilters(
@@ -149,42 +193,28 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
   useEffect(() => {
     setExpandedDomain(null);
     setBreakdownData([]);
-    setDomainInput("");
   }, [filterCount]);
+
+  const handleDomainLookup = useCallback((domain: string) => {
+    setExpandedDomain(domain);
+    setBreakdownLoading(true);
+    fetchGapDomainBreakdown(domain, profile, selectedCompetitors)
+      .then((res) => {
+        setBreakdownData(res.rows);
+        setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      })
+      .catch(() => setBreakdownData([]))
+      .finally(() => setBreakdownLoading(false));
+  }, [profile, selectedCompetitors]);
 
   const handleGapRowClick = useCallback((row: IntersectDomain) => {
     if (expandedDomain === row.referring_domain) {
       setExpandedDomain(null);
       setBreakdownData([]);
-      setDomainInput("");
       return;
     }
-    setExpandedDomain(row.referring_domain);
-    setDomainInput(row.referring_domain);
-    setBreakdownLoading(true);
-    fetchGapDomainBreakdown(row.referring_domain, profile, selectedCompetitors)
-      .then((res) => {
-        setBreakdownData(res.rows);
-        setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-      })
-      .catch(() => setBreakdownData([]))
-      .finally(() => setBreakdownLoading(false));
-  }, [expandedDomain, profile, selectedCompetitors]);
-
-  const handleManualLookup = useCallback(() => {
-    const normalized = domainInput.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
-    if (!normalized) return;
-    setDomainInput(normalized);
-    setExpandedDomain(normalized);
-    setBreakdownLoading(true);
-    fetchGapDomainBreakdown(normalized, profile, selectedCompetitors)
-      .then((res) => {
-        setBreakdownData(res.rows);
-        setTimeout(() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-      })
-      .catch(() => setBreakdownData([]))
-      .finally(() => setBreakdownLoading(false));
-  }, [domainInput, profile, selectedCompetitors]);
+    handleDomainLookup(row.referring_domain);
+  }, [expandedDomain, handleDomainLookup]);
 
   const breakdownColumns = useMemo((): ColumnDef<GapDomainBreakdownRow, unknown>[] => [
     {
@@ -259,6 +289,13 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
       size: 100,
     },
   ], []);
+
+  // Compute N/M intersect info from breakdown data
+  const breakdownCompetitorInfo = useMemo(() => {
+    if (!breakdownData.length || !data) return null;
+    const profiles = new Set(breakdownData.map((r) => r.profile_label));
+    return { count: profiles.size, total: data.competitors.length, profiles: Array.from(profiles) };
+  }, [breakdownData, data]);
 
   // Dynamic columns based on competitors
   const columns = useMemo((): ColumnDef<IntersectDomain, unknown>[] => {
@@ -402,10 +439,15 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
             type="number"
             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white w-20"
             placeholder="0"
-            value={minDr ?? ""}
-            onChange={(e) =>
-              setMinDr(e.target.value ? Number(e.target.value) : undefined)
-            }
+            value={minDrDisplay}
+            onChange={(e) => {
+              const val = e.target.value;
+              setMinDrDisplay(val);
+              clearTimeout(minDrDebounceRef.current);
+              minDrDebounceRef.current = setTimeout(() => {
+                setMinDr(val ? Number(val) : undefined);
+              }, 400);
+            }}
             min={0}
             max={100}
           />
@@ -627,22 +669,36 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                     <h3 className="text-sm font-semibold text-gray-700 mb-1">
                       Pages from{" "}
                       <span className="text-primary-600">{expandedDomain}</span>
+                      {breakdownCompetitorInfo && (
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          breakdownCompetitorInfo.count === breakdownCompetitorInfo.total
+                            ? "bg-emerald-100 text-emerald-800"
+                            : breakdownCompetitorInfo.count >= breakdownCompetitorInfo.total * 0.5
+                              ? "bg-primary-100 text-primary-800"
+                              : "bg-gray-100 text-gray-700"
+                        }`}>
+                          {breakdownCompetitorInfo.count}/{breakdownCompetitorInfo.total}
+                        </span>
+                      )}
                     </h3>
-                    <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); handleManualLookup(); }}>
-                      <input
-                        type="text"
-                        value={domainInput}
-                        onChange={(e) => setDomainInput(e.target.value)}
-                        placeholder="e.g. example.com"
-                        className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                      />
-                      <button
-                        type="submit"
-                        className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
-                      >
-                        Look up
-                      </button>
-                    </form>
+                    {breakdownCompetitorInfo && (
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {data!.competitors.map((comp) => (
+                          <span key={comp} className={`text-xs px-1.5 py-0.5 rounded ${
+                            breakdownCompetitorInfo.profiles.includes(comp)
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-gray-50 text-gray-400 line-through"
+                          }`}>
+                            {comp}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <DomainLookupForm
+                      initialValue={expandedDomain}
+                      onSubmit={handleDomainLookup}
+                      className="flex items-center gap-2"
+                    />
                     <p className="text-xs text-gray-400 mt-1">
                       Individual referring pages linking to competitors but not to{" "}
                       <strong>{profile}</strong>
@@ -660,7 +716,6 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                       onClick={() => {
                         setExpandedDomain(null);
                         setBreakdownData([]);
-                        setDomainInput("");
                       }}
                     >
                       Close
@@ -688,21 +743,11 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
                   Pages from domain
                 </h3>
-                <form className="flex items-center gap-2 justify-center py-4" onSubmit={(e) => { e.preventDefault(); handleManualLookup(); }}>
-                  <input
-                    type="text"
-                    value={domainInput}
-                    onChange={(e) => setDomainInput(e.target.value)}
-                    placeholder="e.g. example.com"
-                    className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                  />
-                  <button
-                    type="submit"
-                    className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
-                  >
-                    Look up
-                  </button>
-                </form>
+                <DomainLookupForm
+                  initialValue=""
+                  onSubmit={handleDomainLookup}
+                  className="flex items-center gap-2 justify-center py-4"
+                />
                 <p className="text-xs text-gray-400 text-center">
                   or select a domain row above
                 </p>
