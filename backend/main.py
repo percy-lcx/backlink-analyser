@@ -4,6 +4,8 @@ import subprocess
 from contextlib import asynccontextmanager
 from typing import Optional
 
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -32,7 +34,6 @@ from routes import (
     blocklist,
     anchor_settings,
     keywords,
-    keyword_intersect,
     files,
 )
 
@@ -75,7 +76,6 @@ app.include_router(session.router)
 app.include_router(blocklist.router)
 app.include_router(anchor_settings.router)
 app.include_router(keywords.router)
-app.include_router(keyword_intersect.router)
 app.include_router(files.router)
 
 
