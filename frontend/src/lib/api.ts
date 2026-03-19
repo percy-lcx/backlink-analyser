@@ -685,8 +685,11 @@ export interface KeywordRankingUrlsResponse {
   per_page: number;
 }
 
+export type KeywordMatchMode = "contains" | "exact";
+
 export interface KeywordRankingUrlsParams {
   keyword: string;
+  match?: KeywordMatchMode;
   min_position?: number;
   max_position?: number;
   min_dr?: number;
@@ -696,8 +699,8 @@ export interface KeywordRankingUrlsParams {
   sort?: string;
 }
 
-export function fetchKeywordSuggestions(q: string, signal?: AbortSignal): Promise<KeywordSuggestion[]> {
-  return get<KeywordSuggestion[]>(`${BASE}/keyword-suggestions`, { q }, signal);
+export function fetchKeywordSuggestions(q: string, signal?: AbortSignal, match?: KeywordMatchMode): Promise<KeywordSuggestion[]> {
+  return get<KeywordSuggestion[]>(`${BASE}/keyword-suggestions`, { q, match }, signal);
 }
 
 export function fetchKeywordRankingUrls(

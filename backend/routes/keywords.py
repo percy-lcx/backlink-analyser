@@ -276,20 +276,26 @@ def keyword_combined(
 @router.get("/api/keyword-suggestions")
 def keyword_suggestions(
     q: str = Query(..., min_length=1, description="Partial keyword to search"),
+    match: str = Query("contains", description="Match mode: 'exact' or 'contains'"),
 ):
     """Return top 20 keywords matching the query, ordered by search volume."""
     conn = get_conn()
     if not _has_keywords_view(conn):
         return []
 
+    if match == "exact":
+        where_clause = "WHERE keyword = $1"
+    else:
+        where_clause = "WHERE keyword ILIKE '%' || $1 || '%'"
+
     rows = conn.execute(
-        """
+        f"""
         SELECT
             keyword,
             MAX(volume) AS volume,
             COUNT(DISTINCT profile_label) AS profile_count
         FROM organic_keywords
-        WHERE keyword ILIKE '%' || $1 || '%'
+        {where_clause}
         GROUP BY keyword
         ORDER BY MAX(volume) DESC NULLS LAST
         LIMIT 20
@@ -304,7 +310,8 @@ def keyword_suggestions(
 
 @router.get("/api/keyword-ranking-urls")
 def keyword_ranking_urls(
-    keyword: str = Query(..., description="Keyword substring to search (ILIKE)"),
+    keyword: str = Query(..., description="Keyword to search"),
+    match: str = Query("contains", description="Match mode: 'exact' or 'contains'"),
     min_position: int = Query(1, ge=1, description="Minimum ranking position"),
     max_position: int = Query(100, ge=1, description="Maximum ranking position"),
     min_dr: Optional[int] = Query(None, description="Minimum domain rating filter on backlinks"),
@@ -330,8 +337,9 @@ def keyword_ranking_urls(
         }
 
     # Build keyword CTE conditions
+    kw_match = "keyword = $1" if match == "exact" else "keyword ILIKE '%' || $1 || '%'"
     kw_conditions = [
-        "keyword ILIKE '%' || $1 || '%'",
+        kw_match,
         f"current_position >= $2",
         f"current_position <= $3",
     ]
