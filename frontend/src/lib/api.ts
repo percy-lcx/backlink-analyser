@@ -638,6 +638,79 @@ export function fetchKeywordCombined(
   });
 }
 
+/* ---- Keyword Ranking URLs ---- */
+
+export interface KeywordSuggestion {
+  keyword: string;
+  volume: number;
+  profile_count: number;
+}
+
+export interface RankingUrl {
+  url: string;
+  keyword: string;
+  position: number;
+  volume: number;
+  traffic: number;
+  profile_label: string;
+}
+
+export interface KeywordBacklinkItem {
+  referring_url: string;
+  referring_domain: string;
+  target_url: string;
+  domain_rating: number;
+  url_rating: number;
+  anchor: string;
+  link_type: string;
+  page_traffic: number;
+  domain_traffic: number;
+  first_seen: string | null;
+  is_nofollow: boolean;
+  is_spam: boolean;
+  backlink_profile: string;
+  keyword: string;
+  current_position: number;
+  volume: number;
+  keyword_traffic: number;
+  keyword_profile: string;
+}
+
+export interface KeywordRankingUrlsResponse {
+  keyword_query: string;
+  ranking_urls: RankingUrl[];
+  items: KeywordBacklinkItem[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface KeywordRankingUrlsParams {
+  keyword: string;
+  min_position?: number;
+  max_position?: number;
+  min_dr?: number;
+  profiles?: string;
+  page?: number;
+  per_page?: number;
+  sort?: string;
+}
+
+export function fetchKeywordSuggestions(q: string, signal?: AbortSignal): Promise<KeywordSuggestion[]> {
+  return get<KeywordSuggestion[]>(`${BASE}/keyword-suggestions`, { q }, signal);
+}
+
+export function fetchKeywordRankingUrls(
+  params: KeywordRankingUrlsParams,
+  signal?: AbortSignal,
+): Promise<KeywordRankingUrlsResponse> {
+  return get<KeywordRankingUrlsResponse>(
+    `${BASE}/keyword-ranking-urls`,
+    params as unknown as Record<string, string | number | boolean | undefined>,
+    signal,
+  );
+}
+
 /* ---- Anchor Settings ---- */
 
 export interface AnchorSettings {

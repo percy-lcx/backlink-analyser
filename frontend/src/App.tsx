@@ -8,16 +8,18 @@ import AnchorsTab from "./components/tabs/AnchorsTab";
 import PagesTab from "./components/tabs/PagesTab";
 import CompareTab from "./components/CompareTab";
 import IntersectTab from "./components/IntersectTab";
+import KeywordUrlsTab from "./components/KeywordUrlsTab";
 import BrokenLinksTab from "./components/BrokenLinksTab";
 import TerminologyTab from "./components/TerminologyTab";
 import SettingsTab from "./components/tabs/SettingsTab";
 import { type LinksDrilldown } from "./lib/api";
 
-type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | "intersect" | "broken" | "settings" | "terminology";
+type Tab = "overview" | "links" | "domains" | "anchors" | "pages" | "compare" | "intersect" | "keyword-urls" | "broken" | "settings" | "terminology";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "intersect", label: "Intersect" },
+  { key: "keyword-urls", label: "Keyword URLs" },
   { key: "compare", label: "Compare" },
   { key: "links", label: "Drilldown" },
   { key: "domains", label: "Domains" },
@@ -210,6 +212,7 @@ function DashboardContent() {
         <div style={{ display: currentTab === "intersect" ? undefined : "none" }}>
           <IntersectTab profile={decodedProfile} />
         </div>
+        {currentTab === "keyword-urls" && <KeywordUrlsTab profile={decodedProfile} />}
         {currentTab === "broken" && <BrokenLinksTab />}
         {currentTab === "settings" && <SettingsTab />}
         {currentTab === "terminology" && <TerminologyTab />}

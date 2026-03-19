@@ -5,6 +5,17 @@ from db import get_conn
 
 router = APIRouter()
 
+RANKING_SORTABLE_COLUMNS = {
+    "domain_rating",
+    "page_traffic",
+    "first_seen",
+    "referring_domain",
+    "anchor",
+    "link_type",
+    "current_position",
+    "volume",
+}
+
 
 def _has_keywords_view(conn) -> bool:
     """Check if the organic_keywords view exists."""
@@ -260,3 +271,210 @@ def keyword_combined(
         result.append(entry)
 
     return result
+
+
+@router.get("/api/keyword-suggestions")
+def keyword_suggestions(
+    q: str = Query(..., min_length=1, description="Partial keyword to search"),
+):
+    """Return top 20 keywords matching the query, ordered by search volume."""
+    conn = get_conn()
+    if not _has_keywords_view(conn):
+        return []
+
+    rows = conn.execute(
+        """
+        SELECT
+            keyword,
+            MAX(volume) AS volume,
+            COUNT(DISTINCT profile_label) AS profile_count
+        FROM organic_keywords
+        WHERE keyword ILIKE '%' || $1 || '%'
+        GROUP BY keyword
+        ORDER BY MAX(volume) DESC NULLS LAST
+        LIMIT 20
+        """,
+        [q],
+    ).fetchall()
+    return [
+        {"keyword": r[0], "volume": r[1], "profile_count": r[2]}
+        for r in rows
+    ]
+
+
+@router.get("/api/keyword-ranking-urls")
+def keyword_ranking_urls(
+    keyword: str = Query(..., description="Keyword substring to search (ILIKE)"),
+    min_position: int = Query(1, ge=1, description="Minimum ranking position"),
+    max_position: int = Query(100, ge=1, description="Maximum ranking position"),
+    min_dr: Optional[int] = Query(None, description="Minimum domain rating filter on backlinks"),
+    profiles: Optional[str] = Query(None, description="Comma-separated profile labels to scope keyword search"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(100, ge=1, le=1000),
+    sort: str = Query("domain_rating:desc"),
+):
+    """Find URLs ranking for a keyword, then return all backlinks to those URLs.
+
+    Two-step join: organic_keywords (filtered by keyword/position) → backlinks
+    (joined on current_url = target_url).
+    """
+    conn = get_conn()
+    if not _has_keywords_view(conn):
+        return {
+            "keyword_query": keyword,
+            "ranking_urls": [],
+            "items": [],
+            "total": 0,
+            "page": page,
+            "per_page": per_page,
+        }
+
+    # Build keyword CTE conditions
+    kw_conditions = [
+        "keyword ILIKE '%' || $1 || '%'",
+        f"current_position >= $2",
+        f"current_position <= $3",
+    ]
+    params: list = [keyword, min_position, max_position]
+    idx = 4
+
+    if profiles:
+        profile_list = [p.strip() for p in profiles.split(",") if p.strip()]
+        if profile_list:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(profile_list)))
+            kw_conditions.append(f"profile_label IN ({placeholders})")
+            params.extend(profile_list)
+            idx += len(profile_list)
+
+    kw_where = " AND ".join(kw_conditions)
+
+    # First: get ranking URLs summary
+    ranking_rows = conn.execute(
+        f"""
+        SELECT
+            current_url,
+            keyword,
+            current_position,
+            volume,
+            organic_traffic,
+            profile_label
+        FROM organic_keywords
+        WHERE {kw_where}
+        ORDER BY current_position ASC, volume DESC NULLS LAST
+        """,
+        params,
+    ).fetchall()
+
+    ranking_urls = [
+        {
+            "url": r[0],
+            "keyword": r[1],
+            "position": r[2],
+            "volume": r[3],
+            "traffic": r[4],
+            "profile_label": r[5],
+        }
+        for r in ranking_rows
+    ]
+
+    if not ranking_urls:
+        return {
+            "keyword_query": keyword,
+            "ranking_urls": [],
+            "items": [],
+            "total": 0,
+            "page": page,
+            "per_page": per_page,
+        }
+
+    # Build backlinks query joining on target_url
+    bl_conditions = []
+    bl_params: list = list(params)  # reuse keyword params for the CTE
+    bl_idx = idx
+
+    if min_dr is not None:
+        bl_conditions.append(f"b.domain_rating >= ${bl_idx}")
+        bl_params.append(min_dr)
+        bl_idx += 1
+
+    bl_where = (" AND " + " AND ".join(bl_conditions)) if bl_conditions else ""
+
+    # Parse sort
+    sort_parts = sort.split(":")
+    sort_col = sort_parts[0] if sort_parts[0] in RANKING_SORTABLE_COLUMNS else "domain_rating"
+    sort_dir = "ASC" if len(sort_parts) > 1 and sort_parts[1].lower() == "asc" else "DESC"
+    # Prefix sort column with table alias
+    sort_prefix = "r." if sort_col in ("current_position", "volume") else "b."
+    order_clause = f"{sort_prefix}{sort_col} {sort_dir} NULLS LAST"
+
+    offset = (page - 1) * per_page
+
+    cte = f"""
+        WITH ranking_urls AS (
+            SELECT DISTINCT current_url, keyword, current_position, volume, organic_traffic, profile_label
+            FROM organic_keywords
+            WHERE {kw_where}
+        )
+    """
+
+    # Count total
+    count_sql = f"""
+        {cte}
+        SELECT COUNT(*)
+        FROM backlinks b
+        INNER JOIN ranking_urls r ON b.target_url = r.current_url
+        WHERE 1=1{bl_where}
+    """
+    total = conn.execute(count_sql, bl_params).fetchone()[0]
+
+    # Fetch page
+    data_sql = f"""
+        {cte}
+        SELECT
+            b.referring_url,
+            b.referring_domain,
+            b.target_url,
+            b.domain_rating,
+            b.url_rating,
+            b.anchor,
+            b.link_type,
+            b.page_traffic,
+            b.domain_traffic,
+            b.first_seen,
+            b.is_nofollow,
+            b.is_spam,
+            b.profile_label AS backlink_profile,
+            r.keyword,
+            r.current_position,
+            r.volume,
+            r.organic_traffic AS keyword_traffic,
+            r.profile_label AS keyword_profile
+        FROM backlinks b
+        INNER JOIN ranking_urls r ON b.target_url = r.current_url
+        WHERE 1=1{bl_where}
+        ORDER BY {order_clause}
+        LIMIT {per_page} OFFSET {offset}
+    """
+    rows = conn.execute(data_sql, bl_params).fetchall()
+
+    cols = [
+        "referring_url", "referring_domain", "target_url", "domain_rating",
+        "url_rating", "anchor", "link_type", "page_traffic", "domain_traffic",
+        "first_seen", "is_nofollow", "is_spam", "backlink_profile",
+        "keyword", "current_position", "volume", "keyword_traffic", "keyword_profile",
+    ]
+    items = []
+    for row in rows:
+        item = dict(zip(cols, row))
+        if item["first_seen"] is not None:
+            item["first_seen"] = str(item["first_seen"])
+        items.append(item)
+
+    return {
+        "keyword_query": keyword,
+        "ranking_urls": ranking_urls,
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+    }
