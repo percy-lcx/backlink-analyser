@@ -7,6 +7,7 @@ import {
   fetchKeywordRankingUrls,
   type KeywordSuggestion,
   type KeywordBacklinkItem,
+  type KeywordMatchMode,
   type RankingUrl,
   type KeywordRankingUrlsResponse,
 } from "../lib/api";
@@ -26,7 +27,8 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Filters — default profile scope to current profile
+  // Filters
+  const [matchMode, setMatchMode] = useState<KeywordMatchMode>("contains");
   const [minPosition, setMinPosition] = useState(1);
   const [maxPosition, setMaxPosition] = useState(100);
   const [minDr, setMinDr] = useState<number | undefined>(undefined);
@@ -57,13 +59,13 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
     }
     const timer = setTimeout(() => {
       const controller = new AbortController();
-      fetchKeywordSuggestions(searchInput, controller.signal)
+      fetchKeywordSuggestions(searchInput, controller.signal, matchMode)
         .then(setSuggestions)
         .catch(() => {});
       return () => controller.abort();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, matchMode]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -87,6 +89,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
     fetchKeywordRankingUrls(
       {
         keyword: activeKeyword,
+        match: matchMode,
         min_position: minPosition,
         max_position: maxPosition,
         min_dr: minDr,
@@ -108,7 +111,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [activeKeyword, minPosition, maxPosition, minDr, selectedProfiles, page, perPage, sortStr]);
+  }, [activeKeyword, matchMode, minPosition, maxPosition, minDr, selectedProfiles, page, perPage, sortStr]);
 
   const handleSearch = useCallback(() => {
     const q = searchInput.trim();
@@ -315,7 +318,23 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       <div className="flex items-start gap-6 flex-wrap">
         {/* Keyword search */}
         <div className="relative" ref={suggestionsRef}>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Keyword</label>
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-xs font-medium text-gray-500">Keyword</label>
+            <div className="flex rounded-md border border-gray-300 overflow-hidden text-xs">
+              <button
+                className={`px-2 py-0.5 transition-colors ${matchMode === "contains" ? "bg-primary-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                onClick={() => { setMatchMode("contains"); setPage(1); }}
+              >
+                Contains
+              </button>
+              <button
+                className={`px-2 py-0.5 transition-colors border-l border-gray-300 ${matchMode === "exact" ? "bg-primary-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                onClick={() => { setMatchMode("exact"); setPage(1); }}
+              >
+                Exact
+              </button>
+            </div>
+          </div>
           <form
             className="flex items-center gap-2"
             onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
@@ -328,7 +347,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
                 setShowSuggestions(true);
               }}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-              placeholder="e.g. forex trading"
+              placeholder={matchMode === "exact" ? "e.g. forex trading" : "e.g. forex"}
               className="text-sm border border-gray-300 rounded-md px-3 py-1.5 w-72 focus:outline-none focus:ring-1 focus:ring-primary-400"
             />
             <button
