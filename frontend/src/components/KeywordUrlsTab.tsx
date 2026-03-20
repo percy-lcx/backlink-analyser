@@ -14,73 +14,18 @@ import {
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
-/** Map of common country codes to full names. */
-const COUNTRY_NAMES: Record<string, string> = {
-  us: "United States",
-  gb: "United Kingdom",
-  de: "Germany",
-  fr: "France",
-  au: "Australia",
-  ca: "Canada",
-  in: "India",
-  br: "Brazil",
-  es: "Spain",
-  it: "Italy",
-  nl: "Netherlands",
-  se: "Sweden",
-  no: "Norway",
-  dk: "Denmark",
-  fi: "Finland",
-  pl: "Poland",
-  pt: "Portugal",
-  be: "Belgium",
-  at: "Austria",
-  ch: "Switzerland",
-  ie: "Ireland",
-  nz: "New Zealand",
-  sg: "Singapore",
-  hk: "Hong Kong",
-  jp: "Japan",
-  kr: "South Korea",
-  cn: "China",
-  tw: "Taiwan",
-  th: "Thailand",
-  ph: "Philippines",
-  id: "Indonesia",
-  my: "Malaysia",
-  vn: "Vietnam",
-  mx: "Mexico",
-  ar: "Argentina",
-  co: "Colombia",
-  cl: "Chile",
-  za: "South Africa",
-  ng: "Nigeria",
-  ke: "Kenya",
-  eg: "Egypt",
-  il: "Israel",
-  ae: "United Arab Emirates",
-  sa: "Saudi Arabia",
-  tr: "Turkey",
-  ru: "Russia",
-  ua: "Ukraine",
-  cz: "Czech Republic",
-  ro: "Romania",
-  hu: "Hungary",
-  gr: "Greece",
-  hr: "Croatia",
-  bg: "Bulgaria",
-  sk: "Slovakia",
-  lt: "Lithuania",
-  lv: "Latvia",
-  ee: "Estonia",
-  si: "Slovenia",
-};
+/** Resolve any ISO 3166-1 alpha-2 code to a human-readable country name. */
+const _countryDisplayNames = new Intl.DisplayNames(["en"], { type: "region" });
 
 /** Countries pinned to the top of the dropdown, in order. */
 const PRIORITY_COUNTRIES = ["us", "gb", "de", "fr", "au"];
 
 function countryLabel(code: string): string {
-  return COUNTRY_NAMES[code.toLowerCase()] ?? code.toUpperCase();
+  try {
+    return _countryDisplayNames.of(code.toUpperCase()) ?? code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
 }
 
 interface KeywordUrlsTabProps {
@@ -510,9 +455,10 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
             >
               <option value="">All</option>
               {(() => {
-                const priority = PRIORITY_COUNTRIES.filter((c) => countries.includes(c));
+                const countriesLower = countries.map((c) => c.toLowerCase());
+                const priority = PRIORITY_COUNTRIES.filter((c) => countriesLower.includes(c));
                 const rest = countries
-                  .filter((c) => !PRIORITY_COUNTRIES.includes(c))
+                  .filter((c) => !PRIORITY_COUNTRIES.includes(c.toLowerCase()))
                   .sort((a, b) => countryLabel(a).localeCompare(countryLabel(b)));
                 const items: React.ReactNode[] = priority.map((c) => (
                   <option key={c} value={c}>{countryLabel(c)}</option>
