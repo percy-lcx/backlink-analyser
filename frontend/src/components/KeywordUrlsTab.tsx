@@ -14,6 +14,75 @@ import {
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
+/** Map of common country codes to full names. */
+const COUNTRY_NAMES: Record<string, string> = {
+  us: "United States",
+  gb: "United Kingdom",
+  de: "Germany",
+  fr: "France",
+  au: "Australia",
+  ca: "Canada",
+  in: "India",
+  br: "Brazil",
+  es: "Spain",
+  it: "Italy",
+  nl: "Netherlands",
+  se: "Sweden",
+  no: "Norway",
+  dk: "Denmark",
+  fi: "Finland",
+  pl: "Poland",
+  pt: "Portugal",
+  be: "Belgium",
+  at: "Austria",
+  ch: "Switzerland",
+  ie: "Ireland",
+  nz: "New Zealand",
+  sg: "Singapore",
+  hk: "Hong Kong",
+  jp: "Japan",
+  kr: "South Korea",
+  cn: "China",
+  tw: "Taiwan",
+  th: "Thailand",
+  ph: "Philippines",
+  id: "Indonesia",
+  my: "Malaysia",
+  vn: "Vietnam",
+  mx: "Mexico",
+  ar: "Argentina",
+  co: "Colombia",
+  cl: "Chile",
+  za: "South Africa",
+  ng: "Nigeria",
+  ke: "Kenya",
+  eg: "Egypt",
+  il: "Israel",
+  ae: "United Arab Emirates",
+  sa: "Saudi Arabia",
+  tr: "Turkey",
+  ru: "Russia",
+  ua: "Ukraine",
+  cz: "Czech Republic",
+  ro: "Romania",
+  hu: "Hungary",
+  gr: "Greece",
+  hr: "Croatia",
+  bg: "Bulgaria",
+  sk: "Slovakia",
+  lt: "Lithuania",
+  lv: "Latvia",
+  ee: "Estonia",
+  si: "Slovenia",
+};
+
+/** Countries pinned to the top of the dropdown, in order. */
+const PRIORITY_COUNTRIES = ["us", "gb", "de", "fr", "au"];
+
+function countryLabel(code: string): string {
+  return COUNTRY_NAMES[code.toLowerCase()] ?? code.toUpperCase();
+}
+
 interface KeywordUrlsTabProps {
   profile: string;
 }
@@ -230,10 +299,10 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
     {
       accessorKey: "country_code",
       header: "Country",
-      size: 70,
+      size: 140,
       cell: ({ getValue }) => {
         const c = getValue() as string;
-        return c ? c.toUpperCase() : "-";
+        return c ? countryLabel(c) : "-";
       },
     },
     {
@@ -435,14 +504,27 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
             <select
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white w-28"
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white w-48"
               value={selectedCountry}
               onChange={(e) => { setSelectedCountry(e.target.value); setPage(1); }}
             >
               <option value="">All</option>
-              {countries.map((c) => (
-                <option key={c} value={c}>{c.toUpperCase()}</option>
-              ))}
+              {(() => {
+                const priority = PRIORITY_COUNTRIES.filter((c) => countries.includes(c));
+                const rest = countries
+                  .filter((c) => !PRIORITY_COUNTRIES.includes(c))
+                  .sort((a, b) => countryLabel(a).localeCompare(countryLabel(b)));
+                const items: React.ReactNode[] = priority.map((c) => (
+                  <option key={c} value={c}>{countryLabel(c)}</option>
+                ));
+                if (priority.length > 0 && rest.length > 0) {
+                  items.push(<option key="__sep" disabled>──────────</option>);
+                }
+                rest.forEach((c) => {
+                  items.push(<option key={c} value={c}>{countryLabel(c)}</option>);
+                });
+                return items;
+              })()}
             </select>
           </div>
         )}
