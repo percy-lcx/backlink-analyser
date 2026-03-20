@@ -702,8 +702,13 @@ export interface KeywordRankingUrlsParams {
   sort?: string;
 }
 
-export function fetchKeywordCountries(signal?: AbortSignal): Promise<string[]> {
-  return get<string[]>(`${BASE}/keyword-countries`, {}, signal);
+export interface CountryOption {
+  code: string;
+  location: string;
+}
+
+export function fetchKeywordCountries(signal?: AbortSignal): Promise<CountryOption[]> {
+  return get<CountryOption[]>(`${BASE}/keyword-countries`, {}, signal);
 }
 
 export function fetchKeywordSuggestions(q: string, signal?: AbortSignal, match?: KeywordMatchMode): Promise<KeywordSuggestion[]> {

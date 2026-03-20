@@ -310,14 +310,14 @@ def keyword_suggestions(
 
 @router.get("/api/keyword-countries")
 def keyword_countries():
-    """Return distinct country codes from organic_keywords."""
+    """Return distinct country code/location pairs from organic_keywords."""
     conn = get_conn()
     if not _has_keywords_view(conn):
         return []
     rows = conn.execute(
-        "SELECT DISTINCT country_code FROM organic_keywords WHERE country_code != '' ORDER BY country_code"
+        "SELECT DISTINCT country_code, location FROM organic_keywords WHERE country_code != '' ORDER BY location"
     ).fetchall()
-    return [r[0] for r in rows]
+    return [{"code": r[0], "location": r[1]} for r in rows]
 
 
 @router.get("/api/keyword-ranking-urls")

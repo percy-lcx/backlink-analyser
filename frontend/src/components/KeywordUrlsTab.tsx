@@ -11,22 +11,12 @@ import {
   type KeywordMatchMode,
   type RankingUrl,
   type KeywordRankingUrlsResponse,
+  type CountryOption,
 } from "../lib/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
-/** Resolve any ISO 3166-1 alpha-2 code to a human-readable country name. */
-const _countryDisplayNames = new Intl.DisplayNames(["en"], { type: "region" });
-
-/** Countries pinned to the top of the dropdown, in order. */
-const PRIORITY_COUNTRIES = ["us", "gb", "de", "fr", "au"];
-
-function countryLabel(code: string): string {
-  try {
-    return _countryDisplayNames.of(code.toUpperCase()) ?? code.toUpperCase();
-  } catch {
-    return code.toUpperCase();
-  }
-}
+/** Country codes pinned to the top of the dropdown, in order. */
+const PRIORITY_CODES = new Set(["us", "gb", "de", "fr", "au"]);
 
 interface KeywordUrlsTabProps {
   profile: string;
@@ -48,7 +38,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
   const [maxPosition, setMaxPosition] = useState(100);
   const [minDr, setMinDr] = useState<number | undefined>(undefined);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([profile]);
-  const [countries, setCountries] = useState<string[]>([]);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
 
   // Data state
@@ -247,7 +237,9 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       size: 140,
       cell: ({ getValue }) => {
         const c = getValue() as string;
-        return c ? countryLabel(c) : "-";
+        if (!c) return "-";
+        const match = countries.find((opt) => opt.code === c);
+        return match ? match.location : c.toUpperCase();
       },
     },
     {
@@ -455,19 +447,18 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
             >
               <option value="">All</option>
               {(() => {
-                const countriesLower = countries.map((c) => c.toLowerCase());
-                const priority = PRIORITY_COUNTRIES.filter((c) => countriesLower.includes(c));
+                const priority = countries.filter((c) => PRIORITY_CODES.has(c.code.toLowerCase()));
                 const rest = countries
-                  .filter((c) => !PRIORITY_COUNTRIES.includes(c.toLowerCase()))
-                  .sort((a, b) => countryLabel(a).localeCompare(countryLabel(b)));
+                  .filter((c) => !PRIORITY_CODES.has(c.code.toLowerCase()))
+                  .sort((a, b) => a.location.localeCompare(b.location));
                 const items: React.ReactNode[] = priority.map((c) => (
-                  <option key={c} value={c}>{countryLabel(c)}</option>
+                  <option key={c.code} value={c.code}>{c.location}</option>
                 ));
                 if (priority.length > 0 && rest.length > 0) {
                   items.push(<option key="__sep" disabled>──────────</option>);
                 }
                 rest.forEach((c) => {
-                  items.push(<option key={c} value={c}>{countryLabel(c)}</option>);
+                  items.push(<option key={c.code} value={c.code}>{c.location}</option>);
                 });
                 return items;
               })()}
