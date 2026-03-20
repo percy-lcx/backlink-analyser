@@ -1,24 +1,53 @@
+import type { ColumnDef } from "@tanstack/react-table";
+
+interface ColumnMapping {
+  key: string;
+  header: string;
+}
+
 interface Props {
   data: Record<string, unknown>[];
   filename?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  columns?: ColumnDef<any, unknown>[];
 }
 
-function toCsv(data: Record<string, unknown>[]): string {
+function extractColumnMappings(columns: ColumnDef<unknown, unknown>[]): ColumnMapping[] {
+  const mappings: ColumnMapping[] = [];
+  for (const col of columns) {
+    const key = (col as { accessorKey?: string }).accessorKey;
+    const header = col.header;
+    if (typeof key === "string" && typeof header === "string") {
+      mappings.push({ key, header });
+    }
+  }
+  return mappings;
+}
+
+function toCsv(data: Record<string, unknown>[], columns?: ColumnDef<unknown, unknown>[]): string {
   if (data.length === 0) return "";
-  const headers = Object.keys(data[0]);
   const escape = (v: unknown) => {
     const s = String(v ?? "");
     return s.includes(",") || s.includes('"') || s.includes("\n")
       ? `"${s.replace(/"/g, '""')}"`
       : s;
   };
+
+  if (columns) {
+    const mappings = extractColumnMappings(columns);
+    const headerRow = mappings.map((m) => escape(m.header)).join(",");
+    const rows = data.map((row) => mappings.map((m) => escape(row[m.key])).join(","));
+    return [headerRow, ...rows].join("\n");
+  }
+
+  const headers = Object.keys(data[0]);
   const rows = data.map((row) => headers.map((h) => escape(row[h])).join(","));
   return [headers.join(","), ...rows].join("\n");
 }
 
-export default function ExportButton({ data, filename = "export.csv" }: Props) {
+export default function ExportButton({ data, filename = "export.csv", columns }: Props) {
   const handleExport = () => {
-    const csv = toCsv(data);
+    const csv = toCsv(data, columns as ColumnDef<unknown, unknown>[] | undefined);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
