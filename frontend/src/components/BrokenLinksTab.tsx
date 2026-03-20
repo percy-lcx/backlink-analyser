@@ -297,7 +297,7 @@ export default function BrokenLinksTab() {
       {data && data.summary.total_broken > 0 && (
         <>
         <DataTable
-          toolbar={<ExportButton data={data.items as unknown as Record<string, unknown>[]} filename="broken-links.csv" />}
+          toolbar={<ExportButton data={data.items as unknown as Record<string, unknown>[]} columns={columns} filename="broken-links.csv" />}
           data={data.items}
           columns={columns}
           pageSize={pageSize}

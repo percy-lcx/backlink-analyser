@@ -617,6 +617,7 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
               toolbar={
                 <ExportButton
                   data={(selectedUrl ? filteredItems : data.items) as unknown as Record<string, unknown>[]}
+                  columns={backlinkColumns}
                   filename={`keyword-urls-backlinks-${data.keyword_query}.csv`}
                 />
               }
