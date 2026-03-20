@@ -309,19 +309,13 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       },
     },
     {
-      accessorKey: "keyword",
-      header: "Keyword",
-      size: 160,
-    },
-    {
-      accessorKey: "current_position",
-      header: "Position",
-      size: 80,
-    },
-    {
-      accessorKey: "first_seen",
-      header: "First Seen",
+      accessorKey: "domain_traffic",
+      header: "Domain Traffic",
       size: 100,
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null;
+        return v != null ? v.toLocaleString() : "-";
+      },
     },
   ], []);
 
