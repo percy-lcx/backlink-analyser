@@ -1,31 +1,46 @@
 # Quick Start
 
+## Prerequisites
+
+- **Python 3** — check with `python3 --version`
+- **Node.js** (v18+) — check with `node --version`
+
 ## First-Time Setup
 
-Double-click **`setup.command`** in Finder. This automatically installs everything you need — takes a few minutes the first time.
+Open a terminal and run:
 
-> **macOS security warning?** Right-click the file and choose **Open** instead.
->
-> **Password prompt?** The setup installs developer tools via Homebrew, which needs your Mac password.
+```
+cd ~/Desktop/backlink-analyser
+mkdir -p data store
+pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
+```
 
 ## Start the App
 
-Double-click **`start.command`** in Finder.
+**Terminal 1 — Backend**
+
+```
+cd ~/Desktop/backlink-analyser/backend
+python3 -m uvicorn main:app --reload --port 8000
+```
+
+**Terminal 2 — Frontend**
+
+```
+cd ~/Desktop/backlink-analyser/frontend
+npm run dev
+```
 
 Then open **http://localhost:5173** in your browser.
 
-To stop the app, press `Ctrl+C` in the Terminal window, or just close it.
-
-## Load Data
-
-1. Drag your Ahrefs CSV/TSV backlink exports into the `data` folder
-2. Open **http://localhost:8000/api/ingest** in your browser (this processes the files)
-3. Refresh the app in your browser
+To stop, press `Ctrl+C` in each terminal window.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| macOS blocks the file | Right-click the `.command` file > choose **Open** |
+| `python3` not found | Install Python 3 from https://www.python.org or via Homebrew |
+| `node` not found | Install Node.js from https://nodejs.org or via Homebrew |
 | Port already in use | Close other servers on ports 8000 or 5173 |
-| No profiles showing | Make sure you've added CSV files to `data/` and ingested them |
+| No profiles showing | Make sure parquet files are in the `store/` folder |
