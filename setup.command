@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$ROOT_DIR"
+# Navigate to project folder (needed when double-clicked from Finder)
+cd "$(dirname "$0")"
 
 echo "=============================="
 echo "  Backlink Analyser Setup"
@@ -33,7 +33,9 @@ fi
 
 if [ "$missing" -eq 1 ]; then
     echo
-    echo "Please install the missing tools above, then re-run this script."
+    echo "Please install the missing tools above, then double-click this file again."
+    echo
+    read -p "Press Enter to close..."
     exit 1
 fi
 
@@ -50,31 +52,25 @@ mkdir -p data store
 echo "[2/4] Building ingester (this may take a few minutes the first time)..."
 cd ingester
 cargo build --release
-cd "$ROOT_DIR"
+cd ..
 
 # --- Install Python dependencies ---
 
 echo "[3/4] Installing Python dependencies..."
-pip install -r backend/requirements.txt
+pip3 install -r backend/requirements.txt
 
 # --- Install frontend dependencies ---
 
 echo "[4/4] Installing frontend dependencies..."
 cd frontend
 npm install
-cd "$ROOT_DIR"
+cd ..
 
 echo
 echo "=============================="
 echo "  Setup complete!"
 echo "=============================="
 echo
-echo "To start the app:"
-echo "  python run.py"
+echo "Next step: Double-click 'start.command' to launch the app."
 echo
-echo "Then open http://localhost:5173 in your browser."
-echo
-echo "To load data:"
-echo "  1. Put Ahrefs CSV/TSV exports in the data/ folder"
-echo "  2. Run: python cli.py ingest"
-echo "  3. Refresh your browser"
+read -p "Press Enter to close..."
