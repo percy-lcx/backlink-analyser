@@ -1,18 +1,12 @@
 # Quick Start
 
-## Prerequisites
-
-Install these first (click the links):
-
-- **Python 3** — [python.org/downloads](https://www.python.org/downloads/)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org/)
-- **Rust** — [rustup.rs](https://rustup.rs/)
-
 ## First-Time Setup
 
-Double-click **`setup.command`** in Finder. This installs everything — takes a few minutes the first time.
+Double-click **`setup.command`** in Finder. This automatically installs everything you need — takes a few minutes the first time.
 
-> **macOS security warning?** If you see "cannot be opened because it is from an unidentified developer", right-click the file and choose **Open** instead.
+> **macOS security warning?** Right-click the file and choose **Open** instead.
+>
+> **Password prompt?** The setup installs developer tools via Homebrew, which needs your Mac password.
 
 ## Start the App
 

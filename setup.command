@@ -9,37 +9,39 @@ echo "  Backlink Analyser Setup"
 echo "=============================="
 echo
 
-# --- Check prerequisites ---
+# --- Install prerequisites automatically via Homebrew ---
 
-missing=0
+# Homebrew
+if ! command -v brew &>/dev/null; then
+    echo "Installing Homebrew (you may be asked for your Mac password)..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Add Homebrew to PATH for this session (Apple Silicon path)
+    if [ -f /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+fi
 
+# Python
 if ! command -v python3 &>/dev/null; then
-    echo "ERROR: Python 3 is not installed."
-    echo "  Install: https://www.python.org/downloads/"
-    missing=1
+    echo "Installing Python 3..."
+    brew install python
 fi
 
+# Node.js
 if ! command -v node &>/dev/null || ! command -v npm &>/dev/null; then
-    echo "ERROR: Node.js / npm is not installed."
-    echo "  Install: https://nodejs.org/"
-    missing=1
+    echo "Installing Node.js..."
+    brew install node
 fi
 
+# Rust
 if ! command -v cargo &>/dev/null; then
-    echo "ERROR: Rust / Cargo is not installed."
-    echo "  Install: https://rustup.rs/"
-    missing=1
+    echo "Installing Rust..."
+    brew install rust
 fi
 
-if [ "$missing" -eq 1 ]; then
-    echo
-    echo "Please install the missing tools above, then double-click this file again."
-    echo
-    read -p "Press Enter to close..."
-    exit 1
-fi
-
-echo "All prerequisites found."
+echo "All prerequisites ready."
 echo
 
 # --- Create directories ---
