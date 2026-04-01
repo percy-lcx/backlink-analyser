@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """File-based blocklist storage for flagging unhelpful domains.
 
 Supports per-profile overrides.  Storage format (v2):
