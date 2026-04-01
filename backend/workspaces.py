@@ -1,5 +1,7 @@
 """File-based workspace storage for grouping datasets by vertical/niche."""
 
+from __future__ import annotations
+
 import json
 import os
 
