@@ -129,26 +129,40 @@ function DashboardContent() {
     return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
   }
 
+  if (profiles.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen text-gray-500">
+        <div className="text-center">
+          <p className="text-lg font-medium">
+            {activeWorkspace ? `No datasets in workspace "${activeWorkspace}"` : "No profiles found"}
+          </p>
+          {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
+          <p className="text-sm mt-2">
+            {activeWorkspace
+              ? "Assign datasets to this workspace in Settings, or switch to a different workspace."
+              : "Upload backlink data and run ingestion from Settings."}
+          </p>
+          {activeWorkspace && (
+            <button
+              className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600"
+              onClick={() => switchWorkspace(null)}
+            >
+              Show all datasets
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Validate profile from URL
   if (!profiles.some((p) => p.profile_label === decodedProfile)) {
-    return <Navigate to={profilePath(profiles[0]?.profile_label ?? "")} replace />;
+    return <Navigate to={profilePath(profiles[0].profile_label)} replace />;
   }
 
   // Validate tab from URL
   if (urlTab && !isValidTab(urlTab)) {
     return <Navigate to={profilePath(decodedProfile)} replace />;
-  }
-
-  if (profiles.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-500">
-        <div className="text-center">
-          <p className="text-lg font-medium">No profiles found</p>
-          {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
-          <p className="text-sm mt-2">Upload backlink data and run ingestion from Settings.</p>
-        </div>
-      </div>
-    );
   }
 
   return (
