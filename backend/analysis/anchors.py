@@ -1,34 +1,10 @@
 from __future__ import annotations
 import re
 from typing import Optional
-from config import get_config
-import anchor_settings
 
 _URL_PATTERN = re.compile(
     r"^(https?://)?(www\.)?[\w\-]+\.[\w\-]+(\.[\w\-]+)*(\/\S*)?$", re.IGNORECASE
 )
-
-# Global generic anchors, lazily initialised once (not per-profile).
-_lowered_generic: list[str] | None = None
-
-
-def _get_generic_anchors() -> list[str]:
-    global _lowered_generic
-    if _lowered_generic is None:
-        # Settings file takes precedence over config.yaml
-        settings = anchor_settings.get_global_settings()
-        terms = settings.get("generic_anchors", [])
-        if not terms:
-            cfg = get_config().get("anchor_categories", {})
-            terms = [g.lower() for g in cfg.get("generic_anchors", [])]
-        _lowered_generic = terms
-    return _lowered_generic
-
-
-def invalidate_generic_cache() -> None:
-    """Reset generic anchors cache. Call after saving global settings."""
-    global _lowered_generic
-    _lowered_generic = None
 
 
 def categorise_anchor(
@@ -36,10 +12,9 @@ def categorise_anchor(
     link_type: Optional[str],
     branded_terms: list[str],
     target_keywords: list[str],
+    generic_anchors: list[str],
 ) -> str:
     """Return the category string for a single anchor text."""
-    generic_anchors = _get_generic_anchors()
-
     # empty / no text
     if not anchor or not anchor.strip():
         return "empty"
@@ -86,12 +61,13 @@ def categorise_anchors(
     rows: list[dict],
     branded_terms: list[str],
     target_keywords: list[str],
+    generic_anchors: list[str],
 ) -> list[dict]:
     """Add a 'category' key to each row dict based on anchor + link_type."""
     for row in rows:
         row["category"] = categorise_anchor(
             row.get("anchor"), row.get("link_type"),
-            branded_terms, target_keywords,
+            branded_terms, target_keywords, generic_anchors,
         )
     return rows
 

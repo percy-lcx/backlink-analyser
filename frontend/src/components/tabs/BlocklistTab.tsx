@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useBlocklist } from "../BlocklistContext";
+import { useProfile } from "../ProfileContext";
 import AutoBlockCriteriaPanel from "../AutoBlockCriteriaPanel";
 import DataTable from "../tables/DataTable";
 
@@ -9,10 +10,12 @@ interface BlocklistRow {
 }
 
 export default function BlocklistTab() {
-  const { blocklist, add, addMany, remove, clear, refresh } = useBlocklist();
+  const { blocklist, isCustom, add, addMany, remove, clear, refresh, revertToGlobal } = useBlocklist();
+  const { selected: profile } = useProfile();
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [confirmingRevert, setConfirmingRevert] = useState(false);
 
   const handleAdd = () => {
     const parts = input.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean);
@@ -96,10 +99,60 @@ export default function BlocklistTab() {
   return (
     <div>
       <div className="bg-white rounded-lg shadow p-5 mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">Domain Blocklist</h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold text-gray-700">Domain Blocklist</h3>
+          {profile && (
+            <span className="text-xs text-gray-500">
+              Profile: <span className="font-medium text-gray-700">{profile}</span>
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-400 mb-4">
           Domains added here will be visually flagged in all tables. They are not excluded from results.
+          {isCustom
+            ? " This profile has a custom blocklist."
+            : " Using global blocklist (shared across profiles)."}
         </p>
+
+        {/* Profile custom/global indicator */}
+        {profile && (
+          <div className="flex items-center gap-2 mb-4">
+            {isCustom ? (
+              <>
+                <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">Custom for {profile}</span>
+                {confirmingRevert ? (
+                  <>
+                    <span className="text-xs text-gray-500">Revert to global?</span>
+                    <button
+                      className="px-2 py-1 text-xs text-white bg-red-500 rounded hover:bg-red-600"
+                      onClick={() => { revertToGlobal(); setConfirmingRevert(false); }}
+                    >
+                      Yes, revert
+                    </button>
+                    <button
+                      className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                      onClick={() => setConfirmingRevert(false)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="text-xs text-primary-500 hover:text-primary-700 hover:underline"
+                    onClick={() => setConfirmingRevert(true)}
+                  >
+                    Revert to global
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                Using global defaults
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <input
             type="text"
@@ -119,7 +172,7 @@ export default function BlocklistTab() {
         </div>
       </div>
 
-      <AutoBlockCriteriaPanel onBlockComplete={refresh} />
+      <AutoBlockCriteriaPanel onBlockComplete={refresh} profile={profile || null} />
 
       <div className="bg-white rounded-lg shadow p-5">
         <div className="flex items-center gap-2 mb-3">

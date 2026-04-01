@@ -8,20 +8,20 @@ from config import get_config
 import anchor_settings
 
 
-_cache: dict[str, tuple[list[str], list[str]]] = {}
+_cache: dict[str, tuple[list[str], list[str], list[str]]] = {}
 _cache_lock = threading.Lock()
 
 
 def resolve_profile_terms(
     profile: str,
     conn,  # duckdb.DuckDBPyConnection
-) -> tuple[list[str], list[str]]:
-    """Return (branded_terms, target_keywords) for a profile.
+) -> tuple[list[str], list[str], list[str]]:
+    """Return (branded_terms, target_keywords, generic_anchors) for a profile.
 
-    Resolution:
-    1. Auto-detect branded terms from target_domain in the DB
-    2. Merge with config overrides from profiles.<profile>
-    3. Fall back to global anchor_categories if no profile config exists
+    Resolution for each term list:
+    1. If the profile has an explicit override in settings, use it.
+    2. Otherwise fall back to global settings.
+    3. If global settings are empty, fall back to config.yaml.
     """
     if profile in _cache:
         return _cache[profile]
@@ -39,25 +39,39 @@ def resolve_profile_terms(
         if excluded_auto:
             auto_branded = [t for t in auto_branded if t not in excluded_auto]
 
-        # Target keywords are now global
-        gs = anchor_settings.get_global_settings()
-        config_keywords = gs["target_keywords"]
+        # Target keywords: profile override → global → config.yaml
+        profile_kw = settings["target_keywords"]  # None if no override
+        if profile_kw is not None:
+            config_keywords = profile_kw
+        else:
+            gs = anchor_settings.get_global_settings()
+            config_keywords = gs["target_keywords"]
+            if not config_keywords:
+                global_cfg = get_config().get("anchor_categories", {})
+                config_keywords = [kw.lower() for kw in global_cfg.get("target_keywords", [])]
 
-        # Fall back to config.yaml if settings file has nothing
+        # Generic anchors: profile override → global → config.yaml
+        profile_ga = settings["generic_anchors"]  # None if no override
+        if profile_ga is not None:
+            generic_anchors = profile_ga
+        else:
+            gs = anchor_settings.get_global_settings()
+            generic_anchors = gs["generic_anchors"]
+            if not generic_anchors:
+                global_cfg = get_config().get("anchor_categories", {})
+                generic_anchors = [g.lower() for g in global_cfg.get("generic_anchors", [])]
+
+        # Fall back to config.yaml profile section for branded terms
         if not config_branded:
             cfg = get_config()
             profile_cfg = cfg.get("profiles", {}).get(profile, {})
             config_branded = [t.lower() for t in profile_cfg.get("branded_terms", [])]
 
-        if not config_keywords:
-            global_cfg = get_config().get("anchor_categories", {})
-            config_keywords = [kw.lower() for kw in global_cfg.get("target_keywords", [])]
-
         branded = _merge_unique(auto_branded, config_branded)
         keywords = config_keywords
 
-        _cache[profile] = (branded, keywords)
-        return branded, keywords
+        _cache[profile] = (branded, keywords, generic_anchors)
+        return branded, keywords, generic_anchors
 
 
 def invalidate_cache(profile: Optional[str] = None) -> None:

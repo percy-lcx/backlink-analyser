@@ -45,7 +45,7 @@ def anchors(
 ):
     """Group by anchor, count, and categorise."""
     conn = get_conn()
-    branded_terms, target_keywords = resolve_profile_terms(profile, conn)
+    branded_terms, target_keywords, generic_anchors = resolve_profile_terms(profile, conn)
 
     conditions = ["profile_label = $1"]
     params: list = [profile]
@@ -96,7 +96,7 @@ def anchors(
     items = []
     for row in rows:
         anchor_text, link_type_val, count = row
-        cat = categorise_anchor(anchor_text, link_type_val, branded_terms, target_keywords)
+        cat = categorise_anchor(anchor_text, link_type_val, branded_terms, target_keywords, generic_anchors)
         items.append({
             "anchor": anchor_text,
             "link_type": link_type_val,

@@ -2,10 +2,10 @@
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, field_validator
 
-from blocklist import get_blocklist, set_blocklist
+from blocklist import get_blocklist, set_blocklist, has_custom_blocklist, clear_profile_blocklist
 from db import get_conn
 
 router = APIRouter()
@@ -120,13 +120,24 @@ def _build_having_clause(rule: CriterionRule, idx: int) -> tuple[str, list, int]
 
 
 @router.get("/api/blocklist")
-def read_blocklist():
-    return {"domains": get_blocklist()}
+def read_blocklist(profile: Optional[str] = Query(None)):
+    is_custom = bool(profile and has_custom_blocklist(profile))
+    return {
+        "domains": get_blocklist(profile),
+        "is_custom": is_custom,
+    }
 
 
 @router.post("/api/blocklist")
-def write_blocklist(body: SaveBlocklistBody):
-    set_blocklist(body.domains)
+def write_blocklist(body: SaveBlocklistBody, profile: Optional[str] = Query(None)):
+    set_blocklist(body.domains, profile)
+    return {"status": "ok"}
+
+
+@router.delete("/api/blocklist/profile")
+def delete_profile_blocklist(profile: str = Query(...)):
+    """Remove a profile's custom blocklist, reverting to global."""
+    clear_profile_blocklist(profile)
     return {"status": "ok"}
 
 
@@ -141,14 +152,21 @@ def get_columns():
 
 
 @router.post("/api/blocklist/auto-block")
-def auto_block_criteria(body: AutoBlockCriteriaBody):
-    """Auto-block domains matching user-defined criteria across all profiles."""
+def auto_block_criteria(body: AutoBlockCriteriaBody, profile: Optional[str] = Query(None)):
+    """Auto-block domains matching user-defined criteria."""
     if not body.rules:
         raise HTTPException(status_code=400, detail="At least one rule is required")
 
     all_params: list = []
     having_parts: list[str] = []
     idx = 1
+
+    # Optional profile filter
+    where_clause = ""
+    if profile:
+        where_clause = f"WHERE profile_label = ${idx}"
+        all_params.append(profile)
+        idx += 1
 
     for rule in body.rules:
         try:
@@ -164,6 +182,7 @@ def auto_block_criteria(body: AutoBlockCriteriaBody):
     query = f"""
         SELECT referring_domain
         FROM backlinks
+        {where_clause}
         GROUP BY referring_domain
         HAVING {having_sql}
     """
@@ -175,8 +194,8 @@ def auto_block_criteria(body: AutoBlockCriteriaBody):
     if body.preview:
         return {"matched": len(matched_domains)}
 
-    existing = set(get_blocklist())
+    existing = set(get_blocklist(profile))
     added = matched_domains - existing
     merged = sorted(existing | matched_domains)
-    set_blocklist(merged)
+    set_blocklist(merged, profile)
     return {"added": len(added), "total": len(merged), "matched": len(matched_domains)}
