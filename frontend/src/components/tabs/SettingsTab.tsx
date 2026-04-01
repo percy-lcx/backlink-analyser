@@ -286,6 +286,210 @@ function FilePanel({ dirKey, label, description, accept }: { dirKey: string; lab
   );
 }
 
+function WorkspaceSection() {
+  const { activeWorkspace, workspaces, allDatasets, switchWorkspace, updateWorkspaces } = useProfile();
+  const [editName, setEditName] = useState("");
+  const [editDatasets, setEditDatasets] = useState<string[]>([]);
+  const [editing, setEditing] = useState<string | null>(null); // null = not editing, "" = new, "name" = editing existing
+
+  const workspaceNames = Object.keys(workspaces).sort();
+
+  const startCreate = () => {
+    setEditing("");
+    setEditName("");
+    setEditDatasets([]);
+  };
+
+  const startEdit = (name: string) => {
+    setEditing(name);
+    setEditName(name);
+    setEditDatasets([...(workspaces[name]?.datasets ?? [])]);
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setEditName("");
+    setEditDatasets([]);
+  };
+
+  const toggleDataset = (ds: string) => {
+    setEditDatasets((prev) =>
+      prev.includes(ds) ? prev.filter((d) => d !== ds) : [...prev, ds],
+    );
+  };
+
+  const saveEdit = async () => {
+    const name = editName.trim();
+    if (!name) return;
+    const next = { ...workspaces };
+    // If renaming, remove old key
+    if (editing && editing !== "" && editing !== name) {
+      delete next[editing];
+    }
+    next[name] = { datasets: editDatasets };
+    // Keep active workspace valid
+    const newActive = activeWorkspace === editing && editing !== name ? name : activeWorkspace;
+    await updateWorkspaces({ active: newActive, workspaces: next });
+    cancelEdit();
+  };
+
+  const deleteWorkspace = async (name: string) => {
+    const next = { ...workspaces };
+    delete next[name];
+    const newActive = activeWorkspace === name ? null : activeWorkspace;
+    await updateWorkspaces({ active: newActive, workspaces: next });
+  };
+
+  return (
+    <div>
+      {/* Active workspace selector */}
+      <div className="bg-white rounded-lg shadow p-5 mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Active Workspace</h3>
+        <div className="flex items-center gap-3">
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            value={activeWorkspace ?? ""}
+            onChange={(e) => switchWorkspace(e.target.value || null)}
+          >
+            <option value="">All datasets</option>
+            {workspaceNames.map((w) => (
+              <option key={w} value={w}>{w}</option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-400">
+            {activeWorkspace ? `Showing datasets in "${activeWorkspace}"` : "Showing all datasets"}
+          </span>
+        </div>
+      </div>
+
+      {/* Workspace list */}
+      <div className="bg-white rounded-lg shadow p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-700">Workspaces</h3>
+          <button
+            className="px-3 py-1.5 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600"
+            onClick={startCreate}
+          >
+            New Workspace
+          </button>
+        </div>
+
+        {workspaceNames.length === 0 && editing === null && (
+          <p className="text-sm text-gray-400 py-4 text-center">
+            No workspaces created. All datasets are shown by default.
+          </p>
+        )}
+
+        {workspaceNames.length > 0 && (
+          <div className="border border-gray-200 rounded-md overflow-hidden mb-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-primary-50">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Name</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600">Datasets</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-600 w-32">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workspaceNames.map((name, idx) => (
+                  <tr key={name} className={`border-b border-gray-100 ${idx % 2 === 1 ? "bg-row-alt" : ""}`}>
+                    <td className="px-3 py-2 font-medium text-gray-800">
+                      {name}
+                      {name === activeWorkspace && (
+                        <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded">Active</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {workspaces[name].datasets.length === 0
+                        ? <span className="text-gray-400 italic">No datasets</span>
+                        : workspaces[name].datasets.join(", ")}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        className="text-xs text-primary-500 hover:text-primary-700 hover:underline mr-3"
+                        onClick={() => startEdit(name)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                        onClick={() => deleteWorkspace(name)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Create / Edit form */}
+        {editing !== null && (
+          <div className="border border-primary-200 bg-primary-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+              {editing === "" ? "New Workspace" : `Edit "${editing}"`}
+            </h4>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+              <input
+                type="text"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. trading, crypto..."
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-600 mb-2">Datasets</label>
+              {allDatasets.length === 0 ? (
+                <p className="text-xs text-gray-400">No datasets available. Ingest some data first.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {allDatasets.map((ds) => (
+                    <label
+                      key={ds}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm cursor-pointer transition-colors ${
+                        editDatasets.includes(ds)
+                          ? "bg-primary-100 border-primary-300 text-primary-800"
+                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="accent-primary-500"
+                        checked={editDatasets.includes(ds)}
+                        onChange={() => toggleDataset(ds)}
+                      />
+                      {ds}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
+                onClick={saveEdit}
+                disabled={!editName.trim()}
+              >
+                {editing === "" ? "Create" : "Save"}
+              </button>
+              <button
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50"
+                onClick={cancelEdit}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DataManagementSection() {
   const { refresh } = useProfile();
   const [ingesting, setIngesting] = useState(false);
@@ -445,6 +649,10 @@ export default function SettingsTab() {
 
   return (
     <div>
+      <SettingsSection title="Workspaces" description="Group datasets by vertical or niche. Select a workspace to filter which datasets appear across the app." defaultOpen>
+        <WorkspaceSection />
+      </SettingsSection>
+
       <SettingsSection title="Anchor Text Matching" description="Configure how anchor text is categorised across your profiles.">
         {/* Branded terms — single panel with profile dropdown */}
         {activeBrandedProfile && (

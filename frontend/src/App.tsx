@@ -53,7 +53,7 @@ function DefaultRedirect() {
 function DashboardContent() {
   const { profile: urlProfile, tab: urlTab } = useParams<{ profile: string; tab: string }>();
   const navigate = useNavigate();
-  const { profiles, selected, setSelected, loading, error } = useProfile();
+  const { profiles, selected, setSelected, loading, error, activeWorkspace, workspaces, switchWorkspace } = useProfile();
   const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
   const [pageCategory, setPageCategory] = useState<string | null>(null);
 
@@ -158,6 +158,18 @@ function DashboardContent() {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-xl font-bold text-gray-900">Backlink Analyser</h1>
           <div className="flex items-center gap-3">
+            {Object.keys(workspaces).length > 0 && (
+              <select
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
+                value={activeWorkspace ?? ""}
+                onChange={(e) => switchWorkspace(e.target.value || null)}
+              >
+                <option value="">All datasets</option>
+                {Object.keys(workspaces).map((w) => (
+                  <option key={w} value={w}>{w}</option>
+                ))}
+              </select>
+            )}
             <select
               className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
               value={decodedProfile}
