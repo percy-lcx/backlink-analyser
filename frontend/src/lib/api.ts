@@ -732,8 +732,8 @@ export function fetchKeywordCountries(signal?: AbortSignal): Promise<CountryOpti
   return get<CountryOption[]>(`${BASE}/keyword-countries`, {}, signal);
 }
 
-export function fetchKeywordSuggestions(q: string, signal?: AbortSignal, match?: KeywordMatchMode): Promise<KeywordSuggestion[]> {
-  return get<KeywordSuggestion[]>(`${BASE}/keyword-suggestions`, { q, match }, signal);
+export function fetchKeywordSuggestions(q: string, signal?: AbortSignal, match?: KeywordMatchMode, profiles?: string): Promise<KeywordSuggestion[]> {
+  return get<KeywordSuggestion[]>(`${BASE}/keyword-suggestions`, { q, match, profiles }, signal);
 }
 
 export function fetchKeywordRankingUrls(

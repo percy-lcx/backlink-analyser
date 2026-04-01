@@ -282,16 +282,31 @@ def keyword_combined(
 def keyword_suggestions(
     q: str = Query(..., min_length=1, description="Partial keyword to search"),
     match: str = Query("contains", description="Match mode: 'exact' or 'contains'"),
+    profiles: Optional[str] = Query(None, description="Comma-separated profile labels to filter by"),
 ):
     """Return top 20 keywords matching the query, ordered by search volume."""
     conn = get_conn()
     if not _has_keywords_view(conn):
         return []
 
+    conditions: list[str] = []
+    params: list = [q]
+    idx = 2
+
     if match == "exact":
-        where_clause = "WHERE keyword = $1"
+        conditions.append("keyword = $1")
     else:
-        where_clause = "WHERE keyword ILIKE '%' || $1 || '%'"
+        conditions.append("keyword ILIKE '%' || $1 || '%'")
+
+    if profiles:
+        profile_list = [p.strip() for p in profiles.split(",") if p.strip()]
+        if profile_list:
+            placeholders = ", ".join(f"${idx + i}" for i in range(len(profile_list)))
+            conditions.append(f"profile_label IN ({placeholders})")
+            params.extend(profile_list)
+            idx += len(profile_list)
+
+    where_clause = "WHERE " + " AND ".join(conditions)
 
     rows = conn.execute(
         f"""
@@ -305,7 +320,7 @@ def keyword_suggestions(
         ORDER BY MAX(volume) DESC NULLS LAST
         LIMIT 20
         """,
-        [q],
+        params,
     ).fetchall()
     return [
         {"keyword": r[0], "volume": r[1], "profile_count": r[2]}

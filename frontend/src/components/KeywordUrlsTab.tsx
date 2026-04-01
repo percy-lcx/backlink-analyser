@@ -69,15 +69,16 @@ export default function KeywordUrlsTab({ profile }: KeywordUrlsTabProps) {
       setSuggestions([]);
       return;
     }
+    const profilesParam = selectedProfiles.length > 0 ? selectedProfiles.join(",") : undefined;
     const timer = setTimeout(() => {
       const controller = new AbortController();
-      fetchKeywordSuggestions(searchInput, controller.signal, matchMode)
+      fetchKeywordSuggestions(searchInput, controller.signal, matchMode, profilesParam)
         .then(setSuggestions)
         .catch(() => {});
       return () => controller.abort();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, matchMode]);
+  }, [searchInput, matchMode, selectedProfiles]);
 
   // Close suggestions on outside click
   useEffect(() => {
