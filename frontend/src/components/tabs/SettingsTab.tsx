@@ -7,7 +7,7 @@ import {
   fetchFiles,
   uploadFiles,
   deleteFile,
-  type ProfileBrandedSettings,
+  type ProfileAnchorSettings,
   type FileEntry,
 } from "../../lib/api";
 import { useProfile } from "../ProfileContext";
@@ -56,9 +56,11 @@ interface TermListProps {
   autoTerms?: string[];
   onAutoRemove?: (term: string) => void;
   profileSelector?: ReactNode;
+  readOnly?: boolean;
+  readOnlyNote?: string;
 }
 
-function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms, onAutoRemove, profileSelector }: TermListProps) {
+function TermList({ title, description, terms, onAdd, onRemove, placeholder, autoTerms, onAutoRemove, profileSelector, readOnly, readOnlyNote }: TermListProps) {
   const [input, setInput] = useState("");
   const [page, setPage] = useState(0);
 
@@ -109,48 +111,56 @@ function TermList({ title, description, terms, onAdd, onRemove, placeholder, aut
         </div>
       )}
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          placeholder={placeholder ?? "Enter term(s), comma-separated..."}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-        />
-        <button
-          className="px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
-          onClick={handleAdd}
-          disabled={!input.trim()}
-        >
-          Add
-        </button>
-      </div>
+      {readOnly ? (
+        readOnlyNote && (
+          <p className="text-xs text-gray-400 italic mb-3">{readOnlyNote}</p>
+        )
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder={placeholder ?? "Enter term(s), comma-separated..."}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+          />
+          <button
+            className="px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
+            onClick={handleAdd}
+            disabled={!input.trim()}
+          >
+            Add
+          </button>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <p className="text-sm text-gray-400 py-6 text-center">No terms added yet.</p>
       ) : (
         <>
-          <div className="border border-gray-200 rounded-md overflow-hidden mt-4">
+          <div className={`border border-gray-200 rounded-md overflow-hidden mt-4 ${readOnly ? "opacity-60" : ""}`}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-primary-50">
                   <th className="px-3 py-2 text-left font-semibold text-gray-600">Term</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600 w-24">Action</th>
+                  {!readOnly && <th className="px-3 py-2 text-right font-semibold text-gray-600 w-24">Action</th>}
                 </tr>
               </thead>
               <tbody>
                 {paged.map((term, idx) => (
                   <tr key={term} className={`border-b border-gray-100 ${idx % 2 === 1 ? "bg-row-alt" : ""}`}>
                     <td className="px-3 py-2 font-mono text-gray-800">{term}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        className="text-xs text-red-500 hover:text-red-700 hover:underline"
-                        onClick={() => onRemove(term)}
-                      >
-                        Remove
-                      </button>
-                    </td>
+                    {!readOnly && (
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                          onClick={() => onRemove(term)}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -182,6 +192,37 @@ function TermList({ title, description, terms, onAdd, onRemove, placeholder, aut
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function ProfileOverrideToggle({ isCustom, onToggle, label }: {
+  isCustom: boolean;
+  onToggle: (custom: boolean) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <button
+        className={`px-3 py-1.5 text-xs rounded-md border font-medium transition-colors ${
+          !isCustom
+            ? "bg-primary-100 border-primary-300 text-primary-800"
+            : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+        }`}
+        onClick={() => onToggle(false)}
+      >
+        Use global defaults
+      </button>
+      <button
+        className={`px-3 py-1.5 text-xs rounded-md border font-medium transition-colors ${
+          isCustom
+            ? "bg-primary-100 border-primary-300 text-primary-800"
+            : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+        }`}
+        onClick={() => onToggle(true)}
+      >
+        Custom for {label}
+      </button>
     </div>
   );
 }
@@ -537,19 +578,21 @@ function DataManagementSection() {
 }
 
 export default function SettingsTab() {
-  const [profileSettings, setProfileSettings] = useState<Record<string, ProfileBrandedSettings>>({});
-  const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
-  const [genericAnchors, setGenericAnchors] = useState<string[]>([]);
+  const [profileSettings, setProfileSettings] = useState<Record<string, ProfileAnchorSettings>>({});
+  const [globalTargetKeywords, setGlobalTargetKeywords] = useState<string[]>([]);
+  const [globalGenericAnchors, setGlobalGenericAnchors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBrandedProfile, setSelectedBrandedProfile] = useState("");
+  const [selectedKwProfile, setSelectedKwProfile] = useState("");
+  const [selectedGaProfile, setSelectedGaProfile] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
     fetchAllAnchorSettings()
       .then((data) => {
         setProfileSettings(data.profiles);
-        setTargetKeywords(data.target_keywords);
-        setGenericAnchors(data.generic_anchors);
+        setGlobalTargetKeywords(data.target_keywords);
+        setGlobalGenericAnchors(data.generic_anchors);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -562,8 +605,14 @@ export default function SettingsTab() {
   }, []);
 
   // --- Branded terms handlers (per-profile) ---
-  const saveProfile = useCallback((profileLabel: string, settings: ProfileBrandedSettings) => {
-    saveProfileAnchorSettings(profileLabel, settings.branded_terms, settings.excluded_auto_terms).catch(() => {});
+  const saveProfile = useCallback((profileLabel: string, settings: ProfileAnchorSettings) => {
+    saveProfileAnchorSettings(
+      profileLabel,
+      settings.branded_terms,
+      settings.excluded_auto_terms,
+      settings.has_custom_target_keywords ? settings.target_keywords : null,
+      settings.has_custom_generic_anchors ? settings.generic_anchors : null,
+    ).catch(() => {});
   }, []);
 
   const addBranded = useCallback((profileLabel: string, term: string) => {
@@ -601,40 +650,118 @@ export default function SettingsTab() {
   }, [saveProfile]);
 
   // --- Target keywords handlers (global) ---
-  const addKeyword = useCallback((term: string) => {
-    setTargetKeywords((prev) => {
+  const addGlobalKeyword = useCallback((term: string) => {
+    setGlobalTargetKeywords((prev) => {
       if (prev.includes(term)) return prev;
       const next = [...prev, term];
-      saveGlobal(next, genericAnchors);
+      saveGlobal(next, globalGenericAnchors);
       return next;
     });
-  }, [saveGlobal, genericAnchors]);
+  }, [saveGlobal, globalGenericAnchors]);
 
-  const removeKeyword = useCallback((term: string) => {
-    setTargetKeywords((prev) => {
+  const removeGlobalKeyword = useCallback((term: string) => {
+    setGlobalTargetKeywords((prev) => {
       const next = prev.filter((t) => t !== term);
-      saveGlobal(next, genericAnchors);
+      saveGlobal(next, globalGenericAnchors);
       return next;
     });
-  }, [saveGlobal, genericAnchors]);
+  }, [saveGlobal, globalGenericAnchors]);
 
   // --- Generic anchors handlers (global) ---
-  const addGeneric = useCallback((term: string) => {
-    setGenericAnchors((prev) => {
+  const addGlobalGeneric = useCallback((term: string) => {
+    setGlobalGenericAnchors((prev) => {
       if (prev.includes(term)) return prev;
       const next = [...prev, term];
-      saveGlobal(targetKeywords, next);
+      saveGlobal(globalTargetKeywords, next);
       return next;
     });
-  }, [saveGlobal, targetKeywords]);
+  }, [saveGlobal, globalTargetKeywords]);
 
-  const removeGeneric = useCallback((term: string) => {
-    setGenericAnchors((prev) => {
+  const removeGlobalGeneric = useCallback((term: string) => {
+    setGlobalGenericAnchors((prev) => {
       const next = prev.filter((t) => t !== term);
-      saveGlobal(targetKeywords, next);
+      saveGlobal(globalTargetKeywords, next);
       return next;
     });
-  }, [saveGlobal, targetKeywords]);
+  }, [saveGlobal, globalTargetKeywords]);
+
+  // --- Per-profile target keywords handlers ---
+  const toggleCustomKeywords = useCallback((profileLabel: string, custom: boolean) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current) return prev;
+      const next: ProfileAnchorSettings = custom
+        ? { ...current, has_custom_target_keywords: true, target_keywords: [...globalTargetKeywords] }
+        : { ...current, has_custom_target_keywords: false, target_keywords: globalTargetKeywords };
+      saveProfileAnchorSettings(
+        profileLabel,
+        next.branded_terms,
+        next.excluded_auto_terms,
+        custom ? next.target_keywords : null,
+        next.has_custom_generic_anchors ? next.generic_anchors : null,
+      ).catch(() => {});
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [globalTargetKeywords]);
+
+  const addProfileKeyword = useCallback((profileLabel: string, term: string) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current || current.target_keywords.includes(term)) return prev;
+      const next = { ...current, target_keywords: [...current.target_keywords, term] };
+      saveProfile(profileLabel, next);
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [saveProfile]);
+
+  const removeProfileKeyword = useCallback((profileLabel: string, term: string) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current) return prev;
+      const next = { ...current, target_keywords: current.target_keywords.filter((t) => t !== term) };
+      saveProfile(profileLabel, next);
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [saveProfile]);
+
+  // --- Per-profile generic anchors handlers ---
+  const toggleCustomGenericAnchors = useCallback((profileLabel: string, custom: boolean) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current) return prev;
+      const next: ProfileAnchorSettings = custom
+        ? { ...current, has_custom_generic_anchors: true, generic_anchors: [...globalGenericAnchors] }
+        : { ...current, has_custom_generic_anchors: false, generic_anchors: globalGenericAnchors };
+      saveProfileAnchorSettings(
+        profileLabel,
+        next.branded_terms,
+        next.excluded_auto_terms,
+        next.has_custom_target_keywords ? next.target_keywords : null,
+        custom ? next.generic_anchors : null,
+      ).catch(() => {});
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [globalGenericAnchors]);
+
+  const addProfileGeneric = useCallback((profileLabel: string, term: string) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current || current.generic_anchors.includes(term)) return prev;
+      const next = { ...current, generic_anchors: [...current.generic_anchors, term] };
+      saveProfile(profileLabel, next);
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [saveProfile]);
+
+  const removeProfileGeneric = useCallback((profileLabel: string, term: string) => {
+    setProfileSettings((prev) => {
+      const current = prev[profileLabel];
+      if (!current) return prev;
+      const next = { ...current, generic_anchors: current.generic_anchors.filter((t) => t !== term) };
+      saveProfile(profileLabel, next);
+      return { ...prev, [profileLabel]: next };
+    });
+  }, [saveProfile]);
 
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading settings...</div>;
@@ -642,10 +769,34 @@ export default function SettingsTab() {
 
   const profileLabels = Object.keys(profileSettings).sort();
 
-  // Keep selection valid if profiles change
+  // Keep selections valid
   const activeBrandedProfile = profileLabels.includes(selectedBrandedProfile)
     ? selectedBrandedProfile
     : profileLabels[0] ?? "";
+  const activeKwProfile = profileLabels.includes(selectedKwProfile)
+    ? selectedKwProfile
+    : profileLabels[0] ?? "";
+  const activeGaProfile = profileLabels.includes(selectedGaProfile)
+    ? selectedGaProfile
+    : profileLabels[0] ?? "";
+
+  const profileDropdown = (selected: string, onChange: (v: string) => void) =>
+    profileLabels.length > 1 ? (
+      <select
+        className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        value={selected}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {profileLabels.map((label) => (
+          <option key={label} value={label}>{label}</option>
+        ))}
+      </select>
+    ) : (
+      <span className="text-sm font-medium text-gray-600">{selected}</span>
+    );
+
+  const kwSettings = activeKwProfile ? profileSettings[activeKwProfile] : null;
+  const gaSettings = activeGaProfile ? profileSettings[activeGaProfile] : null;
 
   return (
     <div>
@@ -666,43 +817,89 @@ export default function SettingsTab() {
             placeholder="e.g. my brand, mybrand..."
             autoTerms={profileSettings[activeBrandedProfile].auto_branded_terms}
             onAutoRemove={(term) => excludeAutoTerm(activeBrandedProfile, term)}
-            profileSelector={
-              profileLabels.length > 1 ? (
-                <select
-                  className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  value={activeBrandedProfile}
-                  onChange={(e) => setSelectedBrandedProfile(e.target.value)}
-                >
-                  {profileLabels.map((label) => (
-                    <option key={label} value={label}>{label}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className="text-sm font-medium text-gray-600">{activeBrandedProfile}</span>
-              )
-            }
+            profileSelector={profileDropdown(activeBrandedProfile, setSelectedBrandedProfile)}
           />
         )}
 
-        {/* Global target keywords */}
-        <TermList
-          title="Target Keywords"
-          description="Anchors matching these keywords are categorized as exact match or partial match. Applies to all profiles."
-          terms={targetKeywords}
-          onAdd={addKeyword}
-          onRemove={removeKeyword}
-          placeholder="e.g. forex trading, demo account..."
-        />
+        {/* Target keywords — per-profile with global fallback */}
+        {activeKwProfile && kwSettings && (
+          <div className="bg-white rounded-lg shadow p-5 mb-6">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-gray-700">Target Keywords</h3>
+              {profileDropdown(activeKwProfile, setSelectedKwProfile)}
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Anchors matching these keywords are categorized as exact match or partial match.
+            </p>
+            <ProfileOverrideToggle
+              isCustom={kwSettings.has_custom_target_keywords}
+              onToggle={(custom) => toggleCustomKeywords(activeKwProfile, custom)}
+              label={activeKwProfile}
+            />
+            {kwSettings.has_custom_target_keywords ? (
+              <TermList
+                key={`kw-custom-${activeKwProfile}`}
+                title=""
+                description=""
+                terms={kwSettings.target_keywords}
+                onAdd={(term) => addProfileKeyword(activeKwProfile, term)}
+                onRemove={(term) => removeProfileKeyword(activeKwProfile, term)}
+                placeholder="e.g. forex trading, demo account..."
+              />
+            ) : (
+              <TermList
+                key={`kw-global-${activeKwProfile}`}
+                title=""
+                description=""
+                terms={globalTargetKeywords}
+                onAdd={addGlobalKeyword}
+                onRemove={removeGlobalKeyword}
+                placeholder="e.g. forex trading, demo account..."
+                readOnlyNote="Editing global defaults. Changes apply to all profiles using global settings."
+              />
+            )}
+          </div>
+        )}
 
-        {/* Global generic anchors */}
-        <TermList
-          title="Generic Anchors"
-          description="Anchors containing these terms are categorized as generic. Applies to all profiles."
-          terms={genericAnchors}
-          onAdd={addGeneric}
-          onRemove={removeGeneric}
-          placeholder="e.g. click here, read more..."
-        />
+        {/* Generic anchors — per-profile with global fallback */}
+        {activeGaProfile && gaSettings && (
+          <div className="bg-white rounded-lg shadow p-5 mb-6">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-gray-700">Generic Anchors</h3>
+              {profileDropdown(activeGaProfile, setSelectedGaProfile)}
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Anchors containing these terms are categorized as generic.
+            </p>
+            <ProfileOverrideToggle
+              isCustom={gaSettings.has_custom_generic_anchors}
+              onToggle={(custom) => toggleCustomGenericAnchors(activeGaProfile, custom)}
+              label={activeGaProfile}
+            />
+            {gaSettings.has_custom_generic_anchors ? (
+              <TermList
+                key={`ga-custom-${activeGaProfile}`}
+                title=""
+                description=""
+                terms={gaSettings.generic_anchors}
+                onAdd={(term) => addProfileGeneric(activeGaProfile, term)}
+                onRemove={(term) => removeProfileGeneric(activeGaProfile, term)}
+                placeholder="e.g. click here, read more..."
+              />
+            ) : (
+              <TermList
+                key={`ga-global-${activeGaProfile}`}
+                title=""
+                description=""
+                terms={globalGenericAnchors}
+                onAdd={addGlobalGeneric}
+                onRemove={removeGlobalGeneric}
+                placeholder="e.g. click here, read more..."
+                readOnlyNote="Editing global defaults. Changes apply to all profiles using global settings."
+              />
+            )}
+          </div>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Domain Blocking" description="Manage domains to flag across all tables.">

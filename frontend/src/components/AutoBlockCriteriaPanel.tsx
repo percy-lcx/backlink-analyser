@@ -9,6 +9,7 @@ import {
 
 interface Props {
   onBlockComplete: () => void;
+  profile?: string | null;
 }
 
 const NUMERIC_OPS = ["=", "!=", "<", "<=", ">", ">="] as const;
@@ -35,7 +36,7 @@ function fieldType(field: string, cols: ColumnMetadata | null): "numeric" | "boo
   return "string";
 }
 
-export default function AutoBlockCriteriaPanel({ onBlockComplete }: Props) {
+export default function AutoBlockCriteriaPanel({ onBlockComplete, profile }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [cols, setCols] = useState<ColumnMetadata | null>(null);
   const [rules, setRules] = useState<CriterionRule[]>([emptyRule()]);
@@ -98,7 +99,7 @@ export default function AutoBlockCriteriaPanel({ onBlockComplete }: Props) {
     setPreviewLoading(true);
     setMessage(null);
     try {
-      const res = await autoBlockCriteria(buildBody(true));
+      const res = await autoBlockCriteria(buildBody(true), profile);
       setPreviewCount(res.matched);
     } catch {
       setMessage("Preview failed");
@@ -112,7 +113,7 @@ export default function AutoBlockCriteriaPanel({ onBlockComplete }: Props) {
     setBlocking(true);
     setMessage(null);
     try {
-      const res = await autoBlockCriteria(buildBody(false));
+      const res = await autoBlockCriteria(buildBody(false), profile);
       setMessage(
         res.added && res.added > 0
           ? `Added ${res.added} domain${res.added === 1 ? "" : "s"} (${res.total} total)`

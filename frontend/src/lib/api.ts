@@ -511,12 +511,30 @@ export async function deleteFile(dir: string, name: string): Promise<{ status: s
 
 /* ---- Blocklist ---- */
 
-export function fetchBlocklist(): Promise<{ domains: string[] }> {
-  return get<{ domains: string[] }>(`${BASE}/blocklist`);
+export interface BlocklistResponse {
+  domains: string[];
+  is_custom: boolean;
 }
 
-export function saveBlocklist(domains: string[]): Promise<{ status: string }> {
-  return post<{ status: string }>(`${BASE}/blocklist`, { domains });
+export function fetchBlocklist(profile?: string | null): Promise<BlocklistResponse> {
+  const params: Record<string, string> = {};
+  if (profile) params.profile = profile;
+  return get<BlocklistResponse>(`${BASE}/blocklist`, params);
+}
+
+export function saveBlocklist(domains: string[], profile?: string | null): Promise<{ status: string }> {
+  const url = profile
+    ? `${BASE}/blocklist?profile=${encodeURIComponent(profile)}`
+    : `${BASE}/blocklist`;
+  return post<{ status: string }>(url, { domains });
+}
+
+export function clearProfileBlocklist(profile: string): Promise<{ status: string }> {
+  return fetch(`${BASE}/blocklist/profile?profile=${encodeURIComponent(profile)}`, { method: "DELETE" })
+    .then((res) => {
+      if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+      return res.json();
+    });
 }
 
 export interface CriterionRule {
@@ -548,8 +566,11 @@ export function fetchBlocklistColumns(): Promise<ColumnMetadata> {
   return get<ColumnMetadata>(`${BASE}/blocklist/columns`);
 }
 
-export function autoBlockCriteria(body: AutoBlockCriteriaBody): Promise<AutoBlockResult> {
-  return post<AutoBlockResult>(`${BASE}/blocklist/auto-block`, body);
+export function autoBlockCriteria(body: AutoBlockCriteriaBody, profile?: string | null): Promise<AutoBlockResult> {
+  const url = profile
+    ? `${BASE}/blocklist/auto-block?profile=${encodeURIComponent(profile)}`
+    : `${BASE}/blocklist/auto-block`;
+  return post<AutoBlockResult>(url, body);
 }
 
 /* ---- Keyword comparison ---- */
@@ -733,16 +754,22 @@ export interface AnchorSettings {
   target_keywords: string[];
   generic_anchors: string[];
   auto_branded_terms: string[];
+  has_custom_target_keywords: boolean;
+  has_custom_generic_anchors: boolean;
 }
 
-export interface ProfileBrandedSettings {
+export interface ProfileAnchorSettings {
   branded_terms: string[];
   auto_branded_terms: string[];
   excluded_auto_terms: string[];
+  target_keywords: string[];
+  generic_anchors: string[];
+  has_custom_target_keywords: boolean;
+  has_custom_generic_anchors: boolean;
 }
 
 export interface AllAnchorSettings {
-  profiles: Record<string, ProfileBrandedSettings>;
+  profiles: Record<string, ProfileAnchorSettings>;
   target_keywords: string[];
   generic_anchors: string[];
 }
@@ -759,10 +786,16 @@ export function saveProfileAnchorSettings(
   profile: string,
   branded_terms: string[],
   excluded_auto_terms: string[] = [],
+  target_keywords?: string[] | null,
+  generic_anchors?: string[] | null,
 ): Promise<{ status: string }> {
+  const body: Record<string, unknown> = { branded_terms, excluded_auto_terms };
+  // undefined = don't change, null = clear override, array = set override
+  if (target_keywords !== undefined) body.target_keywords = target_keywords;
+  if (generic_anchors !== undefined) body.generic_anchors = generic_anchors;
   return post<{ status: string }>(
     `${BASE}/anchor-settings/profile?profile=${encodeURIComponent(profile)}`,
-    { branded_terms, excluded_auto_terms },
+    body,
   );
 }
 
