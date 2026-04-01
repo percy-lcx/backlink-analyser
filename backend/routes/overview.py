@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Query
 from db import get_conn
+from workspaces import get_active_datasets
 
 router = APIRouter()
 
@@ -22,7 +23,11 @@ def list_profiles():
         """
     ).fetchall()
     cols = ["profile_label", "total_links", "unique_referring_domains", "avg_dr"]
-    return [dict(zip(cols, row)) for row in rows]
+    results = [dict(zip(cols, row)) for row in rows]
+    active_ds = get_active_datasets()
+    if active_ds is not None:
+        results = [r for r in results if r["profile_label"] in active_ds]
+    return results
 
 
 @router.get("/api/overview")

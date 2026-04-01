@@ -799,3 +799,37 @@ export function saveSessionFilters(
     filters,
   });
 }
+
+/* ---- Workspaces ---- */
+
+export interface WorkspacesData {
+  active: string | null;
+  workspaces: Record<string, { datasets: string[] }>;
+  all_datasets: string[];
+}
+
+async function put<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+export function fetchWorkspaces(): Promise<WorkspacesData> {
+  return get<WorkspacesData>(`${BASE}/workspaces`);
+}
+
+export function saveWorkspaces(
+  data: { active: string | null; workspaces: Record<string, { datasets: string[] }> },
+): Promise<{ status: string }> {
+  return put<{ status: string }>(`${BASE}/workspaces`, data);
+}
+
+export function setActiveWorkspace(
+  name: string | null,
+): Promise<{ status: string }> {
+  return post<{ status: string }>(`${BASE}/workspaces/active`, { name });
+}
