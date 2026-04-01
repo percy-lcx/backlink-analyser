@@ -53,7 +53,7 @@ function DefaultRedirect() {
 function DashboardContent() {
   const { profile: urlProfile, tab: urlTab } = useParams<{ profile: string; tab: string }>();
   const navigate = useNavigate();
-  const { profiles, selected, setSelected, loading, error, activeWorkspace, workspaces, switchWorkspace } = useProfile();
+  const { profiles, selected, setSelected, loading, error, activeWorkspace, workspaces, switchWorkspace, allDatasets, updateWorkspaces } = useProfile();
   const [drilldown, setDrilldown] = useState<LinksDrilldown | null>(null);
   const [pageCategory, setPageCategory] = useState<string | null>(null);
 
@@ -132,23 +132,34 @@ function DashboardContent() {
   if (profiles.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen text-gray-500">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <p className="text-lg font-medium">
-            {activeWorkspace ? `No datasets in workspace "${activeWorkspace}"` : "No profiles found"}
+            {activeWorkspace ? `No datasets in "${activeWorkspace}"` : "No profiles found"}
           </p>
           {error && <p className="text-sm mt-2 text-red-500">Error: {error}</p>}
-          <p className="text-sm mt-2">
-            {activeWorkspace
-              ? "Assign datasets to this workspace in Settings, or switch to a different workspace."
-              : "Upload backlink data and run ingestion from Settings."}
-          </p>
-          {activeWorkspace && (
-            <button
-              className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-md text-sm font-medium hover:bg-primary-600"
-              onClick={() => switchWorkspace(null)}
-            >
-              Show all datasets
-            </button>
+          {activeWorkspace && allDatasets.length > 0 ? (
+            <>
+              <p className="text-sm mt-2 mb-4">Select datasets to add to this workspace:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {allDatasets.map((ds) => (
+                  <button
+                    key={ds}
+                    className="px-3 py-1.5 rounded-md border border-gray-200 bg-white text-sm text-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                    onClick={async () => {
+                      const ws = { ...workspaces };
+                      const entry = ws[activeWorkspace] ?? { datasets: [] };
+                      entry.datasets = [...entry.datasets, ds];
+                      ws[activeWorkspace] = entry;
+                      await updateWorkspaces({ active: activeWorkspace, workspaces: ws });
+                    }}
+                  >
+                    + {ds}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm mt-2">Upload backlink data and run ingestion from Settings.</p>
           )}
         </div>
       </div>
