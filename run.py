@@ -19,12 +19,14 @@ def main():
     procs = []
 
     try:
-        # Start FastAPI backend
+        # Start FastAPI backend.
+        # Run from backend/ so that bare imports like `from db import ...`
+        # in backend/main.py resolve correctly.
         print(f"Starting FastAPI backend on http://localhost:{port}")
         backend = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "backend.main:app",
+            [sys.executable, "-m", "uvicorn", "main:app",
              "--host", "0.0.0.0", "--port", str(port), "--reload"],
-            cwd=ROOT_DIR,
+            cwd=os.path.join(ROOT_DIR, "backend"),
         )
         procs.append(backend)
 
