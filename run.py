@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Launch both FastAPI backend and Vite dev server."""
 
+import argparse
 import os
 import signal
 import subprocess
@@ -10,31 +11,38 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Launch FastAPI backend and Vite dev server")
+    parser.add_argument("--port", type=int, default=8000, help="Backend port (default: 8000)")
+    args = parser.parse_args()
+    port = args.port
+
     procs = []
 
     try:
         # Start FastAPI backend
-        print("Starting FastAPI backend on http://localhost:8000")
+        print(f"Starting FastAPI backend on http://localhost:{port}")
         backend = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "backend.main:app",
-             "--host", "0.0.0.0", "--port", "8000", "--reload"],
+             "--host", "0.0.0.0", "--port", str(port), "--reload"],
             cwd=ROOT_DIR,
         )
         procs.append(backend)
 
-        # Start Vite dev server
+        # Start Vite dev server (forward backend port so the proxy targets it)
         print("Starting Vite dev server on http://localhost:5173")
+        frontend_env = {**os.environ, "VITE_BACKEND_PORT": str(port)}
         frontend = subprocess.Popen(
             ["npm", "run", "dev"],
             cwd=os.path.join(ROOT_DIR, "frontend"),
+            env=frontend_env,
         )
         procs.append(frontend)
 
         print()
         print("=" * 50)
-        print("  Backend:  http://localhost:8000")
+        print(f"  Backend:  http://localhost:{port}")
         print("  Frontend: http://localhost:5173")
-        print("  API docs: http://localhost:8000/docs")
+        print(f"  API docs: http://localhost:{port}/docs")
         print("=" * 50)
         print()
         print("Press Ctrl+C to stop both servers")
