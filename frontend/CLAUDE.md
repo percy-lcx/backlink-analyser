@@ -24,7 +24,7 @@ npm run lint      # ESLint
 
 ## Patterns
 
-- Vite proxies `/api/*` to `http://localhost:8000` (see `vite.config.ts`)
+- Vite proxies `/api/*` to `http://localhost:8000` by default (see `vite.config.ts`). Override via `VITE_API_TARGET` (full URL) or `VITE_BACKEND_PORT` (port only), e.g. `VITE_BACKEND_PORT=8001 npm run dev`
 - `api.ts` is the single point for all backend calls - add new endpoints there
 - Charts use Recharts; tables use TanStack Table via the `DataTable.tsx` wrapper
 - Profile selection flows through `ProfileContext`
