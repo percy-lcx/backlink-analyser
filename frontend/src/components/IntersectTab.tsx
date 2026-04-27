@@ -46,15 +46,16 @@ function intersectColor(count: number, total: number): string {
   return "#9fa8da";                    // primary-200
 }
 
-/* ---- Domain lookup form (isolated to avoid re-rendering parent on keystrokes) ---- */
+/* ---- Domain search form (isolated to avoid re-rendering parent on keystrokes) ---- */
 
-interface DomainLookupFormProps {
+interface DomainSearchFormProps {
   initialValue: string;
-  onSubmit: (domain: string) => void;
+  onSubmit: (query: string) => void;
+  onClear: () => void;
   className?: string;
 }
 
-function DomainLookupForm({ initialValue, onSubmit, className }: DomainLookupFormProps) {
+function DomainSearchForm({ initialValue, onSubmit, onClear, className }: DomainSearchFormProps) {
   const [inputValue, setInputValue] = useState(initialValue);
 
   useEffect(() => {
@@ -64,7 +65,12 @@ function DomainLookupForm({ initialValue, onSubmit, className }: DomainLookupFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = inputValue.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
-    if (normalized) onSubmit(normalized);
+    onSubmit(normalized);
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    onClear();
   };
 
   return (
@@ -73,15 +79,24 @@ function DomainLookupForm({ initialValue, onSubmit, className }: DomainLookupFor
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder="e.g. example.com"
-        className="text-sm border border-gray-300 rounded px-2 py-1 w-64 focus:outline-none focus:ring-1 focus:ring-primary-400"
+        placeholder="Search domain, e.g. empire"
+        className="text-sm border border-gray-300 rounded px-2 py-1 w-56 focus:outline-none focus:ring-1 focus:ring-primary-400"
       />
       <button
         type="submit"
         className="text-xs text-white bg-primary-500 hover:bg-primary-600 px-3 py-1 rounded"
       >
-        Look up
+        Search
       </button>
+      {initialValue && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
+        >
+          Clear
+        </button>
+      )}
     </form>
   );
 }
@@ -100,6 +115,7 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<IntersectResponse | null>(null);
   const [filterCount, setFilterCount] = useState<number | null>(null);
+  const [domainSearch, setDomainSearch] = useState<string>("");
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [breakdownData, setBreakdownData] = useState<GapDomainBreakdownRow[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
@@ -147,6 +163,7 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
       .then((res) => {
         setData(res);
         setFilterCount(null);
+        setDomainSearch("");
         setExpandedDomain(null);
         setBreakdownData([]);
       })
@@ -182,12 +199,19 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
     }));
   }, [data]);
 
-  // Filtered domains by intersection count
+  // Filtered domains by intersection count + substring search
   const filteredDomains = useMemo(() => {
     if (!data) return [];
-    if (filterCount === null) return data.domains;
-    return data.domains.filter((d) => d.competitor_count === filterCount);
-  }, [data, filterCount]);
+    let result = data.domains;
+    if (filterCount !== null) {
+      result = result.filter((d) => d.competitor_count === filterCount);
+    }
+    if (domainSearch) {
+      const q = domainSearch.toLowerCase();
+      result = result.filter((d) => d.referring_domain.toLowerCase().includes(q));
+    }
+    return result;
+  }, [data, filterCount, domainSearch]);
 
   // Reset breakdown when chart filter changes
   useEffect(() => {
@@ -206,6 +230,13 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
       .catch(() => setBreakdownData([]))
       .finally(() => setBreakdownLoading(false));
   }, [profile, selectedCompetitors]);
+
+  const handleDomainSearch = useCallback((query: string) => {
+    setDomainSearch(query);
+    if (query) {
+      setTimeout(() => gapTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  }, []);
 
   const handleGapRowClick = useCallback((row: IntersectDomain) => {
     if (expandedDomain === row.referring_domain) {
@@ -633,12 +664,23 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                         {filterCount > 1 ? "s" : ""})
                       </span>
                     )}
+                    {domainSearch && (
+                      <span className="text-primary-500 font-normal ml-2">
+                        (matching "{domainSearch}")
+                      </span>
+                    )}
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
                     Referring domains linking to competitors but not to{" "}
                     <strong>{profile}</strong>. Click a row to see individual
                     referring pages.
                   </p>
+                  <DomainSearchForm
+                    initialValue={domainSearch}
+                    onSubmit={handleDomainSearch}
+                    onClear={() => setDomainSearch("")}
+                    className="flex items-center gap-2 mt-2"
+                  />
                 </div>
               }
               toolbar={
@@ -694,11 +736,6 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                         ))}
                       </div>
                     )}
-                    <DomainLookupForm
-                      initialValue={expandedDomain}
-                      onSubmit={handleDomainLookup}
-                      className="flex items-center gap-2"
-                    />
                     <p className="text-xs text-gray-400 mt-1">
                       Individual referring pages linking to competitors but not to{" "}
                       <strong>{profile}</strong>
@@ -743,13 +780,8 @@ export default function IntersectTab({ profile }: IntersectTabProps) {
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
                   Pages from domain
                 </h3>
-                <DomainLookupForm
-                  initialValue=""
-                  onSubmit={handleDomainLookup}
-                  className="flex items-center gap-2 justify-center py-4"
-                />
-                <p className="text-xs text-gray-400 text-center">
-                  or select a domain row above
+                <p className="text-sm text-gray-400 text-center py-4">
+                  Select a domain row above to see individual referring pages.
                 </p>
               </>
             )}
