@@ -9,6 +9,7 @@ import {
   deleteFile,
   type ProfileAnchorSettings,
   type FileEntry,
+  type IngestResult,
 } from "../../lib/api";
 import { useProfile } from "../ProfileContext";
 import BlocklistTab from "./BlocklistTab";
@@ -534,21 +535,30 @@ function WorkspaceSection() {
 function DataManagementSection() {
   const { refresh } = useProfile();
   const [ingesting, setIngesting] = useState(false);
-  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+  const [ingestResult, setIngestResult] = useState<IngestResult | null>(null);
+  const [showOutput, setShowOutput] = useState(true);
 
   const handleIngest = async () => {
     setIngesting(true);
-    setIngestMsg(null);
+    setIngestResult(null);
     try {
       const result = await triggerIngest();
-      setIngestMsg(result.status === "ok" ? "Ingestion complete" : `Status: ${result.status}`);
+      setIngestResult(result);
       refresh();
     } catch (err) {
-      setIngestMsg(`Failed: ${err}`);
+      const asResult = err as IngestResult;
+      if (asResult && typeof asResult === "object" && "status" in asResult) {
+        setIngestResult(asResult);
+      } else {
+        setIngestResult({ status: "error", message: String(err) });
+      }
     } finally {
       setIngesting(false);
     }
   };
+
+  const isError = ingestResult?.status !== "ok" && ingestResult !== null;
+  const hasOutput = !!(ingestResult?.stdout || ingestResult?.stderr);
 
   return (
     <div>
@@ -561,11 +571,42 @@ function DataManagementSection() {
           >
             {ingesting ? "Ingesting..." : "Run Ingestion"}
           </button>
-          {ingestMsg && <span className="text-sm text-gray-500">{ingestMsg}</span>}
+          {ingestResult && (
+            <span className={`text-sm ${isError ? "text-red-600" : "text-emerald-600"}`}>
+              {isError
+                ? `Failed${ingestResult.returncode != null ? ` (exit ${ingestResult.returncode})` : ""}${ingestResult.message ? `: ${ingestResult.message}` : ""}`
+                : (ingestResult.message ?? "Ingestion complete")}
+            </span>
+          )}
         </div>
         <p className="text-xs text-gray-400 mt-2">
           Parses CSV/TSV files from source directories into Parquet and refreshes the database.
         </p>
+
+        {ingestResult && hasOutput && (
+          <div className="mt-4 border-t pt-3">
+            <button
+              className="text-xs text-primary-600 hover:text-primary-700"
+              onClick={() => setShowOutput((v) => !v)}
+            >
+              {showOutput ? "Hide output" : "Show output"}
+            </button>
+            {showOutput && (
+              <div className="mt-2 space-y-2">
+                {ingestResult.stdout && (
+                  <pre className="bg-gray-900 text-gray-100 text-xs rounded p-3 max-h-96 overflow-auto whitespace-pre-wrap font-mono">
+{ingestResult.stdout}
+                  </pre>
+                )}
+                {ingestResult.stderr && (
+                  <pre className="bg-red-950 text-red-100 text-xs rounded p-3 max-h-96 overflow-auto whitespace-pre-wrap font-mono">
+{ingestResult.stderr}
+                  </pre>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

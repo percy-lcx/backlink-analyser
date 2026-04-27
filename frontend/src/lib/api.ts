@@ -473,8 +473,31 @@ export function fetchBrokenLinks(
   } as Record<string, string | number | boolean | undefined>);
 }
 
-export function triggerIngest(): Promise<{ status: string }> {
-  return post<{ status: string }>(`${BASE}/ingest`);
+export interface IngestResult {
+  status: string;
+  message?: string;
+  stdout?: string;
+  stderr?: string;
+  returncode?: number;
+}
+
+export async function triggerIngest(): Promise<IngestResult> {
+  const res = await fetch(`${BASE}/ingest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = body?.detail ?? {};
+    const err: IngestResult = {
+      status: "error",
+      message: typeof detail === "string" ? detail : (detail.message ?? `API ${res.status}: ${res.statusText}`),
+      stderr: typeof detail === "object" ? detail.stderr : undefined,
+      returncode: typeof detail === "object" ? detail.returncode : undefined,
+    };
+    throw err;
+  }
+  return body as IngestResult;
 }
 
 /* ---- File Management ---- */
