@@ -11,13 +11,7 @@ venv/
 frontend/node_modules/
 frontend/dist/
 
-# Data
-data/*.tsv
-data/*.csv
-data/backlinks/*.tsv
-data/backlinks/*.csv
-data/keywords/*.tsv
-data/keywords/*.csv
+# Data — CSV/TSV source profiles are tracked; Parquet is derived
 store/*.parquet
 store/keywords/*.parquet
 

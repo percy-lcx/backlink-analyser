@@ -1,0 +1,19 @@
+{
+  "active": "gift: limitless",
+  "workspaces": {
+    "airline: malaysia airlines": {
+      "datasets": [
+        "malaysia-airlines",
+        "airasia",
+        "singapore-airlines"
+      ]
+    },
+    "gift: limitless": {
+      "datasets": [
+        "lvly-au",
+        "bloomeroo-au",
+        "airasia"
+      ]
+    }
+  }
+}
