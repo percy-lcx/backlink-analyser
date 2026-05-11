@@ -1,5 +1,5 @@
 {
-  "active": "gift: limitless",
+  "active": "cruise: cruise guru",
   "workspaces": {
     "airline: malaysia airlines": {
       "datasets": [
@@ -13,6 +13,14 @@
         "lvly-au",
         "bloomeroo-au",
         "airasia"
+      ]
+    },
+    "cruise: cruise guru": {
+      "datasets": [
+        "cruise1st",
+        "cruiseaway",
+        "cruiseguru",
+        "ozcruising"
       ]
     }
   }
